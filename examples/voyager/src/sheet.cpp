@@ -183,6 +183,31 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
         out.record.push_back({world.getProperty(kind, "name"),
                               "x" + std::to_string(faced)});
     }
+
+    // What the life holds: the latest standing per counterpart, and
+    // every mark. Labels and values are the graph's words throughout.
+    std::vector<std::pair<kg::EntityID, std::string>> standings;
+    for (const kg::EntityID lived : world.getRelated(character, "LIVED")) {
+        const std::string type = world.getType(lived);
+        if (type == "StandingHeld") {
+            long long with = 0;
+            if (!as_int(world.getProperty(lived, "standing_with"), with)) {
+                continue;
+            }
+            const auto id = static_cast<kg::EntityID>(with);
+            const std::string key = world.getProperty(lived, "standing_key");
+            bool replaced = false;
+            for (auto& held : standings) {
+                if (held.first == id) { held.second = key; replaced = true; }
+            }
+            if (!replaced) standings.emplace_back(id, key);
+        } else if (type == "MarkLeft") {
+            out.record.push_back({world.getProperty(lived, "mark_text"), ""});
+        }
+    }
+    for (const auto& [id, key] : standings) {
+        out.record.push_back({world.getProperty(id, "name"), key});
+    }
     return true;
 }
 

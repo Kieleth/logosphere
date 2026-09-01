@@ -15,6 +15,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("CoverageJudgement", {"CLAIMS_PRESENT", "NO_RULE_CONTENT"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("DamageType", {"BITE", "BLUNT", "COLD", "FIRE", "PIERCE", "POISON", "PURE", "SLASH"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumType("DoorKey", {"direct", "open", "pass", "sideways"});
+    reg.addEnumType("EffectKey", {"bind_standing", "leave_mark", "move_characteristic", "turn_life"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("EntityModification", {"DAMAGED", "DESTROYED", "FROZEN", "NONE", "PRUNED"});
     reg.setSource("https://malleus.dev/schema");
     reg.addEnumType("EntityStatus", {"ACTIVE", "DESTROYED", "INACTIVE"});
@@ -48,6 +52,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("SourceExclusionKind", {"LAYOUT", "SYNTAX"});
     reg.addEnumType("SourceManifestFormat", {"LENGTH_PREFIXED_V1"});
     reg.addEnumType("SourceMediaType", {"UTF8_TEXT"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumType("StandingKey", {"acquaintance", "ally", "debt", "enemy", "obligation"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEnumType("TableRole", {"cash", "material", "service"});
     reg.setSource("https://logosphere.dev/schema");
@@ -55,7 +61,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEnumType("TransformationEffect", {"DELETE", "EMIT_EVENT", "FADE_OUT", "KNOCKBACK", "SWAP_PROFILE"});
     reg.addEnumType("TransformationTrigger", {"ON_CONTACT", "ON_CONTACT_FILTERED", "ON_TIMER", "ON_VOLUME_ENTER"}, true);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumType("TurnKey", {"career_changes", "career_ends", "forced_leaving", "life_ends"});
     reg.addEnumType("VoyagerLifeRelationType", {"LIVED"});
+    reg.addEnumType("WeightKey", {"branch", "mark", "nothing", "turn"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addEnumType("WorldEventType", {"COLLISION", "CONSTRAINT_BREAK", "DAMAGE", "DEATH", "GROWTH", "PERCEPTION", "RELATION_CREATED", "RELATION_REMOVED", "SPAWN", "STATE_CHANGE"});
     reg.addEnumType("WorldRelationType", {"BONDED_TO", "BURNS", "CONTAINS", "HAS_CONSTRAINT", "HAS_PART", "HAS_REGIONAL_PART", "ILLUMINATES", "MANAGES", "PERCEIVES", "SPECIALIZES", "SUPPORTS"});
@@ -107,6 +115,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Destructible", "", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("DiceExpression", "Entity", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Door", "Entity", false);
+    reg.addEntityType("EffectKind", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("EmitsLight", "", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -119,6 +130,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("EntityExpression", "Expression", true);
     reg.addEntityType("EntityTypeDescriptor", "ValueTypeDescriptor", false);
     reg.addEntityType("Expression", "Entity", true);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Faction", "Entity", false);
+    reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addEntityType("FloatCollectionExpression", "CollectionExpression", true);
     reg.addEntityType("FloatCollectionTypeDescriptor", "ValueTypeDescriptor", false);
     reg.addEntityType("FloatExpression", "NumericExpression", true);
@@ -232,7 +246,14 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("ParameterReadExpression", "", true);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("ParticleInteractionProfile", "Entity", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Person", "Entity", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("PhysicsConstants", "Entity", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Place", "Entity", false);
+    reg.addEntityType("PlaybookDoorExample", "Entity", false);
+    reg.addEntityType("PlaybookExample", "Entity", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("Possession", "Entity", false);
     reg.addEntityType("PossessionHolding", "Entity", false);
@@ -295,6 +316,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SourceTarget", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Spatial", "", true);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("StandingKind", "Entity", false);
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Statusable", "", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -324,6 +347,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("Torso", "BodyPart", false);
     reg.addEntityType("TransformationRule", "Entity", false);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Turn", "Entity", false);
     reg.addEntityType("UnsettledQuestion", "Entity", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("UpperArm", "BodyPart", false);
@@ -332,6 +356,9 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Wall", "Structure", false);
     reg.addEntityType("WallBlock", "Wall", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("Weight", "Entity", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("Wing", "BodyPart", false);
     reg.addEntityType("WorldEntity", "Entity", true);
 
@@ -347,6 +374,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("ArgumentBinding", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Arm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("ArrivalProposed", {"Event", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("AttributeGroup", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
@@ -388,6 +417,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("DiceExpression", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("DiceRollEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Door", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("EffectKind", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("EnsureSkillLevel", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://malleus.dev/schema");
@@ -401,6 +433,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("Event", {"Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("Expression", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Faction", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addAncestors("FloatCollectionExpression", {"CollectionExpression", "Describable", "Entity", "Expression", "Identifiable", "Temporal"});
     reg.addAncestors("FloatCollectionTypeDescriptor", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal", "ValueTypeDescriptor"});
     reg.addAncestors("FloatExpression", {"Describable", "Entity", "Expression", "Identifiable", "NumericExpression", "ScalarExpression", "Temporal"});
@@ -465,6 +500,9 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("LookupEntry", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("LookupTable", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("MarkLeft", {"Event", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("ModifyAttribute", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.addAncestors("ModifyAttributesInGroup", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Outcome", "Temporal"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
@@ -501,7 +539,14 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("ParticleInteractionProfile", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PerceptionEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Person", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("PhysicsConstants", {"Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Place", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("PlaybookDoorExample", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("PlaybookExample", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("Possession", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.addAncestors("PossessionHolding", {"Describable", "Entity", "Identifiable", "Temporal"});
@@ -567,6 +612,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("SourceTarget", {"Addressable", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("SpawnEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("StandingHeld", {"Event", "Identifiable", "Temporal"});
+    reg.addAncestors("StandingKind", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addAncestors("StepRoute", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -593,6 +641,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("TransformationEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("TransformationRule", {"Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Turn", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.addAncestors("TurnTaken", {"Event", "Identifiable", "Temporal"});
     reg.addAncestors("UnsettledQuestion", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
     reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("UpperArm", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
@@ -602,6 +652,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addAncestors("VolumeEvent", {"Event", "Identifiable", "Temporal", "WorldEvent"});
     reg.addAncestors("Wall", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "WorldEntity"});
     reg.addAncestors("WallBlock", {"Bondable", "Describable", "Entity", "HasMaterial", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Structure", "Temporal", "Wall", "WorldEntity"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addAncestors("Weight", {"Addressable", "Cited", "Describable", "Entity", "Identifiable", "Temporal"});
+    reg.setSource("https://logosphere.dev/schema");
     reg.addAncestors("Wing", {"BodyPart", "Bondable", "Describable", "Entity", "HasHealth", "HasMaterial", "HasPhysicalCapability", "HasSolverAuthority", "HasTissue", "Identifiable", "Spatial", "Statusable", "Temporal", "WorldEntity"});
     reg.addAncestors("WorldEntity", {"Bondable", "Describable", "Entity", "HasSolverAuthority", "Identifiable", "Spatial", "Statusable", "Temporal"});
     reg.addAncestors("WorldEvent", {"Event", "Identifiable", "Temporal"});
@@ -620,6 +673,9 @@ static kg::OntologyRegistry build_registry() {
     // Event types
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("ArbiterDecision", "Event", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("ArrivalProposed", "Event", false);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addEntityType("ClaimDecision", "ArbiterDecision", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("CollisionEvent", "WorldEvent", false);
@@ -633,6 +689,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://malleus.dev/schema");
     reg.addEntityType("Event", "", false);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("MarkLeft", "Event", false);
     reg.addEntityType("MomentFaced", "Event", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("PerceptionEvent", "WorldEvent", false);
@@ -641,7 +698,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addEntityType("SeasonLived", "Event", false);
     reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("SpawnEvent", "WorldEvent", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("StandingHeld", "Event", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("TransformationEvent", "WorldEvent", false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEntityType("TurnTaken", "Event", false);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addEntityType("VolumeEvent", "WorldEvent", false);
     reg.addEntityType("WorldEvent", "Event", false);
 
@@ -649,6 +712,9 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("AdvanceSkill", {"rulebook"});
     reg.addFacets("ArbiterDecision", {"rulebook"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("ArrivalProposed", {"voyager-book"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("AttributeGroup", {"rulebook"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
     reg.addFacets("Career", {"rulebook"});
@@ -662,7 +728,14 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("CoverageDecision", {"append-only", "ingestion-ledger", "rulebook"});
     reg.addFacets("CurrencyBalance", {"rulebook"});
     reg.addFacets("DiceExpression", {"rulebook"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("Door", {"voyager-book"});
+    reg.addFacets("EffectKind", {"voyager-book"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("EnsureSkillLevel", {"rulebook"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("Faction", {"voyager-world"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("ForfeitBenefits", {"rulebook"});
     reg.addFacets("GainFixedMoney", {"rulebook"});
     reg.addFacets("GainMoney", {"rulebook"});
@@ -676,6 +749,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("JudgmentPoint", {"no-instance-declared", "rulebook"});
     reg.addFacets("LookupEntry", {"rulebook"});
     reg.addFacets("LookupTable", {"rulebook"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("MarkLeft", {"voyager-book"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("ModifyAttribute", {"rulebook"});
     reg.addFacets("ModifyAttributesInGroup", {"rulebook"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
@@ -692,6 +768,12 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("OutcomeOption", {"rulebook"});
     reg.addFacets("OutcomeSequence", {"rulebook"});
     reg.addFacets("OutcomeStep", {"rulebook"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("Person", {"voyager-world"});
+    reg.addFacets("Place", {"voyager-world"});
+    reg.addFacets("PlaybookDoorExample", {"voyager-book"});
+    reg.addFacets("PlaybookExample", {"voyager-book"});
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("Possession", {"rulebook"});
     reg.addFacets("PossessionHolding", {"rulebook"});
     reg.addFacets("Procedure", {"rulebook"});
@@ -713,6 +795,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("SourceLayerContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceRepresentationContext", {"sealed-origin", "seed-owned"});
     reg.addFacets("SourceRevisionObservation", {"append-only", "no-instance-declared", "seed-owned"});
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("StandingHeld", {"voyager-book"});
+    reg.addFacets("StandingKind", {"voyager-book"});
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addFacets("StepRoute", {"rulebook"});
     reg.addFacets("SubjectLookupEntry", {"rulebook"});
@@ -720,7 +805,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addFacets("TableEntry", {"rulebook"});
     reg.addFacets("TaskCheck", {"rulebook"});
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addFacets("Turn", {"voyager-book"});
+    reg.addFacets("TurnTaken", {"voyager-book"});
     reg.addFacets("UnsettledQuestion", {"voyager-book"});
+    reg.addFacets("Weight", {"voyager-book"});
 
     // Relation types
     reg.setSource("https://logosphere.dev/schema");
@@ -782,6 +870,11 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/packs/rule-language");
     reg.addRefProperty("ArgumentBinding", "binding_parameter", true, "FunctionParameterSpec");
     reg.addRefProperty("ArgumentBinding", "binding_argument", true, "Expression");
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addRefProperty("ArrivalProposed", "moment_kind", true, "MomentKind");
+    reg.addProperty("ArrivalProposed", "moment_chance", kg::PropertyValueKind::Float, true, true, 0.0, true, 1.0);
+    reg.addProperty("ArrivalProposed", "moment_draw", kg::PropertyValueKind::Float, true, true, 0.0, true, 1.0);
+    reg.addProperty("ArrivalProposed", "arrival_landed", kg::PropertyValueKind::Boolean, true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("AttributeGroup", "attribute_refs", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/schema");
@@ -964,6 +1057,13 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("DiceRollEvent", "roll_total", kg::PropertyValueKind::Integer, false);
     reg.addProperty("DiceRollEvent", "roll_stream", kg::PropertyValueKind::String, false);
     reg.addProperty("DiceRollEvent", "roll_purpose", kg::PropertyValueKind::String, false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumProperty("Door", "door_key", "DoorKey", true);
+    reg.addProperty("Door", "door_is_players", kg::PropertyValueKind::Boolean, true);
+    reg.addEnumProperty("EffectKind", "effect_key", "EffectKey", true);
+    reg.addProperty("EffectKind", "effect_turns_life", kg::PropertyValueKind::Boolean, true);
+    reg.addProperty("EffectKind", "effect_moves_characteristic", kg::PropertyValueKind::Boolean, true);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("EmitsLight", "emission_strength", kg::PropertyValueKind::Float, false);
     reg.addProperty("EmitsLight", "emission_radius", kg::PropertyValueKind::Float, false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -1130,6 +1230,9 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("LookupTable", "attribute_ref", kg::PropertyValueKind::String, false);
     reg.addProperty("LookupTable", "entry_type", kg::PropertyValueKind::String, true);
     reg.addProperty("LookupTable", "miss_is_nothing", kg::PropertyValueKind::Boolean, false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addProperty("MarkLeft", "mark_text", kg::PropertyValueKind::String, true);
+    reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("ModifyAttribute", "attribute_ref", kg::PropertyValueKind::String, true);
     reg.addProperty("ModifyAttribute", "attribute_delta", kg::PropertyValueKind::Integer, true);
     reg.addRefProperty("ModifyAttributesInGroup", "attribute_group", true, "Entity");
@@ -1144,6 +1247,8 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("MomentFaced", "moment_went_against", kg::PropertyValueKind::Boolean, true);
     reg.addProperty("MomentFaced", "moment_situation", kg::PropertyValueKind::String, true);
     reg.addProperty("MomentFaced", "moment_outcome", kg::PropertyValueKind::String, true);
+    reg.addEnumProperty("MomentFaced", "moment_weight", "WeightKey", true);
+    reg.addEnumProperty("MomentFaced", "moment_door", "DoorKey", true);
     reg.addEnumProperty("MomentKind", "moment_kind_key", "MomentKindKey", true);
     reg.addProperty("Narration", "narration_text", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/packs/rule-language");
@@ -1182,6 +1287,11 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("PhysicsConstants", "gravity_z", kg::PropertyValueKind::Float, false);
     reg.addProperty("PhysicsConstants", "air_resistance", kg::PropertyValueKind::Float, false, true, 0.0, false, 0.0);
     reg.addProperty("PhysicsConstants", "default_friction", kg::PropertyValueKind::Float, false, true, 0.0, false, 0.0);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumProperty("PlaybookDoorExample", "moment_kind_key", "MomentKindKey", true);
+    reg.addEnumProperty("PlaybookDoorExample", "door_key", "DoorKey", true);
+    reg.addEnumProperty("PlaybookExample", "moment_kind_key", "MomentKindKey", true);
+    reg.addEnumProperty("PlaybookExample", "weight_key", "WeightKey", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("Possession", "possession_text", kg::PropertyValueKind::String, false);
     reg.addRefProperty("PossessionHolding", "possession", true, "Entity");
@@ -1248,6 +1358,10 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Spatial", "z", kg::PropertyValueKind::Float, false);
     reg.addProperty("Spatial", "chunk_x", kg::PropertyValueKind::Integer, false);
     reg.addProperty("Spatial", "chunk_y", kg::PropertyValueKind::Integer, false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumProperty("StandingHeld", "standing_key", "StandingKey", true);
+    reg.addRefProperty("StandingHeld", "standing_with", true, "Entity");
+    reg.addEnumProperty("StandingKind", "standing_key", "StandingKey", true);
     reg.setSource("https://malleus.dev/schema");
     reg.addEnumProperty("Statusable", "status", "EntityStatus", false);
     reg.setSource("https://logosphere.dev/packs/rulebook");
@@ -1284,10 +1398,20 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("TransformationRule", "duration_s", kg::PropertyValueKind::Float, false);
     reg.addProperty("TransformationRule", "trigger_profile", kg::PropertyValueKind::Integer, false);
     reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumProperty("Turn", "turn_key", "TurnKey", true);
+    reg.addProperty("Turn", "turn_ends_season", kg::PropertyValueKind::Boolean, true);
+    reg.addProperty("Turn", "turn_ends_life", kg::PropertyValueKind::Boolean, true);
+    reg.addEnumProperty("TurnTaken", "turn_key", "TurnKey", true);
     reg.addProperty("UnsettledQuestion", "question_text", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("VolumeEvent", "entered", kg::PropertyValueKind::Boolean, false);
     reg.addProperty("VolumeEvent", "medium_profile", kg::PropertyValueKind::Integer, false);
+    reg.setSource("https://logosphere.dev/voyager/chargen");
+    reg.addEnumProperty("Weight", "weight_key", "WeightKey", true);
+    reg.addProperty("Weight", "weight_effect_limit", kg::PropertyValueKind::Integer, false, true, 0.0, false, 0.0);
+    reg.addProperty("Weight", "weight_may_turn", kg::PropertyValueKind::Boolean, true);
+    reg.addProperty("Weight", "weight_unbounded", kg::PropertyValueKind::Boolean, true);
+    reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("WorldEvent", "source_entity_id", kg::PropertyValueKind::String, false);
     reg.addProperty("WorldEvent", "target_entity_id", kg::PropertyValueKind::String, false);
     reg.addProperty("WorldEvent", "payload_keys", kg::PropertyValueKind::String, false);

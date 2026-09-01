@@ -38,7 +38,7 @@ There are five kinds of moments, and this list is the canon until this book says
 
 ## How a moment resolves
 
-At any stage, a moment arrives one of two ways. If your stage in its kind is beneath it, it arrives as fate: already resolved, the dice thrown before you saw the table, and you learn what it did to you. If your eye is good enough, it arrives open: doors are offered, each stating what it risks and what it reaches for, and the dice wait for your hand.
+Every moment arrives with its doors, each reaching for something and risking something, and the dice wait for your hand. What your stage in its kind decides is what you can see of them: a kind you have never faced shows its doors unpriced, and you choose blind; a kind you have faced shows them priced, and you choose knowing.
 
 And beside every door there is the open one: say what you do, and the world will price it. What you say becomes a throw the rules already understand, with its own risk and its own cost, and the engine rolls it like any other. The world prices; it never gifts.
 

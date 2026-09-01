@@ -96,10 +96,22 @@ public:
     // they are made. Otherwise the window opens on nothing for as long
     // as the model takes to answer, which reads as a hang.
     void update_game(float) override {
-        if (!armed_ || started_) return;
-        if (++frames_ < 2) return;
-        started_ = true;
-        start();
+        if (!armed_) return;
+        if (!started_) {
+            if (++frames_ < 2) return;
+            started_ = true;
+            start();
+            return;
+        }
+        // The player's own door: their words arrive through the
+        // engine's text field, and Enter hands them to the session.
+        auto* ui = engine_->get_ui_system();
+        if (session_ && session_->awaiting_plan() && ui &&
+            ui->has_pending_submit()) {
+            const std::string plan = ui->get_input_text();
+            ui->clear_input_text();
+            take_door(plan);
+        }
     }
 
 private:

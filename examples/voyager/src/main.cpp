@@ -30,8 +30,9 @@ int main(int argc, char** argv) {
     config.window_title = "Voyager";
     config.show_debug_overlay = false;
     config.show_kg_inspector = false;
-    // No chat box. This screen is read and clicked, not typed into.
-    config.enable_chat_window = false;
+    // The engine's text field is the open door: it shows only while
+    // the player's own words are wanted, and is hidden otherwise.
+    config.enable_chat_window = true;
 
     if (engine.initialize(config) < 0) {
         std::cerr << "[voyager] engine init failed" << std::endl;

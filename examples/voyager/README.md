@@ -2,10 +2,17 @@
 
 One screen. Six numbers are rolled, a referee says where that person
 came from, a handful of careers are offered, you take one. Then the
-game's own book takes over: you choose how a season is spent, the
-season breaks, a moment arrives with a stated chance, the engine draws
-against it, and the telling lands on your sheet. Then it tells you to
-start over. That is as far as the book is written, on purpose.
+game's own book takes over, season by season: you choose how each is
+spent, the director rates every kind of trouble as a probability and
+the engine draws each, and when one lands the director dresses it,
+states its weight, and writes three doors, each with a chance and two
+lists, what it risks and what it reaches for. There is always a fourth
+door: say what you would do, and the director prices it. The engine
+draws, exactly the chosen list lands, the telling goes on your sheet
+with the marks, standings and turns it left, and the people and
+places the director named are now part of the world. It ends when you
+say it does, or when a turn ends the life. That is as far as the book
+is written, on purpose.
 
 It is plumbing, and the plumbing is the point: everything the rulebook
 fixes lives in the knowledge graph and is read from where it is used,

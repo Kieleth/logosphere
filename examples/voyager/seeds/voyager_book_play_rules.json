@@ -1,7 +1,7 @@
 {
   "source": {
     "file": "02-seasons-and-moments-in-play.md",
-    "commit": "sha256:2856c7f71f9b34dfef4d3592de2679a3fbda7147790034f1366a47af04c1e3cd"
+    "commit": "sha256:8828ea38f297e8e34a52060bd52988bff284ea3162608f8b33de65020e8e911f"
   },
   "layer": "voyager-book",
   "generated_by": "examples/voyager/tools/extract_book.py",

@@ -107,6 +107,25 @@ std::vector<std::string> g_allowed;
 // file spelling a rule value.
 std::string g_low;
 std::string g_high;
+// The named lists a structured answer composes from, as the graph
+// holds them. The generator spells none of them.
+std::map<std::string, std::vector<std::string>> g_vocab;
+
+// A chance inside the graph's bounds, picked by the seed.
+std::string chance_from(uint64_t roll) {
+    double low = 0.0, high = 0.0;
+    try {
+        low = std::stod(g_low);
+        high = std::stod(g_high);
+    } catch (...) {
+        return {};
+    }
+    std::ostringstream out;
+    out.setf(std::ios::fixed);
+    out.precision(2);
+    out << low + (high - low) * (static_cast<double>(roll % 101) / 100.0);
+    return out.str();
+}
 
 std::string synthetic(const replay::Ask& ask, uint64_t roll) {
     if (ask.site == "referee.background") {
@@ -129,34 +148,51 @@ std::string synthetic(const replay::Ask& ask, uint64_t roll) {
         }
         return out.str();
     }
-    if (ask.site == "referee.moment") {
-        if (g_allowed.empty() || g_low.empty() || g_high.empty()) {
-            return {};
-        }
-        // A kind from the graph's own set, a chance inside the graph's
-        // own bounds, both picked by the seed. The prose names itself
-        // machine-made, as the background does.
-        double low = 0.0, high = 0.0;
-        try {
-            low = std::stod(g_low);
-            high = std::stod(g_high);
-        } catch (...) {
-            return {};
-        }
-        const double chance =
-            low + (high - low) *
-                      (static_cast<double>(roll % 101) / 100.0);
+    if (ask.site == "referee.arrival") {
+        // Every kind rated, at one chance the seed picks inside the
+        // graph's bounds, so some seasons break and most do not.
+        if (g_allowed.empty()) return {};
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
         std::ostringstream out;
-        out.setf(std::ios::fixed);
-        out.precision(2);
-        out << g_allowed[roll % g_allowed.size()] << " | " << chance
-            << "\n(no referee: a situation invented by the seeded "
-               "generator, which writes no prose)";
+        for (const auto& kind : g_allowed) out << kind << " | " << chance << "\n";
         return out.str();
+    }
+    if (ask.site == "referee.doors") {
+        // The first rung the graph lists, which the book makes the one
+        // that permits no effect, so the doors carry none; every door
+        // the director writes, priced by the seed. The prose names
+        // itself machine-made, as the background does.
+        const auto weights = g_vocab.find("weights");
+        const auto doors = g_vocab.find("doors");
+        if (weights == g_vocab.end() || weights->second.empty() ||
+            doors == g_vocab.end() || doors->second.empty()) {
+            return {};
+        }
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
+        std::ostringstream out;
+        out << "weight | " << weights->second.front() << "\nsituation\n"
+            << "(no referee: a situation invented by the seeded generator, "
+               "which writes no prose)\n";
+        for (const auto& door : doors->second) {
+            out << "door | " << door << " | " << chance
+                << " | offered by the generator\n";
+        }
+        return out.str();
+    }
+    if (ask.site == "referee.price") {
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
+        return "chance | " + chance + "\n";
     }
     if (ask.site == "referee.moment.aftermath") {
         return "(no referee: an outcome named by the seeded generator, "
                "which tells no story)";
+    }
+    if (ask.site == "chargen.plan") {
+        return "(no player: a plan invented by the seeded generator, which "
+               "makes no plans)";
     }
     return {};
 }
@@ -325,6 +361,12 @@ int main(int argc, char** argv) {
                               "as it is written above, and nothing "
                               "else.";
                     question.prompt = prompt.str();
+                } else if (ask.site == "chargen.plan") {
+                    question.prompt =
+                        "You are the PLAYER now, not the referee. You "
+                        "chose to say what you would do.\n\n" + ask.prompt +
+                        "\n\nSay it, first person, two sentences, and "
+                        "nothing else.";
                 }
                 std::string reply;
                 if (!model.answer(question, reply, error)) return false;
@@ -438,6 +480,7 @@ int main(int argc, char** argv) {
             g_allowed = question.allowed;
             g_low = question.low;
             g_high = question.high;
+            g_vocab = question.vocab;
             return tape.ask(ask, answer, error);
         });
 
@@ -449,8 +492,8 @@ int main(int argc, char** argv) {
 
     int guard = 0;
     while (!session.finished() && !session.choices().empty()) {
-        if (++guard > 32) {
-            std::cout << "gave up after 32 decisions\n";
+        if (++guard > 256) {
+            std::cout << "gave up after 256 decisions\n";
             return 1;
         }
         // The keys are the ANSWER and the labels go in the PROMPT,
@@ -475,6 +518,22 @@ int main(int argc, char** argv) {
         if (!session.choose(answer, error)) {
             std::cout << "'" << answer << "' was refused: " << error << "\n";
             return 1;
+        }
+        // The player's own door: a second, free-form ask carries the
+        // player's words, taped verbatim like the referee's prose.
+        if (session.awaiting_plan()) {
+            replay::Ask plan;
+            plan.site = "chargen.plan";
+            plan.prompt = session.prompt();
+            std::string words;
+            if (!tape.ask(plan, words, error)) {
+                std::cout << "the run stopped: " << error << "\n";
+                return 1;
+            }
+            if (!session.choose(words, error)) {
+                std::cout << "the plan was refused: " << error << "\n";
+                return 1;
+            }
         }
     }
 

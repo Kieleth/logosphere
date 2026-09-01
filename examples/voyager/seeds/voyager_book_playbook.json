@@ -1,0 +1,217 @@
+{
+  "source": {
+    "file": "04-the-directors-playbook.md",
+    "commit": "sha256:8828ea38f297e8e34a52060bd52988bff284ea3162608f8b33de65020e8e911f"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "RuleConstant": 2,
+      "Door": 4,
+      "PlaybookExample": 4,
+      "PlaybookDoorExample": 3,
+      "UnsettledQuestion": 2
+    },
+    "unique_name_per_type": [
+      "Door",
+      "PlaybookDoorExample",
+      "PlaybookExample",
+      "RuleConstant",
+      "UnsettledQuestion"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@arrival_chance_floor",
+      "properties": {
+        "name": "arrival_chance_floor",
+        "constant_value": "0.01",
+        "source_section": "How events arrive",
+        "source_kind": "sentence",
+        "source_quote": "Each season, for each kind, the director states the chance that kind finds this life this season, given its trade, its place, and how the season is being spent, and states it as a probability, never below 0.01 and never above 0.9."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@arrival_chance_ceiling",
+      "properties": {
+        "name": "arrival_chance_ceiling",
+        "constant_value": "0.9",
+        "source_section": "How events arrive",
+        "source_kind": "sentence",
+        "source_quote": "Each season, for each kind, the director states the chance that kind finds this life this season, given its trade, its place, and how the season is being spent, and states it as a probability, never below 0.01 and never above 0.9."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Door",
+      "as": "@door_direct",
+      "properties": {
+        "name": "direct",
+        "door_key": "direct",
+        "door_is_players": "false",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "The direct door meets the event head on."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Door",
+      "as": "@door_sideways",
+      "properties": {
+        "name": "sideways",
+        "door_key": "sideways",
+        "door_is_players": "false",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "The sideways door meets it through what the character knows, who they know, and what they carry: their trade, their standing with someone present, a mark that matters here, or a detail the event itself has shown."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Door",
+      "as": "@door_pass",
+      "properties": {
+        "name": "pass",
+        "door_key": "pass",
+        "door_is_players": "false",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "The pass door lets the event happen without them, and the world resolves it as it would have anyway, which is cheaper and blinder than either of the others."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Door",
+      "as": "@door_open",
+      "properties": {
+        "name": "open",
+        "door_key": "open",
+        "door_is_players": "true",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "The open door is the player's: tell me what you would do, and the director prices it."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookExample",
+      "as": "@example_violence_nothing",
+      "properties": {
+        "name": "violence at nothing",
+        "moment_kind_key": "violence",
+        "weight_key": "nothing",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "at nothing: a bar goes quiet and stays quiet."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookExample",
+      "as": "@example_violence_mark",
+      "properties": {
+        "name": "violence at mark",
+        "moment_kind_key": "violence",
+        "weight_key": "mark",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "At a mark: a broken hand in a loading-bay fight, and a name the dock crews remember."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookExample",
+      "as": "@example_violence_turn",
+      "properties": {
+        "name": "violence at turn",
+        "moment_kind_key": "violence",
+        "weight_key": "turn",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "At a turn: a boarding action that ends with a shipmate dead and a debt to the family."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookExample",
+      "as": "@example_violence_branch",
+      "properties": {
+        "name": "violence at branch",
+        "moment_kind_key": "violence",
+        "weight_key": "branch",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "At a branch: the ambush that ends the contract, the career, and very nearly the life."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookDoorExample",
+      "as": "@door_example_direct",
+      "properties": {
+        "name": "violence door direct",
+        "moment_kind_key": "violence",
+        "door_key": "direct",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "direct, hold the line and shoot back."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookDoorExample",
+      "as": "@door_example_sideways",
+      "properties": {
+        "name": "violence door sideways",
+        "moment_kind_key": "violence",
+        "door_key": "sideways",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "Sideways, the veteran who read the ground uses the spotter's radio traffic the event itself just revealed to slip the squad out under the ridge's blind side."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "PlaybookDoorExample",
+      "as": "@door_example_pass",
+      "properties": {
+        "name": "violence door pass",
+        "moment_kind_key": "violence",
+        "door_key": "pass",
+        "source_section": "The kinds, by example",
+        "source_kind": "sentence",
+        "source_quote": "Pass, keep your head down and let the squad lead decide."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_04_1",
+      "properties": {
+        "name": "unsettled 04-1",
+        "question_text": "- The playbook examples for Judgment, Discovery, Standing, and Loss are not written.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- The playbook examples for Judgment, Discovery, Standing, and Loss are not written."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_04_2",
+      "properties": {
+        "name": "unsettled 04-2",
+        "question_text": "- Whether the pass door is always the cheapest, or whether some events punish the bystander most.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether the pass door is always the cheapest, or whether some events punish the bystander most."
+      }
+    }
+  ]
+}

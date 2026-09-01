@@ -65,6 +65,59 @@ enums:
     permissible_values:
       LIVED:
 
+  StandingKey:
+    description: >-
+      What someone or somewhere is to a character
+      [03-what-a-life-carries.md "Standings"]. Closed like the kinds.
+    permissible_values:
+      ally:
+      enemy:
+      debt:
+      obligation:
+      acquaintance:
+
+  EffectKey:
+    description: >-
+      The only things a moment may do [03-what-a-life-carries.md "What
+      a moment may do"]. Closed: a telling that claims anything else is
+      a telling and not a rule, and the engine refuses it.
+    permissible_values:
+      move_characteristic:
+      bind_standing:
+      leave_mark:
+      turn_life:
+
+  TurnKey:
+    description: >-
+      The ways a life may turn [03-what-a-life-carries.md "What a
+      moment may do"].
+    permissible_values:
+      career_ends:
+      career_changes:
+      forced_leaving:
+      life_ends:
+
+  WeightKey:
+    description: >-
+      How hard a moment hits [03-what-a-life-carries.md "How hard a
+      moment hits"]. The ladder caps what a resolution may do.
+    permissible_values:
+      nothing:
+      mark:
+      turn:
+      branch:
+
+  DoorKey:
+    description: >-
+      The four ways through an event [04-the-directors-playbook.md
+      "The doors"]. The first three are the director's; the open one
+      is the player's.
+    permissible_values:
+      direct:
+      sideways:
+      pass:
+      open:
+
 classes:
   Character:
     is_a: LivingEntity
@@ -293,6 +346,10 @@ classes:
         required: true
       moment_outcome:
         required: true
+      moment_weight:
+        required: true
+      moment_door:
+        required: true
     slots:
       - moment_kind
       - moment_chance
@@ -300,6 +357,8 @@ classes:
       - moment_went_against
       - moment_situation
       - moment_outcome
+      - moment_weight
+      - moment_door
 
   LivedRelation:
     is_a: Relation
@@ -320,6 +379,254 @@ classes:
         range: Character
       target_id:
         range: Event
+
+  StandingKind:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One standing the book names, cited to the sentence that fixes
+      all of them [03-what-a-life-carries.md "Standings"]. StandingKind
+      rather than Standing because Standing is also a kind of moment,
+      and a type name must not be a word the book owns.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      standing_key:
+        required: true
+    slots:
+      - standing_key
+
+  EffectKind:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One thing a moment may do, cited to the sentence that allows it
+      [03-what-a-life-carries.md "What a moment may do"]. The referee
+      composes effects from these and only these.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      effect_key:
+        required: true
+      effect_turns_life:
+        required: true
+      effect_moves_characteristic:
+        required: true
+    slots:
+      - effect_key
+      - effect_turns_life
+      - effect_moves_characteristic
+
+  Turn:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One way a life may turn, cited. Whether it ends the season or
+      the life is read off the book's own words by the extractor and
+      carried here, so the C++ never spells a turn.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      turn_key:
+        required: true
+      turn_ends_season:
+        required: true
+      turn_ends_life:
+        required: true
+    slots:
+      - turn_key
+      - turn_ends_season
+      - turn_ends_life
+
+  Weight:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One rung of the weight ladder, cited to the sentence that says
+      what it permits [03-what-a-life-carries.md "How hard a moment
+      hits"]. What the rung permits lives ON the rung: how many
+      effects, whether it may turn the life, whether it is unbounded.
+      A position on a ladder is an edge to a rung, never an index, and
+      nothing in the C++ knows which rung is which.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      weight_key:
+        required: true
+      weight_may_turn:
+        required: true
+      weight_unbounded:
+        required: true
+    slots:
+      - weight_key
+      - weight_effect_limit
+      - weight_may_turn
+      - weight_unbounded
+
+  ArrivalProposed:
+    is_a: Event
+    description: >-
+      One rate the director stated for one kind in one season, what
+      the engine drew against it, and whether it landed
+      [04-the-directors-playbook.md "How events arrive"]. This is the
+      capture the probability engine will be fitted to: what the
+      director believed the rate was, beside what happened.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      event_type:
+        equals_string: ARRIVAL_PROPOSED
+      moment_kind:
+        required: true
+      moment_chance:
+        required: true
+      moment_draw:
+        required: true
+      arrival_landed:
+        required: true
+    slots:
+      - moment_kind
+      - moment_chance
+      - moment_draw
+      - arrival_landed
+
+  Door:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One of the four ways through an event, cited to the sentence that
+      defines it [04-the-directors-playbook.md "The doors"]. The
+      referee's brief is built from these words. Which door is the
+      player's to write is a fact the book states and the extractor
+      reads, so the C++ never spells a door.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      door_key:
+        required: true
+      door_is_players:
+        required: true
+    slots:
+      - door_key
+      - door_is_players
+
+  PlaybookExample:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One example the playbook gives for a kind at a weight
+      [04-the-directors-playbook.md "The kinds, by example"]. An
+      example, never a table row: the director riffs on it.
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      moment_kind_key:
+        required: true
+      weight_key:
+        required: true
+    slots:
+      - moment_kind_key
+      - weight_key
+
+  PlaybookDoorExample:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      One example door the playbook gives for a kind
+      [04-the-directors-playbook.md "The kinds, by example"].
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      moment_kind_key:
+        required: true
+      door_key:
+        required: true
+    slots:
+      - moment_kind_key
+      - door_key
+
+  Person:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: >-
+      Someone the director named at play. Cited for its origin_context
+      and nothing else: it has no book to cite, it has a playing to
+      belong to [04-the-directors-playbook.md "The world thickens"].
+    annotations:
+      facets: voyager-world
+
+  Place:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: Somewhere the director named at play. See Person.
+    annotations:
+      facets: voyager-world
+
+  Faction:
+    is_a: Entity
+    mixins:
+      - Cited
+    description: A group the director named at play. See Person.
+    annotations:
+      facets: voyager-world
+
+  StandingHeld:
+    is_a: Event
+    description: >-
+      A standing formed or changed at a moment: who or where, and what
+      they now are to the character. The latest per counterpart is the
+      standing held [03-what-a-life-carries.md "Standings"].
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      event_type:
+        equals_string: STANDING_HELD
+      standing_key:
+        required: true
+      standing_with:
+        required: true
+    slots:
+      - standing_key
+      - standing_with
+
+  MarkLeft:
+    is_a: Event
+    description: >-
+      A named lasting fact a moment left on the character
+      [03-what-a-life-carries.md "What a moment may do"].
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      event_type:
+        equals_string: MARK_LEFT
+      mark_text:
+        required: true
+    slots:
+      - mark_text
+
+  TurnTaken:
+    is_a: Event
+    description: >-
+      A point where the shape of the life changed
+      [03-what-a-life-carries.md "What a moment may do"].
+    annotations:
+      facets: voyager-book
+    slot_usage:
+      event_type:
+        equals_string: TURN_TAKEN
+      turn_key:
+        required: true
+    slots:
+      - turn_key
 
   UnsettledQuestion:
     is_a: Entity
@@ -515,3 +822,66 @@ slots:
   moment_outcome:
     range: string
     description: What it did, as the referee told it afterwards.
+  moment_weight:
+    range: WeightKey
+    description: How hard it hit, as the director stated it on arrival.
+  moment_door:
+    range: DoorKey
+    description: Which door the player took through it.
+  standing_key:
+    range: StandingKey
+    description: What the counterpart is to the character.
+  effect_key:
+    range: EffectKey
+    description: Which of the allowed things this is.
+  turn_key:
+    range: TurnKey
+    description: Which way the life turned.
+  weight_key:
+    range: WeightKey
+    description: Which rung of the ladder.
+  door_key:
+    range: DoorKey
+    description: Which of the four ways through.
+  standing_with:
+    range: Entity
+    description: >-
+      The person, place, or faction the standing is held toward. An
+      entity reference into the playing's own world.
+  mark_text:
+    range: string
+    description: The mark, named.
+  weight_effect_limit:
+    range: integer
+    minimum_value: 0
+    description: >-
+      How many effects a resolution at this rung may carry. Absent on
+      an unbounded rung.
+  weight_may_turn:
+    range: boolean
+    description: Whether a resolution at this rung may turn the life.
+  weight_unbounded:
+    range: boolean
+    description: Whether this rung caps nothing.
+  door_is_players:
+    range: boolean
+    description: Whether this is the door the player writes.
+  turn_ends_season:
+    range: boolean
+    description: Whether this turn ends the season it lands in.
+  turn_ends_life:
+    range: boolean
+    description: Whether this turn ends the life, and with it the making.
+  arrival_landed:
+    range: boolean
+    description: Whether the draw landed the kind this season.
+  effect_turns_life:
+    range: boolean
+    description: >-
+      Whether this kind of effect turns the life, which only some rungs
+      allow. Read off the book's sentence by the extractor.
+  effect_moves_characteristic:
+    range: boolean
+    description: >-
+      Whether this kind of effect moves a characteristic, which is the
+      kind two of which may not pull one characteristic both ways.

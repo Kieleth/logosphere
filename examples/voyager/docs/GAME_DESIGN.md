@@ -64,6 +64,40 @@ trouble and a rookie before the rest, simultaneously.
 - All tuning numbers (how hard fate tilts by stage, door counts) are
   graph data, never code.
 
+## 3b. Event mode, ruled and built (2026-09-01)
+
+Owner rulings, in the owner's words where they carry the reasoning:
+
+- Events arrive by probability, "when you least expect them as well
+  as when other events are happening... its just probabilities". No
+  schedule. Outcomes range from nothing to life-branching.
+- "The model proposes probabilities, the engine draws against them":
+  confirmed as the hinge. A probability engine grows beside play,
+  fitted to captured proposals, replacing model guesses rule by rule
+  as they are written into the book.
+- Captured world content (people, places, factions the director
+  names) lands at session scope by default; promotion to the book is
+  the authors' deliberate act. Confirmed "100%".
+- Events are related to where the character is but never tailored:
+  "events just happen, and player needs to decide whether to act on
+  them in different ways or not, and there's a reward for using the
+  information so far".
+- Doors: "three options almost always, one direct action, one
+  indirect/skill, one 'pass' and one 'let me tell you what I think we
+  should do'".
+- The book provides a "director playbook, not specific, just
+  examples".
+
+Design decisions taken inside the build, each arguable:
+
+- Fate was retired in favour of sight: every event offers its doors;
+  a kind never faced shows them unpriced. Supersedes the Chapter Two
+  sentence "a kind you have never faced arrives as fate".
+- The making ends when the player says so at the turn of a season, or
+  when a turn ends the life. The book's "the life ends" turn is in,
+  with the question of whether it belongs in a making left Unsettled.
+- Arrival is drawn once per season per kind, the game's only clock.
+
 ## 4. Open questions
 
 Numbered, dated, answered in place.

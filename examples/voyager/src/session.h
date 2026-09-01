@@ -25,11 +25,14 @@
 #ifndef VOYAGER_SESSION_H
 #define VOYAGER_SESSION_H
 
+#include "effect_catalog.h"
+
 #include "logosphere/core/dice_service.h"
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/rules/procedure_runner.h"
 
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -55,6 +58,10 @@ struct RefereeQuestion {
     // spelling a rule value into code.
     std::string low;
     std::string high;
+    // Named lists an answer must compose from, as the graph holds
+    // them: the kinds, the rungs, the doors the director writes. A
+    // driver with no model reads its structure from here.
+    std::map<std::string, std::vector<std::string>> vocab;
 };
 
 using Referee = std::function<bool(const RefereeQuestion& question,
@@ -90,8 +97,15 @@ public:
     const std::vector<Choice>& choices() const { return choices_; }
 
     // Answer the question on the table. Accepts a choice key; an answer
-    // that was not offered is refused rather than guessed at.
+    // that was not offered is refused rather than guessed at. When the
+    // player's own door is on the table (awaiting_plan), the answer is
+    // the player's words, any of them.
     bool choose(const std::string& answer, std::string& error);
+    bool awaiting_plan() const { return awaiting_plan_; }
+
+    // The key of the door the player writes, read off the graph: the
+    // book says which door is the player's, and this code never does.
+    std::string players_door_key() const;
 
     kg::EntityID character() const { return character_; }
 
@@ -111,7 +125,40 @@ private:
     Result narrate_background(const Context& context);
     Result choose_career(const Context& context);
     Result spend_season(const Context& context);
+    Result propose_arrival(const Context& context);
     Result face_moment(const Context& context);
+    Result end_making(const Context& context);
+
+    // One door as the director wrote it, held between the question
+    // and the answer.
+    struct OfferedDoor {
+        std::string key;
+        std::string label;
+        std::string chance_text;
+        double chance = 0.0;
+        std::vector<Effect> risks;
+        std::vector<Effect> reaches;
+    };
+
+    // `key | arg | arg` lines into effects, each validated by its
+    // handler and the list validated against the rung: count, whether
+    // a turn is allowed, no two pulls on one characteristic.
+    bool parse_effect(const std::string& line, Effect& out,
+                      std::string& error) const;
+    bool validate_effects(const std::vector<Effect>& effects,
+                          std::string& error) const;
+    bool resolve_door(const Context& context, const OfferedDoor& door,
+                      std::string& route, std::string& error);
+
+    // A structured ask, asked again when its answer is refused, with
+    // the refusal quoted back, and refused for good after the third.
+    // Every attempt goes through the seam, so every attempt is taped.
+    // The count is mechanism, like a reply budget: the run must end
+    // somewhere when a director cannot answer in shape.
+    bool ask_in_shape(RefereeQuestion question,
+                      const std::function<bool(const std::string& reply,
+                                               std::string& why)>& accept,
+                      std::string& error);
 
     // A number the book fixes, read where it is used. The NAME is the
     // key; the VALUE is the graph's. A primitive that spelled the value
@@ -157,6 +204,18 @@ private:
     // the game's own book; the seam between them is here, because a
     // seed cites one file and the two flows cite different books.
     bool                             in_life_ = false;
+    // This playing's own scope. Everything the director names lands
+    // here, and the book takes from it only what the authors promote.
+    kg::EntityID                     context_ = kg::INVALID_ENTITY;
+    // The kinds the engine landed this season, in graph order.
+    std::vector<kg::EntityID>        landed_;
+    // The moment on the table, from the director's reply until a door
+    // is taken: its weight, its situation, and the doors as written.
+    kg::EntityID                     weight_ = kg::INVALID_ENTITY;
+    std::string                      situation_;
+    std::vector<OfferedDoor>         doors_;
+    bool                             awaiting_plan_ = false;
+    std::map<std::string, EffectHandler> effects_;
 };
 
 // The two Procedures this game walks, in order: creation from the

@@ -19,6 +19,26 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   both directions.
 
 ### Added
+- **`examples/voyager`: event mode. Seasons loop, events arrive by
+  probability, moments have teeth and doors, and the world thickens.**
+  Chapters Three and Four of the book fix what a life carries
+  (standings toward people, places and factions; marks; turns), the
+  only four things a moment may do, a weight ladder whose rungs carry
+  their own caps, how events arrive (the director rates every kind
+  every season as a probability and the engine draws each), the four
+  doors (direct, sideways, pass, and the player's own, priced by the
+  director), and a director's playbook with examples. The life
+  procedure loops through routes in the seed: spend a season, learn
+  what lands, face it, until the player ends the making or a turn ends
+  the life. Effects land atomically through a catalog of four handlers
+  and are refused when the rung, the move limit, the turn rule or the
+  opposite-pull rule says so. Everything the director names becomes an
+  entity in the playing's own scope. Every proposal is captured
+  (`ArrivalProposed`) for the probability engine to be fitted to
+  later. The windowed game grows the engine's text field for the open
+  door. Nothing in the C++ spells a kind, a rung, a door, a standing
+  or a turn: the book's own sentences carry the facts the code reads,
+  and `test_voyager_book` scans string literals to keep it that way.
 - **`examples/voyager`: the season and the moment, played from the
   game's own book.** Chapter Two fixes what a season costs (a year,
   world-relative, standard reckoning as the fallback), what a moment

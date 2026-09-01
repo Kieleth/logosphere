@@ -129,6 +129,16 @@ int main() {
                      "moment_kind_key", graph_words);
     check_vocabulary(world, registry, "SeasonModeKey", "SeasonMode",
                      "season_mode_key", graph_words);
+    check_vocabulary(world, registry, "StandingKey", "StandingKind",
+                     "standing_key", graph_words);
+    check_vocabulary(world, registry, "EffectKey", "EffectKind",
+                     "effect_key", graph_words);
+    check_vocabulary(world, registry, "TurnKey", "Turn",
+                     "turn_key", graph_words);
+    check_vocabulary(world, registry, "WeightKey", "Weight",
+                     "weight_key", graph_words);
+    check_vocabulary(world, registry, "DoorKey", "Door",
+                     "door_key", graph_words);
 
     // Each kind carries the book's own defining words, because the
     // referee narrates kinds from the book, never from a model's
@@ -137,6 +147,39 @@ int main() {
         CHECK(!world.getProperty(id, "source_quote").empty(),
               "kind '" << world.getProperty(id, "name")
                        << "' carries no defining quote");
+    }
+
+    // The facts the C++ reads instead of spelling: which door is the
+    // player's, what each rung permits, which turn ends the life. Each
+    // is read off the book by the extractor; here each is required to
+    // have arrived, exactly as often as the book states it.
+    {
+        size_t players = 0;
+        for (const kg::EntityID id : world.findByType("Door")) {
+            if (world.getProperty(id, "door_is_players") == "true") ++players;
+        }
+        CHECK(players == 1,
+              "the book names one door as the player's and the graph "
+              "holds " << players);
+        for (const kg::EntityID id : world.findByType("Weight")) {
+            const bool unbounded =
+                world.getProperty(id, "weight_unbounded") == "true";
+            const bool capped =
+                !world.getProperty(id, "weight_effect_limit").empty();
+            CHECK(unbounded != capped,
+                  "rung '" << world.getProperty(id, "name")
+                           << "' is neither capped nor unbounded, or both");
+        }
+        size_t ends_life = 0;
+        for (const kg::EntityID id : world.findByType("Turn")) {
+            if (world.getProperty(id, "turn_ends_life") == "true") ++ends_life;
+        }
+        CHECK(ends_life == 1,
+              "the book names one turn that ends the life and the graph "
+              "holds " << ends_life);
+        CHECK(!world.findByType("PlaybookExample").empty(),
+              "the playbook gives no example; the director has nothing "
+              "to riff on");
     }
 
     // ---- 2. the open questions are records -------------------------
@@ -164,15 +207,47 @@ int main() {
           "the generated-file exclusion excluded nothing: either "
           "src/generated moved or the path match broke, and a broken "
           "match reports the schema's own generated output as leaks");
+    // Inside TOKEN LITERALS only: string literals with no whitespace.
+    // The book's vocabulary includes "open", "pass", "turn" and
+    // "mark", which are ordinary English in a comment, in a message
+    // ("no table to turn a score into a modifier"), and as C++
+    // identifiers. A leak of a book word into code is a key the code
+    // compares or emits, and a key has no spaces in it; that is the
+    // shape scanned for. The characteristics scan stays whole-text
+    // because its words are rare; this one would flag every open().
     for (const auto& path : sources) {
+        // A catalog is a declared seam: it spells each name the graph
+        // routes to exactly once, as the contract, the way the
+        // primitive catalog spells primitive names. Everything else
+        // must reach the vocabulary through the graph.
+        const std::string file = path.filename().string();
+        if (file.size() > 10 &&
+            file.compare(file.size() - 10, 10, "_catalog.h") == 0) {
+            continue;
+        }
         const std::string text = voyager_test::slurp(path);
         CHECK(!text.empty(), "could not read " << path);
+        std::string literals;
+        for (size_t at = text.find('"'); at != std::string::npos;
+             at = text.find('"', at + 1)) {
+            size_t end = at + 1;
+            while (end < text.size() && text[end] != '"') {
+                if (text[end] == '\\') ++end;
+                ++end;
+            }
+            if (end >= text.size()) break;
+            const std::string literal = text.substr(at + 1, end - at - 1);
+            if (literal.find_first_of(" \t\n") == std::string::npos) {
+                literals += literal + "\n";
+            }
+            at = end;
+        }
         for (const std::string& word : graph_words) {
-            CHECK(!voyager_test::names_word(text, word),
+            CHECK(!voyager_test::names_word(literals, word),
                   path.filename().string() << " spells '" << word
-                  << "'. The book's vocabulary is the graph's; a name "
-                     "in C++ is the leak this game was written to not "
-                     "have.");
+                  << "' in a string literal. The book's vocabulary is "
+                     "the graph's; a name in C++ is the leak this game "
+                     "was written to not have.");
         }
     }
 

@@ -12,7 +12,7 @@ A moment is not resolved by dice read off a table; it is resolved by chance stat
 
 ## What stage is
 
-Stage is not written anywhere and never stored: it is counted, kind by kind, from the record of moments a character has faced. You have the stage your life adds up to, nothing more. A kind you have never faced arrives as fate. A kind you have faced at least once arrives open, doors and odds in view.
+Stage is not written anywhere and never stored: it is counted, kind by kind, from the record of moments a character has faced. You have the stage your life adds up to, nothing more. A kind you have never faced shows its doors without their prices. A kind you have faced at least once shows them priced.
 
 ## Unsettled
 

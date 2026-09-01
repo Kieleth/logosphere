@@ -76,6 +76,7 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
     ui_ = &ui;
     layout_ = compute_layout(screen_w, screen_h);
 
+    ui_ = &ui;
     left_ = new ui::Panel("voyager_left");
     left_->set_position(layout_.left.x, layout_.left.y);
     left_->set_size(layout_.left.w, layout_.left.h);
@@ -119,8 +120,13 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
 void Screen::set_prose(const std::string& text) {
     const auto lines = wrap(renderable(text),
                             static_cast<size_t>(layout_.prose_columns));
+    // The newest prose is what matters; when a life outgrows the
+    // panel, the tail shows and the beginning scrolls off the top.
+    const size_t skip =
+        lines.size() > prose_.size() ? lines.size() - prose_.size() : 0;
     for (size_t i = 0; i < prose_.size(); ++i) {
-        prose_[i]->set_text(i < lines.size() ? lines[i] : std::string());
+        const size_t at = i + skip;
+        prose_[i]->set_text(at < lines.size() ? lines[at] : std::string());
     }
 }
 
@@ -187,6 +193,9 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
         if (!choice.detail.empty()) row += "   " + choice.detail;
         doors_->add_item(renderable(row), choice.key);
     }
+    // The player's own door takes the player's own words, through the
+    // engine's text field. It shows only while those words are wanted.
+    if (ui_) ui_->set_chat_visible(session.awaiting_plan());
 }
 
 void Screen::close_out(const std::string& career) {
