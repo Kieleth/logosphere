@@ -2202,3 +2202,10 @@ battery is green except the pre-existing booked pairs (ladder R5/R6,
 ramp G-46). The support ceiling (G-57) is solved under the lever;
 G-63's two sides are both green; the flip ruling on the single-law
 world now has a green battery behind it.
+
+## 2026-09-01 (later) — OWNER QA: the shock-propagation window is GREEN
+
+Owner watched the thirteen-case campaign window under SINGLE_LAW
+with shock propagation: "ok, green." The anvil ladder stands at every
+ratio on screen. Branch feat/physics-green-campaign goes to main by
+squash PR; the flip ruling and the next front are decided in chat.
