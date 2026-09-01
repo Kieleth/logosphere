@@ -43,6 +43,7 @@
 // ============================================================================
 
 #include "logosphere/physics/narrow_phase.h"
+#include "test_env_portable.h"
 #include "particle.h"
 
 #include <cmath>
@@ -111,7 +112,7 @@ constexpr float CENTROID_TOL = 0.05f;
 
 int main() {
     // THE CLAIM'S MODE (fixed-protocol decree): assert under the lever.
-    setenv("MANIFOLD_SPAN", "1", 1);
+    test_env::set("MANIFOLD_SPAN", "1");   // portable shim (merge-policy gate)
 
     printf("\n=== MANIFOLD REDUCTION: THE SUPPORT SPANS THE FACE (G-51) ===\n");
     printf("    lever MANIFOLD_SPAN=1 (the claim's mode; born red at 0.3774 m,\n"
