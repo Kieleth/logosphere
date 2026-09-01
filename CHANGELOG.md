@@ -8,6 +8,117 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Physics: two default-off levers that make a stack of boxes stand
+  still under contact torque.** `MANIFOLD_SPAN=1` reduces a face
+  contact's manifold to a set that spans the contact polygon instead of
+  the four deepest points, so a resting interface's cached support
+  transmits no net torque (G-51). `WARM_LEARN=1` lets the contact warm
+  cache learn the true sustained support each substep instead of
+  staying frozen at its first-touch value, minus each row's transient
+  approach-cancellation so struck bodies are not shoved by yesterday's
+  capture (G-52). With `WARM_LEARN=1` a four-box column and a five-box
+  zigzag pile hold their static heights to under a millimetre, reach
+  true rest, and sleep (`test_stack_stands`); default behavior is
+  unchanged with the levers off.
+- **Physics: single-purpose contrast controls beside the stack
+  instrument.** `test_torsion_transmission` builds torsion up from the
+  irreducible case, one rung at a time: a lone spinning cube (its spin
+  must die with no angular momentum created), a spinner under a free
+  passenger (nothing anchors the passenger, so being dragged is
+  guaranteed), a spinner riding an anchored carrier (the ground's grip
+  must win). `test_mixed_mass_stands` stacks unequal cubes whose
+  statics certifies three different verdicts — stand, fall, stand — so
+  a solver manufacturing phantom support fails visibly. Each has a
+  windowed twin with a live assert panel; SPACE advances the case.
+  One finding stays red and tracked (G-53): a spinning interface
+  under four-cube load grinds into its support.
+- **Physics: the grindstone law, behind `FRICTION_TWIST=1` (default
+  off).** A spinning face was braked by friction at its four corner
+  anchors, 1.85x harder than the true face integral, through a
+  friction cone open on the diagonal - a spun stone cube died in 50 ms
+  where physics says a third of a second. Face contacts (three or more
+  manifold points) now carry a dedicated torsional friction row
+  limited by mu times the pair's summed normal impulse times the face
+  integral's mean radius (0.3826 L, a named schema constant), their
+  tangent rows go linear-only, and the tangent pair closes the cone as
+  a vector. Measured with the lever on: a perfectly linear Coulomb
+  decay to a 0.217 s stop, torsion transmitted to a free passenger at
+  0.67 rad/s against the lock arithmetic's 0.75, and residual spins
+  that never died now dying. Speculative contacts transmit no torsion
+  (the same law as linear friction), and spheres keep their rolling
+  torque. Default behavior unchanged with the lever off.
+- **Physics: the spinning-interface grind root-caused; two pressure
+  rungs join the torsion ladder.** `test_torsion_transmission` grows
+  R4 (three cubes, the middle one spinning — 49 kN on its face) and
+  R5 (four cubes — 73.5 kN, where a spinner ground half a metre into
+  its support and the overlap stood). The cause is the deepest-4
+  manifold clustering support on two edges of a micro-tilted face, so
+  the column rocks forever instead of resting; with `MANIFOLD_SPAN=1`
+  joined to `WARM_LEARN=1` and `FRICTION_TWIST=1` all five rungs are
+  fully green and the column sleeps. Default behavior unchanged.
+- **Physics: the limits campaign — six probes that map where the
+  contact stack breaks.** `test_limits_{ice,anvil,size,footprint,
+  slipjoint,floor}` measure the lever-world's envelope with derivable
+  bands: friction dial (glide and rubber exact; a 10x friction drop
+  buys 9.1x spin time), mass ratios (the knee: above ~5:1 a heavy
+  block tunnels through a light supporter), sizes (a 10 cm die stops
+  2-3x slower than the linear law), unequal footprints (the
+  patch-radius law certified; the 15.6:1 sink reappears), one icy
+  joint in a stack (per-interface independence certified), and a
+  tower on a tile raft (stands 25-41 mm low where the turtle world is
+  sub-mm). Reds are booked limits, not regressions; every particle
+  also now documents that friction defaults to 0.5 engine-wide and
+  materials never change it. The campaign's window
+  (`test_limits_visual`) walks all thirteen cases with SPACE, keeping
+  inactive cases frozen so each runs virgin, and mirrors the probes.
+  The exclusion law is measured directly: every case reports its
+  deepest standing pair overlap against the 1 mm steady-state bound
+  and its peak transit overlap, so a body resting inside another can
+  never pass as a height-tolerance miss. Root cause of the heavy-on-
+  light tunnelling identified and documented: each contact row's
+  impulse budget is capped by a fixed velocity cushion priced on the
+  pair, a support ceiling that does not grow with the supported
+  weight (fix pending a design ruling).
+- **Physics: the single law of contact, behind `SINGLE_LAW=1`
+  (default off).** A contact manifold's normal rows are now solved as
+  one block per iteration (a 4x4 coupled solve instead of one row at
+  a time), and the velocity-priced capture cap on contact impulses is
+  removed under the lever — a contact may deliver whatever
+  non-penetration demands, with passivity guarded by the energy and
+  refused-momentum ledgers instead of a clamp. Measured: an iron
+  block on a wooden crate, which previously tunnelled a full metre
+  through it, now stands at millimetre accuracy and sleeps; the
+  strike and symmetry batteries stay clean without the cap. Extreme
+  ratios (39:1 and beyond) still leave residual overlap — the
+  remaining depth is across body chains, tracked. Default behavior
+  unchanged with the lever off. Follow-up under the same lever: the
+  solver's plateau exit now honors its own registered residual guard
+  (it was quitting nine iterations into a heavy-through-light chain
+  while the middle body still moved), taking the worst standing
+  overlap at 96:1 from half a metre to 35 mm with no pass-through
+  even in transit; and the friction dial's stop-time expectation is
+  the measured affine law (a small friction-independent braking
+  channel through the contact normal rows, ~1% at stone friction).
+  The block itself is now an exact small LCP (active-set enumeration
+  over the manifold's rows) rather than a linear solve clamped after
+  the fact — the clamp discarded the negative half of near-singular
+  row pairs and detonated thin-body scenes; with the exact solve the
+  tile-raft tower, red since it was built, stands fully green. The
+  torsional-friction gate reads the manifold's total normal load
+  rather than one row's, and the warm cache's sustain/capture split
+  works without the cap (rows carry their build-time approach).
+- **Tooling: `scripts/harvest_reds.py`.** One command that rebuilds
+  its targets (a stale-build guardrail, learned the hard way — a
+  static-lib change measures as byte-identical physics until every
+  test relinks) and prints every red assert across the campaign and
+  battery with its case header and measurements, per lever world.
+- **Materials: ICE.** A real material (density 917 kg/m³, full
+  elastic and strength property set) joining the mineral group. The
+  limits demos now stage friction experiments on an actual white ice
+  sheet, and every demo stands on real ground bodies rather than the
+  invisible turtle plane — a change that itself moved the physics:
+  the turtle interface was aggravating the heavy-on-light failures
+  and masking the small-size behavior.
 - **`examples/voyager`: character creation up to the first door, with
   nothing the book fixes written in C++.** One screen, no frames. Six
   characteristics are rolled by the engine's dice, a referee says where

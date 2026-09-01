@@ -419,6 +419,7 @@ add_headless_test(test_relation_events)
 add_headless_test(test_kg_parse_safety)
 add_headless_test(test_particle_shapes)
 add_headless_test(test_collision_bounds_rotation)  # which shapes get oriented bounds, and which do not
+add_headless_test(test_manifold_reduction)  # G-51: the reduced point set spans the face (born red)
 add_headless_test(test_iso_azimuth)
 add_headless_test(test_ontology_packs)
 add_headless_test(test_entity_type_strings)
@@ -1379,6 +1380,76 @@ target_include_directories(test_refused_momentum_ledger PRIVATE
 )
 target_compile_features(test_refused_momentum_ledger PRIVATE cxx_std_17)
 
+# G-47, born red: a mirror-symmetric strike owes exactly zero spin at
+# any speed; sequential per-point manifold solving seeds spin that a
+# violent strike carries away (2.99 rad/s at 9 m/s). Green requires
+# the manifold block solve. TDD instrument for INV-32's default flip.
+add_executable(test_square_strike tests/test_square_strike.cpp)
+target_link_libraries(test_square_strike PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_square_strike PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_square_strike PRIVATE cxx_std_17)
+
+# G-48, born red: a touching column and a statically-stable zigzag pile
+# must STAND under default torque; the sequentially-seeded wobble pumps
+# through stacked contacts instead of decaying (column bottom sinks
+# 9.5 cm, pile collapses). Step-1 instrument of the 1-2-3 plan.
+add_executable(test_stack_stands tests/test_stack_stands.cpp)
+target_link_libraries(test_stack_stands PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_stack_stands PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_stack_stands PRIVATE cxx_std_17)
+
+# G-53's rung ladder, simplest first (owner KISS ruling 2026-08-27):
+# one spinning cube, then the free passenger (transmission guaranteed),
+# then the anchored carrier (the anchor wins). Single-purposed.
+add_executable(test_torsion_transmission tests/test_torsion_transmission.cpp)
+target_link_libraries(test_torsion_transmission PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_torsion_transmission PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_torsion_transmission PRIVATE cxx_std_17)
+
+# G-54's three verdicts: stand / FALL / stand. The overhung cube that
+# must fall catches phantom support. Single-purposed.
+add_executable(test_mixed_mass_stands tests/test_mixed_mass_stands.cpp)
+target_link_libraries(test_mixed_mass_stands PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_mixed_mass_stands PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_mixed_mass_stands PRIVATE cxx_std_17)
+
+# THE LIMITS CAMPAIGN (G-57..G-62, owner ruling 2026-08-28): six
+# single-purpose probes of the trio world's envelope - masses,
+# frictions, sizes, footprints, a slip joint, a particle floor.
+# Shared scene + evaluator in tests/scenes/scene_limits.h.
+foreach(limits_probe ice anvil size footprint slipjoint floor)
+    add_executable(test_limits_${limits_probe}
+        tests/test_limits_${limits_probe}.cpp)
+    target_link_libraries(test_limits_${limits_probe} PRIVATE
+        logosphere_dynamics logosphere_physics logosphere_core
+        logosphere_dynamics)
+    target_include_directories(test_limits_${limits_probe} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_compile_features(test_limits_${limits_probe} PRIVATE cxx_std_17)
+endforeach()
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
@@ -1465,6 +1536,53 @@ if(LOGOSPHERE_FULL)   # full profile only; see the visual-driver gate note
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_cube_drop_ladder_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    add_executable(test_torsion_visual tests/test_torsion_visual.cpp)
+    target_link_libraries(test_torsion_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_torsion_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_torsion_visual PRIVATE cxx_std_17)
+
+    # The limits campaign's window (G-57..62): all cases, SPACE advances.
+    add_executable(test_limits_visual tests/test_limits_visual.cpp)
+    target_link_libraries(test_limits_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_limits_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_limits_visual PRIVATE cxx_std_17)
+endif()
+
+if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    add_executable(test_stack_stands_visual tests/test_stack_stands_visual.cpp)
+    target_link_libraries(test_stack_stands_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_stack_stands_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_stack_stands_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

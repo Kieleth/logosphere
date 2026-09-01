@@ -109,6 +109,7 @@
 #include "../math/quat.h"
 #include <queue>
 #include <map>
+#include <limits>
 #include <tuple>
 #include <climits>
 #include <algorithm>
@@ -378,6 +379,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 
     for (int substep = 0; substep < N_SUBSTEPS; ++substep) {
         ::logosphere::phystrace::set_substep(substep);
+        // Fresh dissatisfaction slate BEFORE anyone marks (G-48): the
+        // contact build marks first, the gluon build marks later, the
+        // sleep gate reads the union at frame end.
+        constraint_dissatisfied_.assign(particles.size(), 0);
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
@@ -721,6 +726,17 @@ static bool impulse_memory_off() {
  */
 void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
+    // THE SINGLE LAW OF CONTACT (G-63, owner ruling 2026-08-31,
+    // default off). A contact is one unilateral constraint: the
+    // impulse is whatever complementarity demands, bounded by nothing
+    // but the material. Under the lever the velocity-priced capture
+    // cap is REMOVED (every contact cap site below) and each contact
+    // manifold's normal rows are solved as a BLOCK per iteration
+    // (pattern from feat/joint-block-solver), so passivity is a
+    // property of convergence, not a clamp. The jury: INV-17, the
+    // energy ledger, the refused-momentum ledger, the explosion
+    // detector.
+    static const bool single_law = std::getenv("SINGLE_LAW") != nullptr;
     // ========================================================================
     // V4.3 FIX: Changed from "count < 2" to "count < 1"
     // ========================================================================
@@ -975,7 +991,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             float patch_pen[4];
             {
                 static const bool contact_torque_on2 =
-                    std::getenv("CONTACT_TORQUE") != nullptr;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_on2 &&
                     pi.solver_mode == ParticleSolverMode::DYNAMIC &&
                     pi.shape == ParticleShape::BOX &&
@@ -1046,8 +1062,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.min_impulse = 0.0f;
             {
                 const float approach = std::fabs(pi.vz);
-                c.max_impulse = c.effective_mass *
-                                (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                c.build_approach = approach;   // G-63: the store law's source
+                // G-63: under the single law the cap is gone, not resized.
+                c.max_impulse = single_law
+                    ? std::numeric_limits<float>::max()
+                    : c.effective_mass *
+                      (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
             }
             c.accumulated_impulse = 0.0f;
 
@@ -1078,6 +1098,24 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     wsum += (patch_pen[q] > 0.0f) ? patch_pen[q] : 0.0f;
                 const float I = pi.GetMomentOfInertia();
                 const float m_i = pi.GetMass();
+                // G-55 (lever FRICTION_TWIST=1): a >=3-corner turtle
+                // patch is a FACE contact; its rotational braking
+                // belongs to the twist carrier (the deepest corner,
+                // whose share reconstruction of N_total is stable),
+                // its tangents go linear-only.
+                static const bool friction_twist_t =
+                    std::getenv("FRICTION_TWIST") != nullptr;
+                const bool patch_face = friction_twist_t && patch_n >= 3;
+                int q_deep = 0;
+                float patch_r2_max = 0.0f;
+                if (patch_face) {
+                    for (int q = 0; q < patch_n; ++q) {
+                        if (patch_pen[q] > patch_pen[q_deep]) q_deep = q;
+                        const float r2 = patch_r[q][0]*patch_r[q][0]
+                                       + patch_r[q][1]*patch_r[q][1];
+                        patch_r2_max = std::fmax(patch_r2_max, r2);
+                    }
+                }
                 for (int q = 0; q < patch_n; ++q) {
                     const float share = (wsum > 1e-6f)
                         ? std::max(patch_pen[q], 0.0f) / wsum
@@ -1088,6 +1126,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     ck.anchor_ray = patch_r[q][1];
                     ck.anchor_raz = patch_r[q][2];
                     ck.anchor_rbx = ck.anchor_rby = ck.anchor_rbz = 0.0f;
+                    if (patch_face) {
+                        ck.face_friction = true;
+                        if (q == q_deep) {
+                            ck.twist_carrier = true;
+                            ck.twist_r = PhysicsV4::TWIST_RADIUS_FACTOR *
+                                         std::sqrt(2.0f * patch_r2_max);
+                        }
+                    }
                     const float pen_q = patch_pen[q];
                     ck.bias = (pen_q > SLOP)
                         ? std::min(BETA * (pen_q - SLOP) / dt,
@@ -1105,8 +1151,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     ck.eff_mass_share = share;
                     {
                         const float approach = std::fabs(pi.vz);
-                        ck.max_impulse = ck.effective_mass *
-                            (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                        ck.build_approach = approach;
+                        // G-63: no cap under the single law.
+                        ck.max_impulse = single_law
+                            ? std::numeric_limits<float>::max()
+                            : ck.effective_mass *
+                              (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
                     }
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                                  (int)ck.body_a, (int)ck.body_b,
@@ -1120,6 +1170,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                              c.bias, c.effective_mass, c.jz);
                 constraints.push_back(c);
             }
+
+            // THE SLEEP LAW HEARS CONTACTS TOO (G-48): real penetration
+            // beyond the tolerance marks the body dissatisfied, so sleep
+            // cannot freeze it mid-repair. Speculative gaps do not mark.
+            if (penetration > SLEEP_PEN_TOLERANCE &&
+                i < constraint_dissatisfied_.size())
+                constraint_dissatisfied_[i] = 1;
 
             // Turtle contacts provide equilibrium for BFS distance calculation
             active_contacts_.push_back(std::make_pair(i, i));
@@ -1590,7 +1647,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // reading owner (INV-15), and inv_m = 0 bodies cannot
                     // spin regardless.
                     static const bool contact_torque_on =
-                        std::getenv("CONTACT_TORQUE") != nullptr;
+                        []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                     if (contact_torque_on) {
                         c.apply_anchor_torque = true;
                         c.anchor_rax = manifold.points[cp].px - pi.x;
@@ -1666,13 +1723,68 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         const float approach = std::fabs(
                             (pi.vx - pj.vx) * c.jx + (pi.vy - pj.vy) * c.jy +
                             (pi.vz - pj.vz) * c.jz);
-                        c.max_impulse = c.effective_mass *
-                                        (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                        c.build_approach = approach;
+                        // G-63: no cap under the single law.
+                        c.max_impulse = single_law
+                            ? std::numeric_limits<float>::max()
+                            : c.effective_mass *
+                              (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
                     }
                     c.accumulated_impulse = 0.0f;
                     c.is_contact = true;
                     c.friction_impulse_t1 = 0.0f;
                     c.friction_impulse_t2 = 0.0f;
+
+                    // G-55 (lever FRICTION_TWIST=1): a FACE manifold's
+                    // rotational braking belongs to a twist row with the
+                    // face-integral limit, not to corner tangents at
+                    // 0.707*L. Flags set here; the friction block reads
+                    // them. Corner/edge contacts keep corner physics.
+                    static const bool friction_twist =
+                        std::getenv("FRICTION_TWIST") != nullptr;
+                    // A face TREATMENT needs a face PATCH: >= 3 points.
+                    // A sphere's contact flags is_face_contact with one
+                    // point, and linear-only tangents there took away
+                    // the r x t torque that rolls it (measured: the
+                    // ramp sphere stopped turning).
+                    if (contact_torque_on && friction_twist &&
+                        manifold.is_face_contact &&
+                        manifold.num_points >= 3) {
+                        c.face_friction = true;
+                        if (cp == 0) {
+                            float r2_max = 0.0f;
+                            for (int q = 0; q < manifold.num_points; q++) {
+                                const float dx = manifold.points[q].px - pi.x;
+                                const float dy = manifold.points[q].py - pi.y;
+                                const float dz = manifold.points[q].pz - pi.z;
+                                const float along = dx*c.jx + dy*c.jy
+                                                  + dz*c.jz;
+                                const float r2 = dx*dx + dy*dy + dz*dz
+                                               - along*along;
+                                r2_max = std::fmax(r2_max, r2);
+                            }
+                            // patch side ~ r_max*sqrt(2) (square patch;
+                            // an over-estimate for partial overlap,
+                            // INV-21-sanctioned)
+                            c.twist_carrier = true;
+                            c.twist_r = PhysicsV4::TWIST_RADIUS_FACTOR *
+                                        std::sqrt(2.0f * r2_max);
+                        }
+                    }
+
+                    // THE SLEEP LAW HEARS CONTACTS TOO (G-48): touching
+                    // rows with real penetration beyond the tolerance mark
+                    // both bodies dissatisfied; sleep cannot freeze a pair
+                    // mid-repair (stacked boxes slept 1-2 cm interlocked
+                    // because only gluon strain wrote the carrier).
+                    // Speculative rows (bias < 0, gap open) do not mark.
+                    if (c.bias >= 0.0f &&
+                        c.penetration > SLEEP_PEN_TOLERANCE) {
+                        if (c.body_a < constraint_dissatisfied_.size())
+                            constraint_dissatisfied_[c.body_a] = 1;
+                        if (c.body_b < constraint_dissatisfied_.size())
+                            constraint_dissatisfied_[c.body_b] = 1;
+                    }
 
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
                                  (int)c.body_a, (int)c.body_b, "sat_manifold",
@@ -1703,6 +1815,16 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << ") | Pj dims=(" << pj.width << "," << pj.height << "," << pj.thickness
                               << ") rot=(" << pj.rotation_x << "," << pj.rotation_y << "," << pj.rotation_z
                               << ")" << std::endl;
+                    // The point SET is the G-48/G-50 question: does the
+                    // manifold rebuilt from predicted poses keep its
+                    // anchors between substeps, or flip them?
+                    for (int cp = 0; cp < manifold.num_points; cp++)
+                        std::cout << "         pt" << cp << "=("
+                                  << manifold.points[cp].px << ","
+                                  << manifold.points[cp].py << ","
+                                  << manifold.points[cp].pz << ") pen="
+                                  << (manifold.points[cp].penetration*1000)
+                                  << "mm" << std::endl;
                 }
 
                 // Record collision event for game systems (combat, step climbing, etc.)
@@ -1823,8 +1945,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             {
                                 const float approach = std::fabs(
                                     (pi.vz - pj.vz) * c.jz);
-                                c.max_impulse = c.effective_mass *
-                                                (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
+                                c.build_approach = approach;
+                                // G-63: no cap under the single law.
+                                c.max_impulse = single_law
+                                    ? std::numeric_limits<float>::max()
+                                    : c.effective_mass *
+                                      (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
                             }
                             c.accumulated_impulse = 0.0f;
                             c.is_contact = true;
@@ -1925,7 +2051,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     std::vector<GluonConstraintIndices> gluon_constraint_indices;
     gluon_constraint_indices.reserve(gluon_constraints_v2_.size());
 
-    constraint_dissatisfied_.assign(particles.size(), 0);
+    // The dissatisfaction carrier is cleared at SUBSTEP START (before
+    // contact detection), not here: this assign used to run after the
+    // contact build and wiped the contact marks (G-48) before the sleep
+    // gate ever read them. Gluon strain marks land after contacts; both
+    // survive to update_rest_state.
+    if (constraint_dissatisfied_.size() != particles.size())
+        constraint_dissatisfied_.assign(particles.size(), 0);
     size_t gluon_slot_counter = 0;
     for (const auto& gluon : gluon_constraints_v2_) {
         const size_t this_gluon_slot = gluon_slot_counter++;
@@ -3044,6 +3176,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << c.body_a << "<->P" << c.body_b
                               << " share_impulse=" << w
                               << " of=" << cached
+                              << " ra=(" << c.anchor_rax << ","
+                              << c.anchor_ray << "," << c.anchor_raz << ")"
                               << " vz_after=" << particles[canary_pid].vz
                               << (c.is_turtle_contact ? " TURTLE" : " BOX")
                               << std::endl;
@@ -3231,6 +3365,273 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // solver work unit; counting rows per iteration would conflate the two.
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverRows, constraints.size());
 
+    // ========================================================================
+    // THE CONTACT MANIFOLD BLOCK (G-63, single-law lever)
+    // ========================================================================
+    // A manifold's normal rows are not independent facts: pushing one
+    // corner tilts the body, which changes every other corner's
+    // measured velocity - the off-diagonal of A[i][j] below IS that
+    // spillover, and solved one row at a time it is the rocking/
+    // starvation the campaign measured. Pattern ported from the joint
+    // block solver (feat/joint-block-solver): build
+    // A[i][j] = J_i M^-1 J_j^T for the group's <= 4 rows, solve by
+    // Gaussian elimination, clamp each row's ACCUMULATED impulse to
+    // its own limits, apply the deltas. Complementarity is enforced
+    // by iterate-and-clamp exactly as the sequential rows do it; the
+    // sequential pass skips these rows' normal solve (friction still
+    // runs there, on the block-updated accumulated impulse).
+    struct ContactGroup { size_t first; int n; };
+    std::vector<ContactGroup> contact_groups;
+    std::vector<uint8_t> in_contact_block;
+    if (single_law) {
+        in_contact_block.assign(constraints.size(), 0);
+        size_t i = 0;
+        while (i < constraints.size()) {
+            const Constraint& c = constraints[i];
+            if ((c.is_contact || c.is_turtle_contact) && !c.is_angular) {
+                size_t j = i + 1;
+                while (j < constraints.size()) {
+                    const Constraint& d = constraints[j];
+                    if (d.is_angular) break;
+                    if (!(d.is_contact || d.is_turtle_contact)) break;
+                    if (d.body_a != c.body_a || d.body_b != c.body_b) break;
+                    if (d.is_turtle_contact != c.is_turtle_contact) break;
+                    ++j;
+                }
+                const int n = (int)(j - i);
+                if (n >= 2 && n <= 4) {
+                    contact_groups.push_back({i, n});
+                    for (size_t k = i; k < j; ++k) in_contact_block[k] = 1;
+                }
+                i = j;
+            } else {
+                ++i;
+            }
+        }
+    }
+
+    // One manifold's rows, solved simultaneously. Mirrors the
+    // sequential contact row EXACTLY: same measure gates (G-39:
+    // measure-gate == apply-gate, DYNAMIC for contacts), same split-
+    // impulse bias rule (only speculative negatives stay), same
+    // clamped-accumulated application, same refused-momentum and
+    // energy-ledger bookkeeping. Returns the largest |delta|.
+    auto solve_contact_block = [&](const ContactGroup& g, int iter,
+                                   float& max_dv) -> float {
+        Constraint& c0 = constraints[g.first];
+        Particle& pa = particles[c0.body_a];
+        Particle& pb = particles[c0.body_b];
+        const bool turtle = c0.is_turtle_contact;
+        const float inv_ma = inv_mass_momentum(pa);
+        const float inv_mb = turtle ? 0.0f : inv_mass_momentum(pb);
+        if (inv_ma + inv_mb <= 0.0f) return 0.0f;   // sleeping pair
+        // COHERENCE (joint-block lesson): one opinion per body. A body
+        // spins in this block only if it is DYNAMIC, movable, and has
+        // inertia - the same predicate for measure and apply.
+        const float Ia = pa.GetMomentOfInertia();
+        const float Ib = pb.GetMomentOfInertia();
+        const bool a_rot = pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                           inv_ma > 0.0f && Ia > 0.0f;
+        const bool b_rot = !turtle &&
+                           pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                           inv_mb > 0.0f && Ib > 0.0f;
+        const float inv_Ia = a_rot ? 1.0f / Ia : 0.0f;
+        const float inv_Ib = b_rot ? 1.0f / Ib : 0.0f;
+
+        const int n = g.n;
+        float L[4][3] = {}, Ga[4][3] = {}, Hb[4][3] = {};
+        double A[4][4] = {}, b[4] = {};
+        for (int i = 0; i < n; ++i) {
+            const Constraint& c = constraints[g.first + (size_t)i];
+            L[i][0] = c.jx; L[i][1] = c.jy; L[i][2] = c.jz;
+            if (c.apply_anchor_torque && a_rot) {
+                Ga[i][0] = c.anchor_ray * c.jz - c.anchor_raz * c.jy;
+                Ga[i][1] = c.anchor_raz * c.jx - c.anchor_rax * c.jz;
+                Ga[i][2] = c.anchor_rax * c.jy - c.anchor_ray * c.jx;
+            }
+            if (c.apply_anchor_torque && b_rot) {
+                Hb[i][0] = -(c.anchor_rby * c.jz - c.anchor_rbz * c.jy);
+                Hb[i][1] = -(c.anchor_rbz * c.jx - c.anchor_rbx * c.jz);
+                Hb[i][2] = -(c.anchor_rbx * c.jy - c.anchor_rby * c.jx);
+            }
+            float err = turtle
+                ? (c.jx * pa.vx + c.jy * pa.vy + c.jz * pa.vz)
+                : (c.jx * (pa.vx - pb.vx) + c.jy * (pa.vy - pb.vy) +
+                   c.jz * (pa.vz - pb.vz));
+            err += Ga[i][0] * pa.omega_x + Ga[i][1] * pa.omega_y +
+                   Ga[i][2] * pa.omega_z;
+            if (!turtle)
+                err += Hb[i][0] * pb.omega_x + Hb[i][1] * pb.omega_y +
+                       Hb[i][2] * pb.omega_z;
+            // Split impulse: only a speculative approach limit (a
+            // contact with a GAP, bias < 0) keeps its bias here.
+            float effective_bias = c.bias;
+            if (ENABLE_SPLIT_IMPULSE && !(c.is_contact && c.bias < 0.0f))
+                effective_bias = 0.0f;
+            b[i] = (double)effective_bias - (double)err;
+            for (int j2 = 0; j2 <= i; ++j2) {
+                const Constraint& cj = constraints[g.first + (size_t)j2];
+                const double ll = (double)L[i][0]*cj.jx + (double)L[i][1]*cj.jy
+                                + (double)L[i][2]*cj.jz;
+                double gg = 0.0, hh = 0.0;
+                // Ga/Hb for row j2 were filled on its own visit (j2<=i).
+                gg = (double)Ga[i][0]*Ga[j2][0] + (double)Ga[i][1]*Ga[j2][1]
+                   + (double)Ga[i][2]*Ga[j2][2];
+                hh = (double)Hb[i][0]*Hb[j2][0] + (double)Hb[i][1]*Hb[j2][1]
+                   + (double)Hb[i][2]*Hb[j2][2];
+                A[i][j2] = A[j2][i] =
+                    ll * (double)(inv_ma + inv_mb) + gg * (double)inv_Ia
+                    + hh * (double)inv_Ib;
+            }
+            A[i][i] += 1e-9;
+        }
+
+        // THE BLOCK IS A SMALL LCP, NOT A LINEAR SOLVE (G-63 correction,
+        // 2026-09-01, measured detonation). Contacts are UNILATERAL:
+        // solving the coupled system unconstrained and clamping per row
+        // afterward turns a near-singular manifold (two almost-parallel
+        // rows) into a huge (+L, -L) pair whose negative half the clamp
+        // discards - a one-sided mega-impulse, energy from arithmetic
+        // (the tile raft detonated to 99 m/s). The joint block never
+        // met this: gluon rows are bidirectional. Here the exact
+        // active-set enumeration solves the true LCP: for each subset
+        // of free rows solve the subsystem with clamped rows at their
+        // lower bound (-accumulated: total impulse >= 0), accept the
+        // subset whose free deltas respect the bound and whose clamped
+        // rows' residual velocity is separating. n <= 4: at most 16
+        // subsets, unique solution for a PSD matrix, no iteration.
+        double lam[4] = {};
+        {
+            double lo[4];
+            for (int i = 0; i < n; ++i)
+                lo[i] = -(double)constraints[g.first + (size_t)i]
+                             .accumulated_impulse;
+            bool solved = false;
+            // Try subsets from all-free downward: the common case first.
+            for (int mask = (1 << n) - 1; mask >= 0 && !solved; --mask) {
+                int f_idx[4]; int nf = 0;
+                for (int i = 0; i < n; ++i)
+                    if (mask & (1 << i)) f_idx[nf++] = i;
+                // Right-hand side for the free subsystem: b_F - A_FC * lo_C.
+                double M[4][5];
+                for (int r = 0; r < nf; ++r) {
+                    const int i = f_idx[r];
+                    double rhs = b[i];
+                    for (int j2 = 0; j2 < n; ++j2)
+                        if (!(mask & (1 << j2))) rhs -= A[i][j2] * lo[j2];
+                    for (int c2 = 0; c2 < nf; ++c2)
+                        M[r][c2] = A[i][f_idx[c2]];
+                    M[r][nf] = rhs;
+                }
+                // Gaussian elimination with partial pivoting (nf <= 4).
+                bool singular = false;
+                for (int col = 0; col < nf && !singular; ++col) {
+                    int piv = col;
+                    for (int r = col + 1; r < nf; ++r)
+                        if (std::fabs(M[r][col]) > std::fabs(M[piv][col]))
+                            piv = r;
+                    if (std::fabs(M[piv][col]) < 1e-20) { singular = true; break; }
+                    if (piv != col)
+                        for (int j2 = col; j2 <= nf; ++j2)
+                            std::swap(M[col][j2], M[piv][j2]);
+                    for (int r = col + 1; r < nf; ++r) {
+                        const double f = M[r][col] / M[col][col];
+                        for (int j2 = col; j2 <= nf; ++j2)
+                            M[r][j2] -= f * M[col][j2];
+                    }
+                }
+                if (singular) continue;
+                double lf[4] = {};
+                for (int i = nf - 1; i >= 0; --i) {
+                    double acc2 = M[i][nf];
+                    for (int j2 = i + 1; j2 < nf; ++j2)
+                        acc2 -= M[i][j2] * lf[j2];
+                    lf[i] = acc2 / M[i][i];
+                }
+                double cand[4];
+                bool ok = true;
+                for (int i = 0; i < n; ++i) cand[i] = lo[i];
+                for (int r = 0; r < nf; ++r) {
+                    cand[f_idx[r]] = lf[r];
+                    if (lf[r] < lo[f_idx[r]] - 1e-9) { ok = false; break; }
+                }
+                if (ok) {
+                    // Clamped rows must be legal: residual velocity
+                    // separating (pushing them would need pulling).
+                    for (int i = 0; i < n && ok; ++i) {
+                        if (mask & (1 << i)) continue;
+                        double r2 = -b[i];
+                        for (int j2 = 0; j2 < n; ++j2)
+                            r2 += A[i][j2] * cand[j2];
+                        if (r2 < -1e-6) ok = false;
+                    }
+                }
+                if (ok) {
+                    for (int i = 0; i < n; ++i) lam[i] = cand[i];
+                    solved = true;
+                }
+            }
+            if (!solved) return 0.0f;   // degenerate beyond the subsets: leave
+                                        // the group to the sequential rows
+        }
+
+        float worst = 0.0f;
+        for (int i = 0; i < n; ++i) {
+            Constraint& c = constraints[g.first + (size_t)i];
+            const float old_acc = c.accumulated_impulse;
+            float acc = old_acc + (float)lam[i];
+            acc = std::max(c.min_impulse, std::min(c.max_impulse, acc));
+            const float d = acc - old_acc;
+            c.accumulated_impulse = acc;
+            worst = std::max(worst, std::fabs(d));
+            if (d == 0.0f) continue;
+            pa.vx += L[i][0] * d * inv_ma;
+            pa.vy += L[i][1] * d * inv_ma;
+            pa.vz += L[i][2] * d * inv_ma;
+            if (!turtle) {
+                pb.vx -= L[i][0] * d * inv_mb;
+                pb.vy -= L[i][1] * d * inv_mb;
+                pb.vz -= L[i][2] * d * inv_mb;
+                if (inv_mb == 0.0f)
+                    record_refused_impulse(c.body_b, -L[i][0] * d,
+                                           -L[i][1] * d, -L[i][2] * d);
+            }
+            if (!turtle && inv_ma == 0.0f)
+                record_refused_impulse(c.body_a, L[i][0] * d,
+                                       L[i][1] * d, L[i][2] * d);
+            pa.omega_x += Ga[i][0] * d * inv_Ia;
+            pa.omega_y += Ga[i][1] * d * inv_Ia;
+            pa.omega_z += Ga[i][2] * d * inv_Ia;
+            if (!turtle) {
+                pb.omega_x += Hb[i][0] * d * inv_Ib;
+                pb.omega_y += Hb[i][1] * d * inv_Ib;
+                pb.omega_z += Hb[i][2] * d * inv_Ib;
+            }
+            const float dv_here = std::fabs(d) * std::max(inv_ma, inv_mb);
+            if (dv_here > max_dv) max_dv = dv_here;
+            if (energy_ledger_on() && c.effective_mass > 0.0f) {
+                const double dke = double(d) * (double)(-(b[i]))
+                                 + double(d) * double(d)
+                                   / (2.0 * double(c.effective_mass));
+                if (turtle) g_row_energy.turtle  += dke;
+                else        g_row_energy.contact += dke;
+            }
+            // Every nonzero delta prints (d == 0 already continued
+            // above); a noise threshold here would be a new magic
+            // number (INV-29 gate).
+            if (canary_active &&
+                ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
+                std::cout << "[CANARY F" << phys_frame << " BLOCK I" << iter
+                          << "] P" << c.body_a << "<->P" << c.body_b
+                          << " d=" << d << " acc=" << c.accumulated_impulse
+                          << " cap=[" << c.min_impulse << ","
+                          << c.max_impulse << "]"
+                          << (turtle ? " TURTLE" : " BOX") << std::endl;
+            }
+        }
+        return worst;
+    };
+
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
         ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
@@ -3240,6 +3641,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // why raw angular impulse cannot gate an exit door.
         float max_domega_this_iter = 0.0f;
         actual_iterations = iter + 1;
+
+        // G-63: the manifold blocks solve first each sweep; their rows'
+        // sequential normal solve is skipped below (friction still runs).
+        for (const ContactGroup& g : contact_groups) {
+            const float w = solve_contact_block(g, iter, max_dv_this_iter);
+            max_impulse_this_iter = std::max(max_impulse_this_iter, w);
+        }
 
         for (size_t ci = 0; ci < constraints.size(); ++ci) {
             Constraint& c = constraints[ci];
@@ -3533,6 +3941,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (!is_approach_limit) effective_bias = 0.0f;
             }
             float impulse = -(v_rel - effective_bias) * c.effective_mass;
+            // G-63: this row's normal solve already ran in its manifold
+            // block this sweep; zero here makes every apply below a
+            // no-op while friction (further down) still runs against
+            // the block-updated accumulated impulse.
+            if (!in_contact_block.empty() && in_contact_block[ci])
+                impulse = 0.0f;
 
             // Clamp accumulated impulse
             float old_impulse = c.accumulated_impulse;
@@ -3746,7 +4160,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 float t2x, t2y, t2z;  // Tangent 2
 
                 static const bool contact_torque_basis =
-                    std::getenv("CONTACT_TORQUE") != nullptr;
+                    []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
                 if (contact_torque_basis) {
                     // THE TANGENTS LIVE IN THE CONTACT PLANE (G-40, same
                     // CONTACT_TORQUE lever). The axis-dominant picks below
@@ -3818,6 +4232,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     TangentTorque tt{};
                     tt.eff = c.effective_mass;   // lever off: unchanged
                     if (!(c.is_contact && c.apply_anchor_torque)) return tt;
+                    // G-55: a FACE row's tangents are LINEAR-ONLY — no
+                    // omega x r in the measurement, no r x t applied.
+                    // Rotational braking belongs to the twist row with
+                    // the face-integral limit; corner tangents at
+                    // 0.707*L overbrake a spinning face 1.85x. The eff
+                    // mass is the linear one (the normal row's K
+                    // carries an angular term a linear tangent must
+                    // not inherit).
+                    if (c.face_friction) {
+                        const float k_lin = inv_ma + inv_mb;
+                        if (k_lin > 0.0f)
+                            tt.eff = (1.0f / k_lin) * c.eff_mass_share;
+                        return tt;
+                    }
                     v_rel += tx*(pa.omega_y*c.anchor_raz - pa.omega_z*c.anchor_ray)
                            + ty*(pa.omega_z*c.anchor_rax - pa.omega_x*c.anchor_raz)
                            + tz*(pa.omega_x*c.anchor_ray - pa.omega_y*c.anchor_rax);
@@ -3950,8 +4378,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 const TangentTorque tt2 = tangent_terms(t2x, t2y, t2z, v_rel_t2);
                 float friction_impulse_2 = -v_rel_t2 * tt2.eff;
                 float old_f2 = c.friction_impulse_t2;
-                c.friction_impulse_t2 = std::max(-friction_limit,
-                                        std::min(friction_limit, old_f2 + friction_impulse_2));
+                // G-55: face rows close the friction cone as a VECTOR.
+                // Two independent clamps let the tangent pair reach
+                // sqrt(2)*mu*N on the diagonal, and a spinning contact
+                // samples the diagonal continuously.
+                float limit_t2 = friction_limit;
+                if (c.face_friction) {
+                    const float f1 = c.friction_impulse_t1;
+                    const float rem2 = friction_limit * friction_limit
+                                     - f1 * f1;
+                    limit_t2 = (rem2 > 0.0f) ? std::sqrt(rem2) : 0.0f;
+                }
+                c.friction_impulse_t2 = std::max(-limit_t2,
+                                        std::min(limit_t2, old_f2 + friction_impulse_2));
                 friction_impulse_2 = c.friction_impulse_t2 - old_f2;
 
                 if (energy_ledger_on() && friction_impulse_2 != 0.0f) {
@@ -3996,6 +4435,104 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                                -t2x * friction_impulse_2,
                                                -t2y * friction_impulse_2,
                                                -t2z * friction_impulse_2);
+                    }
+                }
+
+                // ========================================================
+                // THE TWIST ROW (G-55, face contacts, FRICTION_TWIST=1).
+                // Torsional Coulomb friction about the contact normal:
+                // a spinning face brakes at mu * N_total * <r>, the face
+                // integral, not at corner radii. One carrier row per
+                // manifold. Gates per G-39: measure every body's omega,
+                // apply to DYNAMIC only (the turtle has none to measure).
+                // ========================================================
+                // G-45 binds here too: a speculative row (gap open)
+                // transmits no torsional friction either — its capture
+                // impulses are not contact forces, and a twist across
+                // an open gap killed airborne spin (ladder R2/R3, the
+                // same disease the linear gate cured).
+                // G-63 refinement (2026-09-01, measured: ladder R2/R4
+                // spin never braked): the exact LCP block routinely
+                // satisfies a micro-tilted manifold with the CARRIER
+                // row at zero while the group carries the full load.
+                // The twist's law is mu * N_TOTAL * <r> (summed below),
+                // so the carrier's OWN impulse must not gate the group.
+                // The default world keeps the old gate byte-identically.
+                if (c.twist_carrier && c.twist_r > 0.0f &&
+                    (friction_limit > 0.0f || single_law) &&
+                    (!c.is_turtle_contact || c.penetration > 0.0f)) {
+                    const float nx = c.jx, ny = c.jy, nz = c.jz;
+                    float w_rel = pa.omega_x*nx + pa.omega_y*ny
+                                + pa.omega_z*nz;
+                    if (!c.is_turtle_contact)
+                        w_rel -= pb.omega_x*nx + pb.omega_y*ny
+                               + pb.omega_z*nz;
+                    float invIa = 0.0f, invIb = 0.0f;
+                    if (pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                        inv_ma > 0.0f) {
+                        const float Ia = pa.GetMomentOfInertia();
+                        if (Ia > 0.0f) invIa = 1.0f / Ia;
+                    }
+                    if (!c.is_turtle_contact &&
+                        pb.solver_mode == ParticleSolverMode::DYNAMIC &&
+                        inv_mb > 0.0f) {
+                        const float Ib = pb.GetMomentOfInertia();
+                        if (Ib > 0.0f) invIb = 1.0f / Ib;
+                    }
+                    const float k_tw = invIa + invIb;
+                    if (k_tw > 0.0f) {
+                        // N_total: the manifold's whole normal impulse,
+                        // summed EXACTLY over the pair's rows, which
+                        // their builders push contiguously. A share
+                        // reconstruction from one row over-estimated
+                        // 1.6x on the pen-weighted turtle patch
+                        // (measured limits 48-59 vs the derived 31).
+                        auto same_group = [&](const Constraint& g) {
+                            return g.body_a == c.body_a &&
+                                   g.body_b == c.body_b &&
+                                   g.is_turtle_contact ==
+                                       c.is_turtle_contact &&
+                                   !g.is_angular;
+                        };
+                        float n_total = 0.0f;
+                        for (size_t gj = ci;; --gj) {
+                            if (!same_group(constraints[gj])) break;
+                            n_total += std::fmax(
+                                0.0f, constraints[gj].accumulated_impulse);
+                            if (gj == 0) break;
+                        }
+                        for (size_t gj = ci + 1;
+                             gj < constraints.size() &&
+                             same_group(constraints[gj]); ++gj)
+                            n_total += std::fmax(
+                                0.0f, constraints[gj].accumulated_impulse);
+                        const float t_limit =
+                            combined_friction * n_total * c.twist_r;
+                        float t_imp = -w_rel / k_tw;
+                        const float old_t = c.twist_impulse;
+                        c.twist_impulse = std::max(-t_limit,
+                                          std::min(t_limit, old_t + t_imp));
+                        t_imp = c.twist_impulse - old_t;
+                        if (energy_ledger_on() && t_imp != 0.0f) {
+                            const double j = t_imp;
+                            g_dissipation.friction -=
+                                j * double(w_rel)
+                                + j * j * double(k_tw) * 0.5;
+                        }
+                        PHYS_TRACE_F(::logosphere::phystrace::Constraint,
+                                     "twist_impulse",
+                                     (int)c.body_a, (int)c.body_b, "twist",
+                                     t_imp, t_limit, w_rel);
+                        if (t_imp != 0.0f) {
+                            pa.omega_x += nx * t_imp * invIa;
+                            pa.omega_y += ny * t_imp * invIa;
+                            pa.omega_z += nz * t_imp * invIa;
+                            if (!c.is_turtle_contact) {
+                                pb.omega_x -= nx * t_imp * invIb;
+                                pb.omega_y -= ny * t_imp * invIb;
+                                pb.omega_z -= nz * t_imp * invIb;
+                            }
+                        }
                     }
                 }
             }
@@ -4080,7 +4617,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // torque through a 65x inertia mismatch), not a converged one.
         if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f &&
             (ang_exit_off ||
-             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
+             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR) &&
+            // G-63: the registry (ConvergenceExits group) has always
+            // DOCUMENTED a linear residual guard on this door -
+            // VELOCITY_PLATEAU_FLOOR - and the code never enforced it.
+            // A chain ping-ponging at constant amplitude reads as a
+            // plateau to the rate test while its light middle body
+            // still exchanges 44 mm/s per sweep (measured, the 38.6:1
+            // anvil, canary F1000: exit at iter 9 of 32 with the wood
+            // at -0.164 m/s). Under the single law the door honors its
+            // own registry; the default keeps the drift, booked on the
+            // board.
+            (!single_law ||
+             max_dv_this_iter < PhysicsV4::VELOCITY_PLATEAU_FLOOR)) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
@@ -4287,8 +4836,59 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (velocity_impulse < 0) velocity_impulse = 0;
             }
             auto it = warm_started_impulses.find(ci);
-            key_totals[kt] += (it != warm_started_impulses.end())
-                                  ? it->second : velocity_impulse;
+            // MEASUREMENT LEVER (G-44 at the warm cache, default off):
+            // the equilibrium-freeze stores a warm-started row's own warm
+            // share back, so a cached key can never learn a new fixed
+            // point. Under a standing load the iterations rebuild the true
+            // support every substep (measured: 290 N*s found, 86.9 stored,
+            // need 306) and the freeze discards it. WARM_LEARN=1 stores
+            // the true accumulated total instead. The freeze's own reason
+            // (V4.6: bias-contaminated totals ratcheting) predates split
+            // impulse, under which the accumulated impulse is bias-free.
+            static const bool warm_learn =
+                std::getenv("WARM_LEARN") != nullptr;
+            const bool frozen = !warm_learn &&
+                                it != warm_started_impulses.end();
+            float learned = velocity_impulse;
+            // G-63 CORRECTION (2026-09-01, measured detonations): the
+            // first single-law cut stored the TRUE TOTAL when the cap
+            // was infinite - removing exactly the approach-subtraction
+            // G-52 exists for. Yesterday's capture transient re-applied
+            // onto moved geometry with NO cap to bound it detonated
+            // every contact-turnover scene (tiles at 99 m/s, the ramp
+            // cube flying 204 m). G-52's law holds in BOTH worlds; the
+            // capless world reads the approach from the row itself.
+            if (warm_learn && c.effective_mass > 0.0f) {
+                // G-52: cache what SUSTAINS, forget what CAPTURES. The
+                // accumulated impulse holds two physically different
+                // parts: the approach cancellation (a transient that
+                // exists only while something arrives) and the sustained
+                // support (the fixed point a resting load needs every
+                // substep). Caching the capture re-applies yesterday's
+                // strike to today's moved geometry (measured: the ramp's
+                // tumbling cube gains 5.8% travel). The row's build-time
+                // approach is recoverable from its own capture bound
+                // (max_impulse = eff * (approach + cushion), every
+                // contact and turtle row site).
+                const float approach = std::isfinite(c.max_impulse)
+                    ? c.max_impulse / c.effective_mass
+                      - PhysicsV4::CONTACT_CAPTURE_CUSHION
+                    : c.build_approach;
+                if (approach > 0.0f)
+                    learned = std::max(
+                        0.0f, velocity_impulse - c.effective_mass * approach);
+            }
+            const float stored = frozen ? it->second : learned;
+            key_totals[kt] += stored;
+            if (canary_active && ((int)c.body_a == canary_pid ||
+                                  (int)c.body_b == canary_pid)) {
+                std::cout << "[CANARY F" << phys_frame << " STORE] P"
+                          << c.body_a << "<->P" << c.body_b
+                          << " accumulated=" << c.accumulated_impulse
+                          << " stored=" << stored
+                          << (frozen ? " FROZEN-AT-WARM" : " TRUE-TOTAL")
+                          << std::endl;
+            }
         }
         for (const auto& kv : key_totals) {
             ContactKey key;
@@ -4356,9 +4956,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             return (m > 0.0f) ? (1.0f / m) : 0.0f;
         };
 
+        // THE BOUNDARY PAYS LIKE EVERYONE ELSE (G-50, lever
+        // TURTLE_PRICED=1): turtle rows join this pass instead of being
+        // repaired by the free clamp. Self-referenced body_b is the
+        // turtle: infinite positional mass, a-side apply only.
+        static const bool turtle_priced =
+            std::getenv("TURTLE_PRICED") != nullptr;
         for (int iter = 0; iter < PhysicsV4::POSITION_ITERATIONS; ++iter) {
             for (Constraint& c : constraints) {
-                if (c.is_turtle_contact) continue;
+                if (c.is_turtle_contact && !turtle_priced) continue;
                 // ---- Angular rows: repair orientation error via pseudo-omega.
                 if (c.is_angular) {
                     static const bool ang_split_off2 = std::getenv("ANGULAR_SPLIT_OFF") != nullptr;
@@ -4462,13 +5068,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (c.body_a >= count || c.body_b >= count) continue;
 
                 const float inv_ma = inv_mass_positional(particles[c.body_a]);
-                const float inv_mb = inv_mass_positional(particles[c.body_b]);
+                // Turtle rows self-reference body_b as a sentinel: the
+                // boundary has infinite positional mass, and reading b
+                // through the sentinel would cancel a's own pseudo
+                // velocity (G-50).
+                const float inv_mb = c.is_turtle_contact
+                    ? 0.0f : inv_mass_positional(particles[c.body_b]);
                 if (inv_ma == 0.0f && inv_mb == 0.0f) continue;
 
-                const float pv_rel =
-                    c.jx * (pvx[c.body_a] - pvx[c.body_b]) +
-                    c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
-                    c.jz * (pvz[c.body_a] - pvz[c.body_b]);
+                const float pv_rel = c.is_turtle_contact
+                    ? (c.jx * pvx[c.body_a] + c.jy * pvy[c.body_a] +
+                       c.jz * pvz[c.body_a])
+                    : (c.jx * (pvx[c.body_a] - pvx[c.body_b]) +
+                       c.jy * (pvy[c.body_a] - pvy[c.body_b]) +
+                       c.jz * (pvz[c.body_a] - pvz[c.body_b]));
 
                 // THE IMPULSE MUST BE PRICED IN THE MASSES IT IS SPENT ON.
                 // c.effective_mass came from the VELOCITY mass model, where
@@ -4497,9 +5110,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pvx[c.body_a] += c.jx * imp * inv_ma;
                 pvy[c.body_a] += c.jy * imp * inv_ma;
                 pvz[c.body_a] += c.jz * imp * inv_ma;
-                pvx[c.body_b] -= c.jx * imp * inv_mb;
-                pvy[c.body_b] -= c.jy * imp * inv_mb;
-                pvz[c.body_b] -= c.jz * imp * inv_mb;
+                if (!c.is_turtle_contact) {
+                    pvx[c.body_b] -= c.jx * imp * inv_mb;
+                    pvy[c.body_b] -= c.jy * imp * inv_mb;
+                    pvz[c.body_b] -= c.jz * imp * inv_mb;
+                }
             }
         }
 
@@ -5108,6 +5723,15 @@ void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, fl
  *   Zero velocity = immediate rest on boundary.
  */
 void PhysicsSystem::enforce_turtle_boundary(ParticleSystem::WriteView& particles) {
+    // THE BOUNDARY PAYS LIKE EVERYONE ELSE (G-50): under TURTLE_PRICED
+    // the free clamp retires — support and repair go through the rows
+    // and the split-impulse position pass, priced and booked. The
+    // energy ledger measured this clamp injecting +44 J per substep
+    // into a RESTING four-box column, the power supply of the G-48
+    // stack pump; the door work measured it lifting tilted grass
+    // blades free every substep.
+    static const bool turtle_priced = std::getenv("TURTLE_PRICED") != nullptr;
+    if (turtle_priced) return;
     const size_t count = particles.size();
 
     for (size_t i = 0; i < count; ++i) {

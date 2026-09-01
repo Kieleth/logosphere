@@ -4,6 +4,7 @@
 using namespace PhysicsV4;
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 
@@ -987,8 +988,81 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
         return true;
     }
 
-    // Keep the 4 deepest (selection over at most 8).
-    if (n_cand > 4) {
+    // Reduce to 4. Two laws, levered (G-51, MANIFOLD_SPAN=1, default off
+    // until the flip ruling):
+    //
+    // DEFAULT, deepest-4: keeps the 4 deepest of at most 8. In the pose
+    // every stack lives in — near-parallel faces whose depths differ by
+    // numerical noise across a metre of face — the 4 deepest all sit on
+    // the downhill edge of a micro-tilt, so the support centroid lands
+    // up to 0.45 m off-centre and the warm start's evenly-split cached
+    // support becomes a torque battery with alternating sign as the
+    // injection flips the tilt (the G-48 stack pump, witnessed at
+    // substep granularity; derivation and numbers in GEDANKEN-51).
+    //
+    // LEVER, spanning reduction: the reduced set must SPAN the contact
+    // polygon. Keep the deepest point (it owns the position error), the
+    // point farthest from it, then the points of maximal signed area on
+    // each side of that chord — pure argmax over geometry, stable
+    // whenever the clip polygon is stable, even when its depth ordering
+    // is not.
+    static const bool manifold_span = []{
+        const char* e = std::getenv("MANIFOLD_SPAN");
+        return e && e[0] == '1' && e[1] == '\0';
+    }();
+    if (n_cand > 4 && manifold_span) {
+        int i0 = 0;
+        for (int j = 1; j < n_cand; ++j)
+            if (cands[j].depth > cands[i0].depth) i0 = j;
+        int i1 = -1;
+        float best_d2 = -1.0f;
+        for (int j = 0; j < n_cand; ++j) {
+            if (j == i0) continue;
+            const float dx = cands[j].v[0] - cands[i0].v[0];
+            const float dy = cands[j].v[1] - cands[i0].v[1];
+            const float dz = cands[j].v[2] - cands[i0].v[2];
+            const float d2 = dx*dx + dy*dy + dz*dz;
+            if (d2 > best_d2) { best_d2 = d2; i1 = j; }
+        }
+        const float ex = cands[i1].v[0] - cands[i0].v[0];
+        const float ey = cands[i1].v[1] - cands[i0].v[1];
+        const float ez = cands[i1].v[2] - cands[i0].v[2];
+        int i2 = -1, i3 = -1;
+        float best_pos = 0.0f, best_neg = 0.0f;
+        for (int j = 0; j < n_cand; ++j) {
+            if (j == i0 || j == i1) continue;
+            const float fx = cands[j].v[0] - cands[i0].v[0];
+            const float fy = cands[j].v[1] - cands[i0].v[1];
+            const float fz = cands[j].v[2] - cands[i0].v[2];
+            // signed area in the face plane: (e x f) . nref
+            const float s = (ey*fz - ez*fy) * nref[0]
+                          + (ez*fx - ex*fz) * nref[1]
+                          + (ex*fy - ey*fx) * nref[2];
+            if (s > best_pos) { best_pos = s; i2 = j; }
+            if (s < best_neg) { best_neg = s; i3 = j; }
+        }
+        // A collinear side (no area either way) falls back to the point
+        // farthest from the chord's midpoint, so the pick stays
+        // deterministic and 4 points always survive.
+        for (int* slot : {&i2, &i3}) {
+            if (*slot >= 0) continue;
+            const float mx = cands[i0].v[0] + 0.5f * ex;
+            const float my = cands[i0].v[1] + 0.5f * ey;
+            const float mz = cands[i0].v[2] + 0.5f * ez;
+            float far_d2 = -1.0f;
+            for (int j = 0; j < n_cand; ++j) {
+                if (j == i0 || j == i1 || j == i2 || j == i3) continue;
+                const float dx = cands[j].v[0] - mx;
+                const float dy = cands[j].v[1] - my;
+                const float dz = cands[j].v[2] - mz;
+                const float d2 = dx*dx + dy*dy + dz*dz;
+                if (d2 > far_d2) { far_d2 = d2; *slot = j; }
+            }
+        }
+        Cand kept[4] = {cands[i0], cands[i1], cands[i2], cands[i3]};
+        for (int i = 0; i < 4; ++i) cands[i] = kept[i];
+        n_cand = 4;
+    } else if (n_cand > 4) {
         for (int i = 0; i < 4; ++i) {
             int deepest = i;
             for (int j = i + 1; j < n_cand; ++j)
