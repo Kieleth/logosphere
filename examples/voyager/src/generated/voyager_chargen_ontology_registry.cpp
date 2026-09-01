@@ -1232,6 +1232,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("LookupTable", "miss_is_nothing", kg::PropertyValueKind::Boolean, false);
     reg.setSource("https://logosphere.dev/voyager/chargen");
     reg.addProperty("MarkLeft", "mark_text", kg::PropertyValueKind::String, true);
+    reg.addRefProperty("MarkLeft", "left_by", true, "MomentFaced");
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addProperty("ModifyAttribute", "attribute_ref", kg::PropertyValueKind::String, true);
     reg.addProperty("ModifyAttribute", "attribute_delta", kg::PropertyValueKind::Integer, true);
@@ -1318,6 +1319,8 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/voyager/chargen");
     reg.addRefProperty("SeasonLived", "season_mode", true, "SeasonMode");
     reg.addProperty("SeasonLived", "lived_year", kg::PropertyValueKind::Integer, true, true, 0.0, false, 0.0);
+    reg.addProperty("SeasonLived", "season_plan", kg::PropertyValueKind::String, true);
+    reg.addProperty("SeasonLived", "season_telling", kg::PropertyValueKind::String, true);
     reg.addEnumProperty("SeasonMode", "season_mode_key", "SeasonModeKey", true);
     reg.setSource("https://logosphere.dev/packs/rulebook");
     reg.addRefProperty("SkillRating", "skill", true, "Entity");
@@ -1361,6 +1364,7 @@ static kg::OntologyRegistry build_registry() {
     reg.setSource("https://logosphere.dev/voyager/chargen");
     reg.addEnumProperty("StandingHeld", "standing_key", "StandingKey", true);
     reg.addRefProperty("StandingHeld", "standing_with", true, "Entity");
+    reg.addRefProperty("StandingHeld", "left_by", true, "MomentFaced");
     reg.addEnumProperty("StandingKind", "standing_key", "StandingKey", true);
     reg.setSource("https://malleus.dev/schema");
     reg.addEnumProperty("Statusable", "status", "EntityStatus", false);
@@ -1402,6 +1406,7 @@ static kg::OntologyRegistry build_registry() {
     reg.addProperty("Turn", "turn_ends_season", kg::PropertyValueKind::Boolean, true);
     reg.addProperty("Turn", "turn_ends_life", kg::PropertyValueKind::Boolean, true);
     reg.addEnumProperty("TurnTaken", "turn_key", "TurnKey", true);
+    reg.addRefProperty("TurnTaken", "left_by", true, "MomentFaced");
     reg.addProperty("UnsettledQuestion", "question_text", kg::PropertyValueKind::String, true);
     reg.setSource("https://logosphere.dev/schema");
     reg.addProperty("VolumeEvent", "entered", kg::PropertyValueKind::Boolean, false);

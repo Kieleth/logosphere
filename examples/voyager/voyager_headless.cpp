@@ -148,6 +148,19 @@ std::string synthetic(const replay::Ask& ask, uint64_t roll) {
         }
         return out.str();
     }
+    if (ask.site == "referee.seasons") {
+        if (g_allowed.empty()) return {};
+        std::ostringstream out;
+        for (const auto& way : g_allowed) {
+            out << way << " | (no referee: a plan invented by the seeded "
+                          "generator)\n";
+        }
+        return out.str();
+    }
+    if (ask.site == "referee.season") {
+        return "(no referee: a season told by the seeded generator, which "
+               "tells no story)";
+    }
     if (ask.site == "referee.arrival") {
         // Every kind rated, at one chance the seed picks inside the
         // graph's bounds, so some seasons break and most do not.

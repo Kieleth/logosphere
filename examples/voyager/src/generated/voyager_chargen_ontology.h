@@ -3330,6 +3330,10 @@ struct SeasonLived : public Event {
     SeasonMode season_mode = {};
     /// The age this season completed at.
     int32_t lived_year = {};
+    /// What the director said this person would do with the season the way it was chosen, before it was lived.
+    std::string season_plan = {};
+    /// The season as it was lived, in the director's telling.
+    std::string season_telling = {};
 };
 
 
@@ -3463,6 +3467,8 @@ struct StandingHeld : public Event {
     StandingKey standing_key = {};
     /// The person, place, or faction the standing is held toward. An entity reference into the playing's own world.
     Entity standing_with = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
 };
 
 
@@ -3470,6 +3476,8 @@ struct StandingHeld : public Event {
 struct MarkLeft : public Event {
     /// The mark, named.
     std::string mark_text = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
 };
 
 
@@ -3477,6 +3485,8 @@ struct MarkLeft : public Event {
 struct TurnTaken : public Event {
     /// Which way the life turned.
     TurnKey turn_key = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
 };
 
 

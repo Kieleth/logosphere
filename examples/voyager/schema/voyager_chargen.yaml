@@ -313,9 +313,15 @@ classes:
         required: true
       lived_year:
         required: true
+      season_plan:
+        required: true
+      season_telling:
+        required: true
     slots:
       - season_mode
       - lived_year
+      - season_plan
+      - season_telling
 
   MomentFaced:
     is_a: Event
@@ -594,9 +600,12 @@ classes:
         required: true
       standing_with:
         required: true
+      left_by:
+        required: true
     slots:
       - standing_key
       - standing_with
+      - left_by
 
   MarkLeft:
     is_a: Event
@@ -610,8 +619,11 @@ classes:
         equals_string: MARK_LEFT
       mark_text:
         required: true
+      left_by:
+        required: true
     slots:
       - mark_text
+      - left_by
 
   TurnTaken:
     is_a: Event
@@ -625,8 +637,11 @@ classes:
         equals_string: TURN_TAKEN
       turn_key:
         required: true
+      left_by:
+        required: true
     slots:
       - turn_key
+      - left_by
 
   UnsettledQuestion:
     is_a: Entity
@@ -885,3 +900,17 @@ slots:
     description: >-
       Whether this kind of effect moves a characteristic, which is the
       kind two of which may not pull one characteristic both ways.
+  left_by:
+    range: MomentFaced
+    description: >-
+      The moment that left this on the character. A mark, a standing or
+      a turn with no moment behind it is a fact with no story, and the
+      sheet explains each by the moment that made it.
+  season_plan:
+    range: string
+    description: >-
+      What the director said this person would do with the season the
+      way it was chosen, before it was lived.
+  season_telling:
+    range: string
+    description: The season as it was lived, in the director's telling.

@@ -215,6 +215,9 @@ private:
     std::string                      situation_;
     std::vector<OfferedDoor>         doors_;
     bool                             awaiting_plan_ = false;
+    // What the director said this person would do with the coming
+    // season each way, held from the question to the answer.
+    std::map<std::string, std::string> season_hints_;
     std::map<std::string, EffectHandler> effects_;
 };
 

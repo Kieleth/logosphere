@@ -33,21 +33,29 @@ struct SheetLine {
     std::string  value;      // the score, empty when none is recorded
     std::string  modifier;   // "+1", "-2", from the book's own table
     kg::EntityID characteristic = kg::INVALID_ENTITY;
+    // What this line means, in the book's words: the characteristic
+    // as the book defines it and the table band the score falls in.
+    // The screen shows it on hover; nothing here invents a word of it.
+    std::string  note;
 };
 
-// One row of the lived record: a kind of moment faced, and how often.
-// The label is the graph's; the count is derived from the MomentFaced
-// records at the time of asking. Stage is a QUERY, never a store.
+// One row of the lived record: a kind of moment faced, and how often;
+// a mark; a standing. The label is the graph's; a count is derived
+// from the MomentFaced records at the time of asking. Stage is a
+// QUERY, never a store. The note is the moment that left it.
 struct SheetRecordLine {
     std::string label;
     std::string count;
+    std::string note;
 };
 
 struct Sheet {
     kg::EntityID            character = kg::INVALID_ENTITY;
     std::vector<SheetLine>  lines;
     std::string             age;          // empty until the rule sets it
+    std::string             age_note;     // the book's sentence on seasons
     std::string             career;       // empty until one is entered
+    std::string             career_note;  // the book's sentence on it
     std::string             background;   // the prose, as it was lived
     std::vector<SheetRecordLine> record;  // stage, counted on demand
 };

@@ -48,6 +48,9 @@ struct EffectSite {
     kg::EntityID context;
     std::vector<kg::KGOp>& ops;
     int& next_alias;
+    // The alias of the moment being resolved in this batch, so what an
+    // effect leaves points back at the moment that left it.
+    std::string moment_alias;
 };
 
 struct EffectHandler {
@@ -282,7 +285,8 @@ inline std::map<std::string, EffectHandler> make_effect_registry() {
                 {{"name", effect.args[0] + " with " + name},
                  {"event_type", "STANDING_HELD"},
                  {"standing_key", effect.args[0]},
-                 {"standing_with", with}}));
+                 {"standing_with", with},
+                 {"left_by", "@" + site.moment_alias}}));
             site.ops.push_back(relate(site.character, "LIVED", held));
             return true;
         }};
@@ -312,7 +316,8 @@ inline std::map<std::string, EffectHandler> make_effect_registry() {
             site.ops.push_back(create_entity(
                 "MarkLeft", alias,
                 {{"name", text}, {"event_type", "MARK_LEFT"},
-                 {"mark_text", text}}));
+                 {"mark_text", text},
+                 {"left_by", "@" + site.moment_alias}}));
             site.ops.push_back(relate(site.character, "LIVED", alias));
             return true;
         }};
@@ -344,7 +349,8 @@ inline std::map<std::string, EffectHandler> make_effect_registry() {
             site.ops.push_back(create_entity(
                 "TurnTaken", alias,
                 {{"name", effect.args[0]}, {"event_type", "TURN_TAKEN"},
-                 {"turn_key", effect.args[0]}}));
+                 {"turn_key", effect.args[0]},
+                 {"left_by", "@" + site.moment_alias}}));
             site.ops.push_back(relate(site.character, "LIVED", alias));
             return true;
         }};

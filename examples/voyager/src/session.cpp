@@ -720,13 +720,43 @@ Session::Result Session::spend_season(const Context& context) {
                 "the character has no readable age to add a season to");
         }
         const long long after = age + years;
+
+        // The season as it was lived. Prose only: it may go sideways
+        // within the year, but nothing lasting happens here, because
+        // what lasts happens in moments.
+        const std::string plan = season_hints_[taken->name];
+        std::ostringstream prompt;
+        describe(world_, context.target, prompt, error);
+        if (!error.empty()) return Result::failed(error);
+        prompt << "\nTHE WAY THIS SEASON IS SPENT: " << taken->name << " | "
+               << plan << "\n" << taken->quote
+               << "\n\nTell the season as it was lived, past tense, two or "
+                  "three sentences. It may go sideways inside the year, "
+                  "but nothing lasting happens in a season: no wound, no "
+                  "enemy, no turn. What lasts happens in moments. No "
+                  "numbers, no dice, no chances.";
+        RefereeQuestion telling;
+        telling.site = "season";
+        telling.prompt = prompt.str();
+        std::string told;
+        if (!referee_(telling, told, error)) {
+            return Result::failed("the director did not tell the season: " +
+                                  error);
+        }
+        told = trimmed(told);
+        if (told.empty()) {
+            return Result::failed("the director told nothing of the season");
+        }
+
         kg::KGOpBatchReport report;
         const std::vector<kg::KGOp> ops = {
             create_entity("SeasonLived", "season",
                           {{"name", "season at " + std::to_string(after)},
                            {"event_type", "SEASON_LIVED"},
                            {"season_mode", std::to_string(taken->id)},
-                           {"lived_year", std::to_string(after)}}),
+                           {"lived_year", std::to_string(after)},
+                           {"season_plan", plan},
+                           {"season_telling", told}}),
             relate(context.target, "LIVED", "season"),
             set_property(context.target, "age_years",
                          std::to_string(after)),
@@ -735,15 +765,69 @@ Session::Result Session::spend_season(const Context& context) {
             return Result::failed("the season was refused: " +
                                   report.error);
         }
-        log_.push_back("a season spent in " + taken->name);
+        season_hints_.clear();
+        log_.push_back("a season spent in " + taken->name + ": " + plan);
+        log_.push_back(told);
         return Result::advance();
     }
+
+    // Asking: the ways come from the graph, and for each the director
+    // says what THIS person would do with the coming year that way,
+    // fresh each season, so the choice is a plan and not a word.
+    std::ostringstream prompt;
+    std::string error;
+    describe(world_, context.target, prompt, error);
+    if (!error.empty()) return Result::failed(error);
+    prompt << "\nSEASONS ALREADY LIVED, so this one is unlike them:";
+    bool any = false;
+    for (const kg::EntityID lived :
+         world_.getRelated(context.target, "LIVED")) {
+        if (world_.getType(lived) != "SeasonLived") continue;
+        prompt << "\n  " << world_.getProperty(lived, "season_plan");
+        any = true;
+    }
+    if (!any) prompt << " none; this is the first";
+    prompt << "\n\nTHE WAYS A SEASON IS SPENT, in the book's words:\n";
+    RefereeQuestion question;
+    question.site = "seasons";
+    for (const auto& mode : modes) {
+        prompt << "  " << mode.name << " | " << mode.quote << "\n";
+        question.allowed.push_back(mode.name);
+    }
+    question.vocab["ways"] = question.allowed;
+    prompt << "\nFor EACH way, one clause: what this person would do with "
+              "the coming year spent that way, specific to their trade, "
+              "their place and their record, and unlike any season "
+              "already lived. Plans, not outcomes.\nAnswer one line per "
+              "way, every way, and nothing else:\n  <way> | <clause>";
+    question.prompt = prompt.str();
+    const auto accept = [&](const std::string& reply, std::string& why) {
+        season_hints_.clear();
+        std::istringstream lines(reply);
+        std::string line;
+        while (std::getline(lines, line)) {
+            const auto parts = split_bars(line);
+            if (parts.size() < 2 || parts[0].empty()) continue;
+            season_hints_[parts[0]] = parts[1];
+        }
+        for (const auto& mode : modes) {
+            const auto it = season_hints_.find(mode.name);
+            if (it == season_hints_.end() || it->second.empty()) {
+                why = "no plan was given for '" + mode.name +
+                      "'; every way gets one";
+                return false;
+            }
+        }
+        return true;
+    };
+    if (!ask_in_shape(question, accept, error)) return Result::failed(error);
 
     std::vector<Choice> ways;
     for (const auto& mode : modes) {
         Choice way;
         way.key = mode.name;
         way.label = mode.name;
+        way.detail = season_hints_[mode.name];
         way.subject = mode.id;
         ways.push_back(std::move(way));
     }
@@ -751,8 +835,7 @@ Session::Result Session::spend_season(const Context& context) {
     done.key = kEnough;
     done.label = "That is enough. The making ends here.";
     ways.push_back(std::move(done));
-    return Result::pending(modes.front().quote + "\n\nHow is this season "
-                           "spent?", std::move(ways));
+    return Result::pending("How is this year spent?", std::move(ways));
 }
 
 Session::Result Session::propose_arrival(const Context& context) {
@@ -1002,7 +1085,7 @@ bool Session::resolve_door(const Context& context, const OfferedDoor& door,
             if (world_.getType(e) == "TurnTaken") ++n;
         return n;
     }();
-    EffectSite site{world_, context.target, context_, ops, alias};
+    EffectSite site{world_, context.target, context_, ops, alias, "moment 1"};
     for (const auto& effect : lands) {
         if (!effects_.at(effect.key).apply(site, effect, error)) return false;
     }
@@ -1383,7 +1466,10 @@ Session::Result Session::face_moment(const Context& context) {
                     choice.detail += " " + e.text;
             }
         } else {
-            choice.detail = "unpriced: a kind never faced";
+            choice.detail = "unpriced. This is a kind of trouble never "
+                            "faced before, so the doors show without their "
+                            "prices: what each risks and reaches for is "
+                            "there, but not the odds.";
         }
         offered.push_back(std::move(choice));
     }

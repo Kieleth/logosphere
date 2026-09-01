@@ -198,6 +198,22 @@ int main() {
                          question.allowed.back() + " | the stranger one";
                 return true;
             }
+            if (question.site == "seasons") {
+                CHECK(question.allowed.size() ==
+                          world.findByType("SeasonMode").size(),
+                      "the director was asked to plan "
+                          << question.allowed.size() << " ways and the "
+                          "graph holds "
+                          << world.findByType("SeasonMode").size());
+                for (const auto& way : question.allowed) {
+                    answer += way + " | a year spent " + way + "\n";
+                }
+                return true;
+            }
+            if (question.site == "season") {
+                answer = "The year went by as years do.";
+                return true;
+            }
             if (question.site == "arrival") {
                 CHECK(question.allowed.size() ==
                           world.findByType("MomentKind").size(),
@@ -385,6 +401,18 @@ int main() {
               lived << " season(s) from majority should age to "
                     << (majority + season * lived) << " and the sheet says "
                     << sheet.age);
+        // Every season carries its plan and its telling, and the
+        // telling reaches the prose the screen shows.
+        for (const kg::EntityID e :
+             world.getRelated(session.character(), "LIVED")) {
+            if (world.getType(e) != "SeasonLived") continue;
+            CHECK(!world.getProperty(e, "season_plan").empty() &&
+                      !world.getProperty(e, "season_telling").empty(),
+                  "a season was lived without a plan or a telling");
+        }
+        CHECK(sheet.background.find("The year went by as years do.") !=
+                  std::string::npos,
+              "the season's telling is not in the prose");
     }
 
     // Stage is a QUERY: every kind that landed is one row counted
@@ -424,6 +452,16 @@ int main() {
         }
         CHECK(marks == 1, "one mark was in the list that landed and "
                           << marks << " were left");
+        for (const kg::EntityID e :
+             world.getRelated(session.character(), "LIVED")) {
+            const std::string type = world.getType(e);
+            if (type != "MarkLeft" && type != "StandingHeld") continue;
+            long long by = 0;
+            CHECK(as_int(world.getProperty(e, "left_by"), by) &&
+                      world.getType(static_cast<kg::EntityID>(by)) ==
+                          "MomentFaced",
+                  type << " points at no moment that left it");
+        }
         CHECK(mark.rfind(against ? "risked" : "reached", 0) == 0,
               "the draw " << (against ? "went against" : "spared")
                           << " them and the mark says '" << mark << "'");
@@ -456,6 +494,10 @@ int main() {
                     answer = "Someone.";
                 } else if (question.site == "careers") {
                     answer = question.allowed.front() + " | a door";
+                } else if (question.site == "seasons") {
+                    for (const auto& way : question.allowed) {
+                        answer += way + " | a plan\n";
+                    }
                 } else if (question.site == "arrival") {
                     for (const auto& kind : question.allowed) {
                         answer += kind + " | " + question.high + "\n";
@@ -523,6 +565,8 @@ int main() {
                 a = "Someone.";
             } else if (q.site == "careers") {
                 a = q.allowed.front() + " | a door";
+            } else if (q.site == "seasons") {
+                for (const auto& way : q.allowed) a += way + " | a plan\n";
             } else if (q.site == "arrival") {
                 for (const auto& kind : q.allowed) {
                     a += kind + " | " +

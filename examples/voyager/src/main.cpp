@@ -38,6 +38,10 @@ int main(int argc, char** argv) {
         std::cerr << "[voyager] engine init failed" << std::endl;
         return 1;
     }
+    // Bigger type: the bitmap font has one size, so the game is drawn
+    // on a smaller grid than the window and scaled up. The layout is
+    // computed on the same grid.
+    engine.set_render_resolution(voyager::kRenderW, voyager::kRenderH);
 
     auto last = std::chrono::high_resolution_clock::now();
     while (engine.should_continue()) {

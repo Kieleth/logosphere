@@ -26,6 +26,40 @@ ui::Label* make_label(ui::Container* parent, int x, int y, int w,
     return label;
 }
 
+// A label that reports the pointer arriving, so a line of the sheet
+// can explain itself: the note it shows is the graph's, not its own.
+class HoverLabel : public ui::Label {
+public:
+    using ui::Label::Label;
+    std::function<void()> on_hover;
+    bool on_mouse_enter(ui::MouseEvent&) override {
+        if (on_hover) on_hover();
+        return false;
+    }
+    bool on_mouse_move(ui::MouseEvent&) override {
+        if (on_hover) on_hover();
+        return false;
+    }
+};
+
+HoverLabel* make_hover_label(ui::Container* parent, int x, int y, int w,
+                             uint8_t r, uint8_t g, uint8_t b) {
+    auto* label = new HoverLabel("", "");
+    label->set_position(x, y);
+    label->set_size(w, kLine);
+    label->set_color(r, g, b);
+    parent->add_child(label);
+    return label;
+}
+
+// Fit a row of the doors list to the list's width, so a long door
+// never runs off the window; the whole of it is in the row's note.
+std::string fitted(const std::string& text, size_t columns) {
+    if (text.size() <= columns) return text;
+    if (columns < 4) return text.substr(0, columns);
+    return text.substr(0, columns - 3) + "...";
+}
+
 // The engine's bitmap font draws bytes it does not know as blanks, and
 // the book is full of en dashes and typographic quotes. Show them as
 // their ASCII cousins. The DATA is untouched; this is only paint.
@@ -102,8 +136,16 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
             left_, 0, layout_.prose_top - layout_.left.y + i * kLine,
             layout_.left.w, kInkR, kInkG, kInkB));
     }
-    prompt_ = make_label(left_, 0, layout_.prompt_y - layout_.left.y,
-                         layout_.left.w, kAskR, kAskG, kAskB);
+    for (int i = 0; i < layout_.prompt_lines; ++i) {
+        prompt_.push_back(make_label(
+            left_, 0, layout_.prompt_y - layout_.left.y + i * kLine,
+            layout_.left.w, kAskR, kAskG, kAskB));
+    }
+    for (int i = 0; i < layout_.note_lines; ++i) {
+        note_.push_back(make_label(
+            right_, 0, layout_.note_top - layout_.right.y + i * kLine,
+            layout_.right.w, kDimR, kDimG, kDimB));
+    }
 
     // A root widget, not a child: a list must receive its own clicks
     // and scrolls without a panel in front of it swallowing them.
@@ -114,7 +156,52 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
     doors_->on_item_activated = [this](const std::string& data) {
         if (on_choice) on_choice(data);
     };
+    // A selected row explains itself in the notes: the whole door,
+    // its chance and its two lists, or the plan behind a way to spend
+    // a season. Arrow keys or one click select; Enter or a double
+    // click take the door.
+    doors_->on_selection_changed = [this](int index) {
+        if (index >= 0 && index < static_cast<int>(door_notes_.size())) {
+            set_note(door_notes_[static_cast<size_t>(index)]);
+        }
+    };
     ui.add_widget(doors_);
+}
+
+void Screen::set_prompt(const std::string& text) {
+    const auto lines = wrap(renderable(text),
+                            static_cast<size_t>(layout_.prose_columns));
+    for (size_t i = 0; i < prompt_.size(); ++i) {
+        prompt_[i]->set_text(i < lines.size() ? lines[i] : std::string());
+    }
+}
+
+void Screen::set_note(const std::string& text) {
+    const auto lines = wrap(renderable(text),
+                            static_cast<size_t>(layout_.note_columns));
+    for (size_t i = 0; i < note_.size(); ++i) {
+        note_[i]->set_text(i < lines.size() ? lines[i] : std::string());
+    }
+}
+
+// The sheet's labels, grown on demand, each one reporting the pointer
+// so its note can show. A seventh characteristic in the graph gets a
+// seventh label instead of being dropped off the end of a fixed array.
+ui::Label* Screen::sheet_label(size_t index) {
+    while (sheet_.size() <= index) {
+        const size_t at = sheet_.size();
+        auto* label = make_hover_label(
+            right_, 0,
+            layout_.sheet_top - layout_.right.y + static_cast<int>(at) * kLine,
+            layout_.right.w, kInkR, kInkG, kInkB);
+        label->on_hover = [this, at] {
+            if (at < sheet_notes_.size() && !sheet_notes_[at].empty()) {
+                set_note(sheet_notes_[at]);
+            }
+        };
+        sheet_.push_back(label);
+    }
+    return sheet_[index];
 }
 
 void Screen::set_prose(const std::string& text) {
@@ -132,7 +219,7 @@ void Screen::set_prose(const std::string& text) {
 
 void Screen::say(const std::string& text) {
     set_prose(text);
-    if (prompt_) prompt_->set_text("");
+    set_prompt("");
     if (doors_) doors_->clear_items();
 }
 
@@ -148,34 +235,34 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
     // per kind of moment this life has faced. Labels are grown to fit
     // rather than fixed, so a seventh characteristic or a first-lived
     // kind gets its line instead of falling off the end.
-    const size_t rows = sheet.lines.size() + 2 +   // age and career
-                        (sheet.record.empty() ? 0
-                                              : sheet.record.size() + 1);
-    while (sheet_.size() < rows) {
-        sheet_.push_back(make_label(
-            right_, 0,
-            layout_.sheet_top - layout_.right.y +
-                static_cast<int>(sheet_.size()) * kLine,
-            layout_.right.w, kInkR, kInkG, kInkB));
-    }
+    // Each row and, beside it, the note the row shows when the pointer
+    // rests on it. Both come out of the graph; this code labels nothing.
+    sheet_notes_.clear();
     size_t at = 0;
+    const auto row = [&](const std::string& text, const std::string& note) {
+        sheet_label(at)->set_text(text);
+        sheet_notes_.push_back(note);
+        ++at;
+    };
     for (const auto& line : sheet.lines) {
         std::string text = line.label;
         while (text.size() < 5) text += ' ';
         text += line.value.empty() ? std::string("--") : line.value;
         if (!line.modifier.empty()) text += "  " + line.modifier;
-        sheet_[at++]->set_text(text);
+        row(text, line.note);
     }
-    sheet_[at]->set_text("");
-    ++at;
-    std::string tail = "AGE  " + sheet.age;
-    if (!sheet.career.empty()) tail += "    " + renderable(sheet.career);
-    sheet_[at++]->set_text(tail);
+    row("", "");
+    row("AGE  " + sheet.age, sheet.age_note);
+    if (!sheet.career.empty()) {
+        row(renderable(sheet.career), sheet.career_note);
+    }
     if (!sheet.record.empty()) {
-        sheet_[at++]->set_text("");
+        row("", "");
         for (const auto& line : sheet.record) {
-            sheet_[at++]->set_text(renderable(line.label) + "  " +
-                                   line.count);
+            std::string text = renderable(line.label);
+            if (!line.count.empty()) text += "  " + renderable(line.count);
+            row(fitted(text, static_cast<size_t>(layout_.note_columns)),
+                line.note);
         }
     }
     for (size_t i = at; i < sheet_.size(); ++i) sheet_[i]->set_text("");
@@ -187,11 +274,15 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
         close_out(sheet.career);
         return;
     }
-    prompt_->set_text(renderable(session.prompt()));
+    set_prompt(session.prompt());
+    door_notes_.clear();
+    const auto columns = static_cast<size_t>(layout_.doors.w / kGlyphW) - 2;
     for (const auto& choice : session.choices()) {
-        std::string row = choice.label;
-        if (!choice.detail.empty()) row += "   " + choice.detail;
-        doors_->add_item(renderable(row), choice.key);
+        std::string text = choice.label;
+        if (!choice.detail.empty()) text += "   " + choice.detail;
+        doors_->add_item(fitted(renderable(text), columns), choice.key);
+        door_notes_.push_back(choice.label +
+                              (choice.detail.empty() ? "" : "\n" + choice.detail));
     }
     // The player's own door takes the player's own words, through the
     // engine's text field. It shows only while those words are wanted.
@@ -199,13 +290,13 @@ void Screen::show(const kg::KGModule& world, const Session& session) {
 }
 
 void Screen::close_out(const std::string& career) {
-    if (!prompt_) return;
-    prompt_->set_text(
-        career.empty()
-            ? "That is as far as the book is written. Start over."
-            : renderable(career) +
-                  ". That is as far as the book is written. Start over.");
+    set_prompt(career.empty()
+                   ? "That is as far as the book is written. Start over."
+                   : renderable(career) +
+                         ". That is as far as the book is written. Start "
+                         "over.");
     if (doors_) doors_->clear_items();
+    if (ui_) ui_->set_chat_visible(false);
 }
 
 }  // namespace voyager

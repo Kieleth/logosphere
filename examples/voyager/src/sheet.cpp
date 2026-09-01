@@ -133,6 +133,18 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
                 return false;
             }
             line.modifier = signed_text(modifier);
+            // The explanation, from the graph: the book's own words for
+            // the characteristic, then the table band the score sits in
+            // and what that band adds to every throw that uses it.
+            const kg::EntityID entry = row.selection->row();
+            line.note = world.getProperty(id, "source_quote") + "  A score of " +
+                        line.value + " falls in the band " +
+                        world.getProperty(entry, "key_min") + " to " +
+                        world.getProperty(entry, "key_max") +
+                        " of the book's modifier table, which adds " +
+                        line.modifier + " to every throw that uses it.";
+        } else {
+            line.note = world.getProperty(id, "source_quote");
         }
         out.lines.push_back(std::move(line));
     }
@@ -140,12 +152,19 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
     if (character == kg::INVALID_ENTITY || !world.exists(character)) return true;
 
     out.age = world.getProperty(character, "age_years");
+    for (const kg::EntityID id : world.findByType("RuleConstant")) {
+        if (world.getProperty(id, "name") == "season_standard_years") {
+            out.age_note = world.getProperty(id, "source_quote");
+        }
+    }
     const std::string career = world.getProperty(character, "chosen_career");
     long long career_id = 0;
     if (as_int(career, career_id) && world.exists(
             static_cast<kg::EntityID>(career_id))) {
         out.career = world.getProperty(
             static_cast<kg::EntityID>(career_id), "name");
+        out.career_note = world.getProperty(
+            static_cast<kg::EntityID>(career_id), "career_summary");
     }
     // The prose, in the order it was lived: narrations first, then
     // each moment's situation and what it did, read straight off the
@@ -160,10 +179,23 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
         append_prose(world.getProperty(part, "narration_text"));
     }
     for (const kg::EntityID lived : world.getRelated(character, "LIVED")) {
-        if (world.getType(lived) != "MomentFaced") continue;
-        append_prose(world.getProperty(lived, "moment_situation"));
-        append_prose(world.getProperty(lived, "moment_outcome"));
+        const std::string type = world.getType(lived);
+        if (type == "SeasonLived") {
+            append_prose(world.getProperty(lived, "season_telling"));
+        } else if (type == "MomentFaced") {
+            append_prose(world.getProperty(lived, "moment_situation"));
+            append_prose(world.getProperty(lived, "moment_outcome"));
+        }
     }
+    // What left a mark or a standing: the moment behind it, in the
+    // director's telling, so a hover explains the row by its story.
+    const auto story_of = [&world](kg::EntityID lived) {
+        long long by = 0;
+        if (!as_int(world.getProperty(lived, "left_by"), by)) return std::string();
+        const auto moment = static_cast<kg::EntityID>(by);
+        return world.getProperty(moment, "moment_situation") + "  " +
+               world.getProperty(moment, "moment_outcome");
+    };
 
     // Stage, counted and never stored: one row per kind of moment this
     // character has faced, labelled as the graph labels the kind. A
@@ -181,12 +213,14 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
         }
         if (faced == 0) continue;
         out.record.push_back({world.getProperty(kind, "name"),
-                              "x" + std::to_string(faced)});
+                              "x" + std::to_string(faced),
+                              world.getProperty(kind, "source_quote")});
     }
 
     // What the life holds: the latest standing per counterpart, and
     // every mark. Labels and values are the graph's words throughout.
-    std::vector<std::pair<kg::EntityID, std::string>> standings;
+    struct Held { kg::EntityID with; std::string key; std::string note; };
+    std::vector<Held> standings;
     for (const kg::EntityID lived : world.getRelated(character, "LIVED")) {
         const std::string type = world.getType(lived);
         if (type == "StandingHeld") {
@@ -198,15 +232,21 @@ bool read_sheet(const kg::KGModule& world, kg::EntityID character,
             const std::string key = world.getProperty(lived, "standing_key");
             bool replaced = false;
             for (auto& held : standings) {
-                if (held.first == id) { held.second = key; replaced = true; }
+                if (held.with == id) {
+                    held.key = key;
+                    held.note = story_of(lived);
+                    replaced = true;
+                }
             }
-            if (!replaced) standings.emplace_back(id, key);
+            if (!replaced) standings.push_back({id, key, story_of(lived)});
         } else if (type == "MarkLeft") {
-            out.record.push_back({world.getProperty(lived, "mark_text"), ""});
+            out.record.push_back({world.getProperty(lived, "mark_text"), "",
+                                  story_of(lived)});
         }
     }
-    for (const auto& [id, key] : standings) {
-        out.record.push_back({world.getProperty(id, "name"), key});
+    for (const auto& held : standings) {
+        out.record.push_back({world.getProperty(held.with, "name"), held.key,
+                              held.note});
     }
     return true;
 }
