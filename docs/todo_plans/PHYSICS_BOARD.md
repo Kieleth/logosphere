@@ -620,10 +620,31 @@ ordered by contact-graph depth from the immovable roots, one shock
 sweep after the loop - THE ANVIL LADDER IS FULLY GREEN (z 1.9000 at
 every ratio, 0.0 mm transit, asleep). The single-law battery's only
 reds are other fronts' booked pairs (ladder R5/R6, ramp G-46).
-OPEN: the DEFAULT world's unwired plateau guard (rides the flip);
-island LCP as the horizon. OWNER RULING now available: the flip of
-the single-law world (trio + SINGLE_LAW) to default, with a green
-battery behind it. RESOLVED under the lever 2026-09-01:
+**THE FLIP LANDED 2026-09-01 (INV-36, owner ruling)**: the single
+law is the shipped default; FRICTION_TWIST / WARM_LEARN /
+MANIFOLD_SPAN / SINGLE_LAW are kill switches (=0), never shipping
+modes. The plateau guard, the position gate and the twist gate ship
+with it. The box/slab/strike battery is green under no env. THE BOND
+WORLD IS NOT (the honest, rebuilt sweep): four born-red TDD flags of
+the flip - light-body ringing (caps removal + FRICTION_TWIST), grass
+bends-not-tears (the exact block), the 3-axis drive (position gate on
+gluon rows), the rock (trio interaction, 0.165 m) - plus two stale
+audit rows red before the flip (shoulder drive, strata). Owner ruling
+2026-09-01: keep the flip; convert each test to Argus/INV form
+(subagents), then fix one by one at mechanism. Light bonded bodies vs
+exact/uncapped contact impulses is the family (island LCP is the
+horizon; the tear check on within-sweep transients the first
+suspect). CONVERSIONS LANDED (drives, 2026-09-01): the shoulder
+drive is GREEN - its red was an out-of-bounds read in the test (a
+late swap callback); ENGINE HAZARD boarded: ParticleSystem::ReadView
+operator[] is unchecked (a guardrail candidate). The 3-axis drive's
+'hold' spans a 9.68 m/s turtle strike of an unsupported pair - OWNER
+RULING: test-design defect (support the pair) vs keep as the
+'drive survives an impact' flag; either way the single law changes
+post-impact ring-down amplitude 0.045 -> 0.067 rad (measured). TURTLE_PRICED stays opt-in (its own
+question, the turtle free-lift). Island LCP is the horizon. NEXT in
+the owner's order: rolling contact (R5/R6 + G-46), the turtle
+free-lift, then the small clean items. RESOLVED under the lever 2026-09-01:
 the position pass's slop gate (dead zone 3.5 mm -> error < SLOP;
 38.6:1 4.5 -> 2.7 mm, asleep).
 RESOLVED 2026-09-01: the impact-torsion 'law question' was the G-45

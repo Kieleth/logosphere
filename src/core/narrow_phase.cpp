@@ -1006,9 +1006,11 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
     // each side of that chord — pure argmax over geometry, stable
     // whenever the clip polygon is stable, even when its depth ordering
     // is not.
+    // THE FLIP (INV-36, 2026-09-01): the spanning reduction is the shipped
+    // default; MANIFOLD_SPAN=0 is the kill switch, never a shipping mode.
     static const bool manifold_span = []{
         const char* e = std::getenv("MANIFOLD_SPAN");
-        return e && e[0] == '1' && e[1] == '\0';
+        return !(e && e[0] == '0' && e[1] == '\0');
     }();
     if (n_cand > 4 && manifold_span) {
         int i0 = 0;

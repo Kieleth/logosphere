@@ -9,10 +9,11 @@
 // drivers and the window. Every case's expectation is derived in its
 // GEDANKEN record; the bands here restate that arithmetic.
 //
-// ALL LIMITS INSTRUMENTS PROBE THE TRIO WORLD (FRICTION_TWIST +
-// WARM_LEARN + MANIFOLD_SPAN). The drivers set the levers themselves
-// before engine init — the campaign question is where the CANDIDATE
-// DEFAULT breaks, so the world under test is fixed, not ambient.
+// THE WORLD UNDER TEST IS THE SHIPPED DEFAULT. The campaign began by
+// probing the candidate default behind levers (FRICTION_TWIST,
+// WARM_LEARN, MANIFOLD_SPAN, then SINGLE_LAW); on 2026-09-01 the owner
+// flipped that world to default (INV-36) and the levers became kill
+// switches (=0) for A/B from the shell - the probes set nothing.
 //
 // THE FRICTION ANCHOR (campaign finding, 2026-08-28): every particle
 // is born with friction = 0.5 (particle_core.h) and SetMaterial never
@@ -91,14 +92,12 @@ struct Case {
     const char* waiver = nullptr;      // narrated DOF deliberately not asserted
 };
 
-// Set the trio BEFORE engine/physics construction. The levers are
-// latched with function-local statics at first use inside the solver,
-// so this must run before the first physics.update().
-inline void set_trio_world() {
-    setenv("FRICTION_TWIST", "1", 1);
-    setenv("WARM_LEARN", "1", 1);
-    setenv("MANIFOLD_SPAN", "1", 1);
-}
+// INV-36 (the flip, 2026-09-01): the single law IS the default; the
+// probes no longer set anything. Kept as a named no-op so the drivers'
+// call sites read as what they are - the world under test is the
+// shipped one. Kill switches (=0) remain available for A/B from the
+// shell.
+inline void set_trio_world() {}
 
 struct Scene {
     logosphere::Argus argus;
@@ -619,8 +618,8 @@ inline int run_all(const char* title, const std::vector<Case>& cases) {
     const char* only_env = std::getenv("LIMITS_CASE");
     const int only = only_env ? std::atoi(only_env) : -1;
     std::printf("\n=== %s ===\n", title);
-    std::printf("  WORLD: trio (FRICTION_TWIST+WARM_LEARN+MANIFOLD_SPAN, "
-                "set by the test) - probing the candidate default\n");
+    std::printf("  WORLD: DEFAULT = the single law (INV-36); "
+                "levers are kill switches (=0)\n");
     int failures = 0;
     for (size_t i = 0; i < cases.size(); ++i) {
         if (only >= 0 && (int)i != only) continue;

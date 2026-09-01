@@ -736,7 +736,26 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // property of convergence, not a clamp. The jury: INV-17, the
     // energy ledger, the refused-momentum ledger, the explosion
     // detector.
-    static const bool single_law = std::getenv("SINGLE_LAW") != nullptr;
+    // THE FLIP (owner ruling 2026-09-01, INV-36): the single law is the
+    // shipped default; SINGLE_LAW=0 is the kill switch for A/B, never a
+    // shipping mode. Same for FRICTION_TWIST, WARM_LEARN, MANIFOLD_SPAN.
+    static const bool single_law =
+        []{ const char* e = std::getenv("SINGLE_LAW"); return !(e && e[0] == '0' && e[1] == '\0'); }();
+    // RCA sub-switches (2026-09-01, the flip's bond-world moles): the
+    // plateau door's residual guard and the position gate are the two
+    // single-law refinements that touch EVERY row, gluon rows included.
+    // =0 isolates each. Diagnostic; not shipping modes.
+    static const bool single_law_door =
+        []{ const char* e = std::getenv("SINGLE_LAW_DOOR"); return !(e && e[0] == '0' && e[1] == '\0'); }();
+    static const bool single_law_gate =
+        []{ const char* e = std::getenv("SINGLE_LAW_GATE"); return !(e && e[0] == '0' && e[1] == '\0'); }();
+    // Two more RCA sub-switches: SINGLE_LAW_CAPS=0 keeps the legacy
+    // capture caps under the single law; SINGLE_LAW_BLOCKS=0 skips the
+    // manifold blocks (sequential rows). Diagnostic only.
+    static const bool single_law_uncapped =
+        []{ const char* e = std::getenv("SINGLE_LAW_CAPS"); return !(e && e[0] == '0' && e[1] == '\0'); }();
+    static const bool single_law_blocks =
+        []{ const char* e = std::getenv("SINGLE_LAW_BLOCKS"); return !(e && e[0] == '0' && e[1] == '\0'); }();
     // ========================================================================
     // V4.3 FIX: Changed from "count < 2" to "count < 1"
     // ========================================================================
@@ -1064,7 +1083,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 const float approach = std::fabs(pi.vz);
                 c.build_approach = approach;   // G-63: the store law's source
                 // G-63: under the single law the cap is gone, not resized.
-                c.max_impulse = single_law
+                c.max_impulse = (single_law && single_law_uncapped)
                     ? std::numeric_limits<float>::max()
                     : c.effective_mass *
                       (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
@@ -1104,7 +1123,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // whose share reconstruction of N_total is stable),
                 // its tangents go linear-only.
                 static const bool friction_twist_t =
-                    std::getenv("FRICTION_TWIST") != nullptr;
+                    []{ const char* e = std::getenv("FRICTION_TWIST"); return !(e && e[0] == '0' && e[1] == '\0'); }();  // INV-36 default; =0 kills
                 const bool patch_face = friction_twist_t && patch_n >= 3;
                 int q_deep = 0;
                 float patch_r2_max = 0.0f;
@@ -1153,7 +1172,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         const float approach = std::fabs(pi.vz);
                         ck.build_approach = approach;
                         // G-63: no cap under the single law.
-                        ck.max_impulse = single_law
+                        ck.max_impulse = (single_law && single_law_uncapped)
                             ? std::numeric_limits<float>::max()
                             : ck.effective_mass *
                               (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
@@ -1725,7 +1744,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             (pi.vz - pj.vz) * c.jz);
                         c.build_approach = approach;
                         // G-63: no cap under the single law.
-                        c.max_impulse = single_law
+                        c.max_impulse = (single_law && single_law_uncapped)
                             ? std::numeric_limits<float>::max()
                             : c.effective_mass *
                               (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
@@ -1741,7 +1760,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // 0.707*L. Flags set here; the friction block reads
                     // them. Corner/edge contacts keep corner physics.
                     static const bool friction_twist =
-                        std::getenv("FRICTION_TWIST") != nullptr;
+                        []{ const char* e = std::getenv("FRICTION_TWIST"); return !(e && e[0] == '0' && e[1] == '\0'); }();  // INV-36 default; =0 kills
                     // A face TREATMENT needs a face PATCH: >= 3 points.
                     // A sphere's contact flags is_face_contact with one
                     // point, and linear-only tangents there took away
@@ -1947,7 +1966,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                                     (pi.vz - pj.vz) * c.jz);
                                 c.build_approach = approach;
                                 // G-63: no cap under the single law.
-                                c.max_impulse = single_law
+                                c.max_impulse = (single_law && single_law_uncapped)
                                     ? std::numeric_limits<float>::max()
                                     : c.effective_mass *
                                       (approach + PhysicsV4::CONTACT_CAPTURE_CUSHION);
@@ -3383,7 +3402,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     struct ContactGroup { size_t first; int n; };
     std::vector<ContactGroup> contact_groups;
     std::vector<uint8_t> in_contact_block;
-    if (single_law) {
+    if (single_law && single_law_blocks) {
         in_contact_block.assign(constraints.size(), 0);
         size_t i = 0;
         while (i < constraints.size()) {
@@ -4712,7 +4731,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // at -0.164 m/s). Under the single law the door honors its
             // own registry; the default keeps the drift, booked on the
             // board.
-            (!single_law ||
+            (!single_law || !single_law_door ||
              max_dv_this_iter < PhysicsV4::VELOCITY_PLATEAU_FLOOR)) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
@@ -4947,7 +4966,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // (V4.6: bias-contaminated totals ratcheting) predates split
             // impulse, under which the accumulated impulse is bias-free.
             static const bool warm_learn =
-                std::getenv("WARM_LEARN") != nullptr;
+                []{ const char* e = std::getenv("WARM_LEARN"); return !(e && e[0] == '0' && e[1] == '\0'); }();  // INV-36 default; =0 kills
             const bool frozen = !warm_learn &&
                                 it != warm_started_impulses.end();
             float learned = velocity_impulse;
@@ -5171,8 +5190,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // correction is under BETA * SLOP. Under the single law
                 // the gate says what it meant; the default keeps its
                 // arithmetic byte-identically.
-                const float gate = single_law ? PhysicsV4::BETA * PhysicsV4::SLOP
-                                              : PhysicsV4::SLOP;
+                const float gate = (single_law && single_law_gate)
+                                       ? PhysicsV4::BETA * PhysicsV4::SLOP
+                                       : PhysicsV4::SLOP;
                 if (bias_as_error < gate) continue;
                 // Speculative approach limits stayed in the velocity solve;
                 // they are not geometry to repair. Skipping them explicitly

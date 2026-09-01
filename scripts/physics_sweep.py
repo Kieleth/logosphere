@@ -116,6 +116,28 @@ def main():
     audit = {r["test"]: r for r in load_jsonl(AUDIT_FILE)}
     if not invariants:
         print("SWEEP_VERDICT: BROKEN-SETUP (no INVARIANTS.jsonl)"); sys.exit(2)
+    # THE STALE-BUILD GUARDRAIL (owed since the build-profiles lesson,
+    # landed 2026-09-01 when it bit hardest): the sweep judged the
+    # lever FLIP against a release tree that had never been re-configured
+    # since the campaign's tests were added and whose binaries carried
+    # pre-flip physics - inv6 read FAIL from the tree and WITNESSED from
+    # a fresh build. A sweep that does not build is a sweep of history.
+    # Configure if needed, build everything, refuse on failure.
+    if not (BIN_DIR / "CMakeCache.txt").exists():
+        cfg = subprocess.run(["cmake", "-S", str(REPO), "-B", str(BIN_DIR),
+                              "-DCMAKE_BUILD_TYPE=Release"],
+                             cwd=REPO, capture_output=True, text=True)
+        if cfg.returncode != 0:
+            print(cfg.stdout[-1500:], cfg.stderr[-1500:])
+            print("SWEEP_VERDICT: BROKEN-SETUP (release configure failed)"); sys.exit(2)
+    print("[sweep] building build-release (stale-build guardrail)...", flush=True)
+    bld = subprocess.run(["cmake", "--build", str(BIN_DIR), "-j",
+                          str(os.cpu_count() or 4)],
+                         cwd=REPO, capture_output=True, text=True)
+    if bld.returncode != 0:
+        print(bld.stdout[-3000:], bld.stderr[-3000:])
+        print("SWEEP_VERDICT: BROKEN-SETUP (release build failed - refusing to measure stale binaries)")
+        sys.exit(2)
     if not RUNNER.exists():
         print("SWEEP_VERDICT: BROKEN-SETUP (build logosphere-tests first)"); sys.exit(2)
     # The invariants machine truth is validated before anything trusts it:
