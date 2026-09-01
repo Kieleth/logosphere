@@ -4,8 +4,9 @@
 // a door the player cannot read whole is not a door, it is a guess.
 // Hover and selection light the whole door, not one of its lines. One
 // click or the arrow keys select; Enter or a second click on the
-// selected door takes it. Selection reports its index so the screen
-// can show the door's note.
+// selected door takes it. When the doors outgrow the panel the list
+// scrolls: the wheel moves it, and selecting a door keeps it in view.
+// Selection reports its index so the screen can show the door's note.
 //
 // A widget of this game rather than the engine's list because the
 // engine's list is one line per item and owns its rows privately;
@@ -19,6 +20,7 @@
 
 #include "logosphere/rendering/i_draw_surface.h"
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <string>
@@ -43,6 +45,7 @@ public:
     void set_doors(std::vector<Door> doors) {
         doors_ = std::move(doors);
         hovered_ = -1;
+        scroll_ = 0;
         selected_ = doors_.empty() ? -1 : 0;
         invalidate();
         if (selected_ >= 0 && on_selected) on_selected(selected_);
@@ -63,24 +66,46 @@ public:
         float scale = 1.0f;
         if (get_ui_system()) scale = get_ui_system()->get_ui_scale_multiplier();
         const auto sx = [&](int v) { return static_cast<int>(v * scale); };
-        int y = bounds.y + pad_;
+        const int top = bounds.y;
+        const int bottom = bounds.y + bounds.height;
+        int y = bounds.y + pad_ - scroll_;
         for (size_t i = 0; i < doors_.size(); ++i) {
             const int height = block_height(doors_[i]);
-            const bool lit = static_cast<int>(i) == selected_ ||
-                             static_cast<int>(i) == hovered_;
-            if (lit) {
-                const bool chosen = static_cast<int>(i) == selected_;
-                renderer->fill_rect(sx(bounds.x), sx(y), sx(bounds.width),
-                                    sx(height), lit_r_, lit_g_, lit_b_,
-                                    chosen ? 255 : 160);
-            }
-            int ly = y + pad_ / 2;
-            for (const auto& text : doors_[i].lines) {
-                renderer->draw_text(sx(bounds.x + pad_), sx(ly), text.c_str(),
-                                    text_r_, text_g_, text_b_);
-                ly += line_;
+            const bool shown = y + height > top && y < bottom;
+            if (shown) {
+                const bool lit = static_cast<int>(i) == selected_ ||
+                                 static_cast<int>(i) == hovered_;
+                if (lit) {
+                    const bool chosen = static_cast<int>(i) == selected_;
+                    const int from = std::max(y, top);
+                    const int to = std::min(y + height, bottom);
+                    renderer->fill_rect(sx(bounds.x), sx(from), sx(bounds.width),
+                                        sx(to - from), lit_r_, lit_g_, lit_b_,
+                                        chosen ? 255 : 160);
+                }
+                int ly = y + pad_ / 2;
+                for (const auto& text : doors_[i].lines) {
+                    if (ly >= top && ly + line_ <= bottom) {
+                        renderer->draw_text(sx(bounds.x + pad_), sx(ly),
+                                            text.c_str(), text_r_, text_g_,
+                                            text_b_);
+                    }
+                    ly += line_;
+                }
             }
             y += height;
+        }
+        // Where the list continues, a quiet mark at the edge it
+        // continues past.
+        if (scroll_ > 0) {
+            renderer->draw_text(sx(bounds.x + bounds.width - pad_ - 6),
+                                sx(top), "^", lit_r_ + 90, lit_g_ + 90,
+                                lit_b_ + 90);
+        }
+        if (scroll_ < max_scroll()) {
+            renderer->draw_text(sx(bounds.x + bounds.width - pad_ - 6),
+                                sx(bottom - line_), "v", lit_r_ + 90,
+                                lit_g_ + 90, lit_b_ + 90);
         }
     }
 
@@ -96,6 +121,14 @@ public:
         hovered_ = -1;
         invalidate();
         return false;
+    }
+    bool on_mouse_scroll(int delta) override {
+        if (max_scroll() == 0) return false;
+        // Positive delta is the wheel rolling up, which brings the top
+        // back into view.
+        scroll_ = std::clamp(scroll_ - delta * line_, 0, max_scroll());
+        invalidate();
+        return true;
     }
     bool on_mouse_down(ui::MouseEvent& e) override {
         if (e.button != 0) return false;
@@ -134,8 +167,16 @@ private:
     int block_height(const Door& door) const {
         return static_cast<int>(door.lines.size()) * line_ + pad_;
     }
+    int content_height() const {
+        int total = pad_;
+        for (const auto& door : doors_) total += block_height(door);
+        return total;
+    }
+    int max_scroll() const {
+        return std::max(0, content_height() - get_absolute_bounds().height);
+    }
     int door_at(int local_y) const {
-        int y = pad_;
+        int y = pad_ - scroll_;
         for (size_t i = 0; i < doors_.size(); ++i) {
             const int height = block_height(doors_[i]);
             if (local_y >= y && local_y < y + height) return static_cast<int>(i);
@@ -143,8 +184,19 @@ private:
         }
         return -1;
     }
+    // Scroll just enough that the selected door is whole in the panel.
+    void keep_in_view(int index) {
+        int y = pad_;
+        for (int i = 0; i < index; ++i) y += block_height(doors_[static_cast<size_t>(i)]);
+        const int height = block_height(doors_[static_cast<size_t>(index)]);
+        const int panel = get_absolute_bounds().height;
+        if (y - scroll_ < 0) scroll_ = y;
+        else if (y + height - scroll_ > panel) scroll_ = y + height - panel;
+        scroll_ = std::clamp(scroll_, 0, max_scroll());
+    }
     void select(int index) {
         selected_ = index;
+        keep_in_view(index);
         invalidate();
         if (on_selected) on_selected(index);
     }
@@ -158,6 +210,7 @@ private:
     int pad_;
     int selected_ = -1;
     int hovered_ = -1;
+    int scroll_ = 0;
     std::chrono::steady_clock::time_point last_click_{};
     uint8_t text_r_ = 232, text_g_ = 232, text_b_ = 226;
     uint8_t lit_r_ = 40, lit_g_ = 40, lit_b_ = 52;
