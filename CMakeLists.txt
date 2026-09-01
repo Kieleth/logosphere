@@ -437,6 +437,10 @@ add_headless_test(test_source_corpus)
 add_headless_test(test_ingestion_ledger)
 add_headless_test(test_rulebook_pack)
 add_headless_test(test_rule_fork)
+# The pointer lands where the widget is drawn: window points into the
+# UI's render grid, pinned after a game rendering smaller than its
+# window put every click short by the scale (2026-09-02).
+add_headless_test(test_ui_space)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

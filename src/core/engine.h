@@ -242,6 +242,11 @@ public:
     void clear_framebuffer(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
     void copy_buffer(const PixelBuffer& source, PixelBuffer& dest);
     void set_render_resolution(int width, int height);
+    // The grid the scene and the UI overlay are drawn on. This is the
+    // size the UI plane actually has; input mapping reads it here and
+    // nowhere else.
+    int get_render_width() const { return render_width_; }
+    int get_render_height() const { return render_height_; }
     ParticleDynamicsSystem& get_dynamics_system() { return dynamics_system_; }
     logosphere::animation::HumanoidLocomotion& get_humanoid_locomotion() { return humanoid_locomotion_; }
     logosphere::animation::SerpentLocomotion& get_serpent_locomotion() { return serpent_locomotion_; }

@@ -26,6 +26,7 @@
 #include "logosphere/kg/kg_module.h"
 
 #include "door_list.h"
+#include "line.h"
 #include "screen_layout.h"
 #include "session.h"
 
@@ -58,20 +59,20 @@ private:
     void set_prose(const std::string& text);
     void set_prompt(const std::string& text);
     void set_note(const std::string& text);
-    ui::Label* sheet_label(size_t index);
+    Line* sheet_label(size_t index);
 
     UISystem*    ui_ = nullptr;
     ScreenLayout layout_;
     ui::Panel*   left_ = nullptr;
     ui::Panel*   right_ = nullptr;
-    ui::Label*   title_ = nullptr;
+    Line*        title_ = nullptr;
     DoorList*    doors_ = nullptr;
-    std::vector<ui::Label*> prose_;
-    std::vector<ui::Label*> prompt_;
-    std::vector<ui::Label*> note_;
-    // One label per line the sheet can hold, grown on demand, and the
-    // note behind each line, filled from the graph on every show().
-    std::vector<ui::Label*>  sheet_;
+    std::vector<Line*> prose_;
+    std::vector<Line*> prompt_;
+    std::vector<Line*> note_;
+    // One line per row the sheet can hold, grown on demand, and the
+    // note behind each row, filled from the graph on every show().
+    std::vector<Line*>       sheet_;
     std::vector<std::string> sheet_notes_;
     // The note behind each row of the doors list, by row.
     std::vector<std::string> door_notes_;

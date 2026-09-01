@@ -9,7 +9,9 @@
 #include "logosphere/kg/kg_module.h"     // For entity selection via KG
 #include "object_id.h"        // For ObjectID encoding/decoding
 #include "platform/platform_layer.h"  // For IApplication interface
+#include "logosphere/core/ui_space.h"   // Window points into the UI grid
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <cassert>
 
@@ -259,9 +261,25 @@ void InputSystem::on_mouse_button(Platform::MouseButton button, bool pressed, co
 void InputSystem::to_ui_space(double& x, double& y) const {
     if (!engine_) return;
     const auto& res = engine_->get_resolution_manager();
-    if (res.get_window_width() <= 0 || res.get_window_height() <= 0) return;
-    x = x * res.get_render_width() / res.get_window_width();
-    y = y * res.get_render_height() / res.get_window_height();
+    // The render size comes from the engine, which owns the UI plane.
+    // The manager keeps a copy for the presenter; if the two ever
+    // disagree, the pointer is about to land short of the drawing by
+    // the difference, and that is said once, loudly, not hidden.
+    static bool warned = false;
+    if (!warned && (res.get_render_width() != engine_->get_render_width() ||
+                    res.get_render_height() != engine_->get_render_height())) {
+        warned = true;
+        std::cerr << "[INPUT] render size disagrees: engine "
+                  << engine_->get_render_width() << "x"
+                  << engine_->get_render_height() << ", resolution manager "
+                  << res.get_render_width() << "x" << res.get_render_height()
+                  << "; the pointer maps by the engine's" << std::endl;
+    }
+    const logosphere::UiSpace space{engine_->get_render_width(),
+                                    engine_->get_render_height(),
+                                    res.get_window_width(),
+                                    res.get_window_height()};
+    space.window_to_ui(x, y);
 }
 
 void InputSystem::on_mouse_scroll(double x_offset, double y_offset) {
@@ -387,7 +405,17 @@ void InputSystem::handle_mouse_button_callback(GLFWwindow* window, int button, i
         GLFWwindow* glfw_window = static_cast<GLFWwindow*>(engine_->get_platform()->get_native_window_handle());
         double mouse_x, mouse_y;
         glfwGetCursorPos(glfw_window, &mouse_x, &mouse_y);
+        const double raw_x = mouse_x;
+        const double raw_y = mouse_y;
         to_ui_space(mouse_x, mouse_y);
+        if (std::getenv("LOGOSPHERE_INPUT_DEBUG")) {
+            const auto& res = engine_->get_resolution_manager();
+            std::cout << "[INPUT_MAP] click window=(" << raw_x << "," << raw_y
+                      << ") ui=(" << mouse_x << "," << mouse_y << ") window="
+                      << res.get_window_width() << "x" << res.get_window_height()
+                      << " render=" << res.get_render_width() << "x"
+                      << res.get_render_height() << std::endl;
+        }
 
         // Route to UISystem, in the UI's own coordinates
         if (action == GLFW_PRESS) {

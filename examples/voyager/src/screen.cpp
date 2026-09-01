@@ -16,40 +16,15 @@ constexpr uint8_t kInkR = 214, kInkG = 210, kInkB = 198;
 constexpr uint8_t kDimR = 120, kDimG = 118, kDimB = 112;
 constexpr uint8_t kAskR = 150, kAskG = 190, kAskB = 255;
 
-ui::Label* make_label(ui::Container* parent, int x, int y, int w,
-                      uint8_t r, uint8_t g, uint8_t b) {
-    auto* label = new ui::Label("", "");
-    label->set_position(x, y);
-    label->set_size(w, kLine);
-    label->set_color(r, g, b);
-    parent->add_child(label);
-    return label;
-}
-
-// A label that reports the pointer arriving, so a line of the sheet
-// can explain itself: the note it shows is the graph's, not its own.
-class HoverLabel : public ui::Label {
-public:
-    using ui::Label::Label;
-    std::function<void()> on_hover;
-    bool on_mouse_enter(ui::MouseEvent&) override {
-        if (on_hover) on_hover();
-        return false;
-    }
-    bool on_mouse_move(ui::MouseEvent&) override {
-        if (on_hover) on_hover();
-        return false;
-    }
-};
-
-HoverLabel* make_hover_label(ui::Container* parent, int x, int y, int w,
-                             uint8_t r, uint8_t g, uint8_t b) {
-    auto* label = new HoverLabel("", "");
-    label->set_position(x, y);
-    label->set_size(w, kLine);
-    label->set_color(r, g, b);
-    parent->add_child(label);
-    return label;
+// One line of text at this game's type size, placed in a panel.
+Line* make_label(ui::Container* parent, int x, int y, int w,
+                 uint8_t r, uint8_t g, uint8_t b) {
+    auto* line = new Line("", kTextScale);
+    line->set_position(x, y);
+    line->set_size(w, kLine);
+    line->set_color(r, g, b);
+    parent->add_child(line);
+    return line;
 }
 
 
@@ -142,7 +117,7 @@ void Screen::build(UISystem& ui, int screen_w, int screen_h) {
 
     // A root widget, not a child: the doors must receive their own
     // clicks and keys without a panel in front of them swallowing them.
-    doors_ = new DoorList("voyager_doors", kLine, kLine / 2);
+    doors_ = new DoorList("voyager_doors", kLine, kLine / 2, kTextScale);
     doors_->set_position(layout_.doors.x, layout_.doors.y);
     doors_->set_size(layout_.doors.w, layout_.doors.h);
     doors_->set_ui_system(&ui);
@@ -181,10 +156,10 @@ void Screen::set_note(const std::string& text) {
 // The sheet's labels, grown on demand, each one reporting the pointer
 // so its note can show. A seventh characteristic in the graph gets a
 // seventh label instead of being dropped off the end of a fixed array.
-ui::Label* Screen::sheet_label(size_t index) {
+Line* Screen::sheet_label(size_t index) {
     while (sheet_.size() <= index) {
         const size_t at = sheet_.size();
-        auto* label = make_hover_label(
+        auto* label = make_label(
             right_, 0,
             layout_.sheet_top - layout_.right.y + static_cast<int>(at) * kLine,
             layout_.right.w, kInkR, kInkG, kInkB);

@@ -5,32 +5,35 @@
 // laptop display: a window wider than the screen is not a big window,
 // it is a window you never see.
 //
-// TYPE SIZE. The engine's bitmap font has one size, so the type grows
-// by rendering the game on a smaller grid than the window and letting
-// the engine scale it up: a 1024-wide render in a 1280-wide window is
-// glyphs one and a quarter times the size. Every number below is in
-// RENDER pixels, which is the grid the widgets live on.
+// TYPE SIZE. The bitmap font is 5x7 with a pixel of spacing, and the
+// draw surface can blit it at an integer scale. This game draws its
+// text at kTextScale through its own widgets, on the window's own
+// grid, so the pointer and the drawing agree without any mapping.
+// Rendering smaller and scaling up was tried for the same effect and
+// put every click short by the scale (2026-09-02).
 
 #ifndef VOYAGER_SCREEN_LAYOUT_H
 #define VOYAGER_SCREEN_LAYOUT_H
+
+#include "logosphere/rendering/font_renderer.h"
 
 namespace voyager {
 
 constexpr int kScreenW = 1280;   // the window, in points
 constexpr int kScreenH = 800;
-constexpr int kRenderW = 1024;   // the grid the game is drawn on
-constexpr int kRenderH = 640;
+constexpr int kRenderW = kScreenW;   // the grid the game is drawn on
+constexpr int kRenderH = kScreenH;
+
+constexpr int kTextScale = 2;
+constexpr int kGlyphW =
+    (FontRenderer::CHAR_WIDTH + FontRenderer::CHAR_SPACING) * kTextScale;
+constexpr int kLine = FontRenderer::CHAR_HEIGHT * kTextScale + 12;
 
 constexpr int kPad = 24;
-constexpr int kLine = 20;
-
-// The engine's bitmap font is fixed pitch at six pixels a character, so
-// a column count is a width in pixels over six.
-constexpr int kGlyphW = 6;
 
 // How much room the sheet gets: the lines, then below them the notes
 // that explain whatever the pointer rests on, in the book's words.
-constexpr int kSheetW = 380;
+constexpr int kSheetW = 440;
 
 struct Rect {
     int x = 0, y = 0, w = 0, h = 0;
@@ -65,7 +68,7 @@ inline ScreenLayout compute_layout(int screen_w, int screen_h) {
     y += kLine * 2;
     out.prose_top = y;
     out.prose_columns = left_w / kGlyphW;
-    out.prose_lines = 9;
+    out.prose_lines = 8;
     y += out.prose_lines * kLine + kLine;
     out.prompt_y = y;
     out.prompt_lines = 4;

@@ -22,7 +22,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -36,8 +38,8 @@ public:
         std::vector<std::string> lines;   // already wrapped to fit
     };
 
-    DoorList(const std::string& id, int line_height, int pad)
-        : ui::Widget(id), line_(line_height), pad_(pad) {}
+    DoorList(const std::string& id, int line_height, int pad, int text_scale)
+        : ui::Widget(id), line_(line_height), pad_(pad), scale_(text_scale) {}
 
     std::function<void(int index)> on_selected;
     std::function<void(const std::string& key)> on_taken;
@@ -86,9 +88,9 @@ public:
                 int ly = y + pad_ / 2;
                 for (const auto& text : doors_[i].lines) {
                     if (ly >= top && ly + line_ <= bottom) {
-                        renderer->draw_text(sx(bounds.x + pad_), sx(ly),
-                                            text.c_str(), text_r_, text_g_,
-                                            text_b_);
+                        renderer->draw_string_scaled(
+                            sx(bounds.x + pad_), sx(ly), text, text_r_,
+                            text_g_, text_b_, static_cast<float>(scale_));
                     }
                     ly += line_;
                 }
@@ -97,15 +99,18 @@ public:
         }
         // Where the list continues, a quiet mark at the edge it
         // continues past.
+        const int mark_x = bounds.x + bounds.width - pad_ - 6 * scale_;
         if (scroll_ > 0) {
-            renderer->draw_text(sx(bounds.x + bounds.width - pad_ - 6),
-                                sx(top), "^", lit_r_ + 90, lit_g_ + 90,
-                                lit_b_ + 90);
+            renderer->draw_string_scaled(sx(mark_x), sx(top), "^",
+                                         lit_r_ + 90, lit_g_ + 90,
+                                         lit_b_ + 90,
+                                         static_cast<float>(scale_));
         }
         if (scroll_ < max_scroll()) {
-            renderer->draw_text(sx(bounds.x + bounds.width - pad_ - 6),
-                                sx(bottom - line_), "v", lit_r_ + 90,
-                                lit_g_ + 90, lit_b_ + 90);
+            renderer->draw_string_scaled(sx(mark_x), sx(bottom - line_), "v",
+                                         lit_r_ + 90, lit_g_ + 90,
+                                         lit_b_ + 90,
+                                         static_cast<float>(scale_));
         }
     }
 
@@ -133,6 +138,14 @@ public:
     bool on_mouse_down(ui::MouseEvent& e) override {
         if (e.button != 0) return false;
         const int at = door_at(e.local_y);
+        if (std::getenv("LOGOSPHERE_INPUT_DEBUG")) {
+            const auto b = get_absolute_bounds();
+            std::cout << "[DOORS] click ui=(" << e.x << "," << e.y
+                      << ") local=(" << e.local_x << "," << e.local_y
+                      << ") bounds=(" << b.x << "," << b.y << " " << b.width
+                      << "x" << b.height << ") scroll=" << scroll_
+                      << " door=" << at << std::endl;
+        }
         if (at < 0) return false;
         const auto now = std::chrono::steady_clock::now();
         const bool again =
@@ -208,6 +221,7 @@ private:
     std::vector<Door> doors_;
     int line_;
     int pad_;
+    int scale_;
     int selected_ = -1;
     int hovered_ = -1;
     int scroll_ = 0;
