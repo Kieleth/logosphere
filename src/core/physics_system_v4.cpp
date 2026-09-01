@@ -5083,7 +5083,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // it, and the turtle boundary got it this afternoon for the
                 // identical defect. Third place that needed the same number.
                 const float bias_as_error = std::fabs(c.bias) * dt;
-                if (bias_as_error < PhysicsV4::SLOP) continue;
+                // G-63 (2026-09-01, measured): bias_as_error is the
+                // BETA-scaled correction, BETA * (pen - SLOP), so this gate
+                // gives up once pen < SLOP * (1 + 1/BETA) = 3.5 mm - a
+                // dead zone 3.5x INV-2's own 1 mm (the footprint and the
+                // 38.6:1 anvil both stood at exactly 3.5-4.5 mm). The
+                // tolerance the comment above means is on the ERROR:
+                // stop when the remaining error is under SLOP, i.e. the
+                // correction is under BETA * SLOP. Under the single law
+                // the gate says what it meant; the default keeps its
+                // arithmetic byte-identically.
+                const float gate = single_law ? PhysicsV4::BETA * PhysicsV4::SLOP
+                                              : PhysicsV4::SLOP;
+                if (bias_as_error < gate) continue;
                 // Speculative approach limits stayed in the velocity solve;
                 // they are not geometry to repair. Skipping them explicitly
                 // rather than relying on the unilateral clamp to zero them.

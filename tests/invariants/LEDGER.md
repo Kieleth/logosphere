@@ -2164,3 +2164,16 @@ Ladder now at exactly its booked R5/R6. The single-law world map:
 all green except the anvil extremes (the chain-rate rung) and the
 pre-existing booked reds. No owner ruling needed on the impact law -
 the question dissolved with the bug.
+
+## 2026-09-01 (later) — the extremes split: a gate dead zone and a velocity chain
+
+Two canaries on the last anvil reds. 96.5:1 is the velocity chain:
+32 of 32 iterations spent, the 200 kg leaves still end the substep at
+-0.106 m/s, the split pass lifts 0.48 mm/substep and the sink cancels
+it at 36 mm. 38.6:1 was never the chain - its velocity converged; its
+4.5 mm was the position pass's slop gate quitting at
+SLOP*(1+1/BETA) = 3.5 mm (a BETA-scaled correction compared to the
+error tolerance). Fixed under the lever: the gate now stops when the
+ERROR is under SLOP (correction < BETA*SLOP). 38.6 -> 2.7 mm, heights
+green, asleep. Full battery clean at every expectation. OWNER RULING
+owed on the chain mechanism (shock ordering vs island LCP).

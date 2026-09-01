@@ -615,10 +615,13 @@ clamp-after-solve on unilateral near-singular manifolds), (3) the
 twist gate became group-aware. THE FLOOR IS FULLY GREEN (G-61
 settled - the tile class was the manifold LCP). Red harvester
 scripts/harvest_reds.py with the rebuild-first guardrail is the
-standing instrument. OPEN: the chain rate at anvil extremes
-(4.5/35.4 mm - shock ordering / pair-chain block); the DEFAULT
-world's unwired plateau guard; the position pass's own slop gate
-(dead zone 3.5 mm vs INV-2's 1 mm, arithmetic in the G-60 trail).
+standing instrument. OPEN: the VELOCITY CHAIN at 96.5:1 (35 mm; 32/32
+iterations, the light middle body converges ~1%/sweep) plus 0.7 mm
+of position-chain shallowness at 38.6 - OWNER RULING owed: shock
+ordering vs island LCP (options in the ledger/chat); the DEFAULT
+world's unwired plateau guard. RESOLVED under the lever 2026-09-01:
+the position pass's slop gate (dead zone 3.5 mm -> error < SLOP;
+38.6:1 4.5 -> 2.7 mm, asleep).
 RESOLVED 2026-09-01: the impact-torsion 'law question' was the G-45
 class (pre-touch twist through a pen=-76 mm predicted-pose manifold)
 - fixed with SLOP as the touching discriminator; ladder R2/R3/R4
