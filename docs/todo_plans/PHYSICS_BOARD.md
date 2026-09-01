@@ -596,6 +596,33 @@ Cross-findings booked: the crush-transit energy flag is PRE-EXISTING
 MORE); the 25 mm tile class never touched its caps — NOT the ceiling
 disease, owes its own RCA (G-61).
 
+**THE DOOR GUARD (2026-09-01)**: the plateau exit was quitting at 9
+of 32 on a constant-amplitude ping-pong; the registry's OWN
+documented guard (VELOCITY_PLATEAU_FLOOR on the plateau door) was
+never enforced — doc-vs-code drift, wired under the lever. 38.6:1
+falls to 4.5 mm (gold asleep), 96.5:1 to 35 mm with transit 36 (was
+990). Eleven of thirteen window cases fully green under SINGLE_LAW.
+G-58's ice red resolved by the measured AFFINE grindstone law
+(alpha = 26.9 mu + 0.15; the floor is the anchor-coupled normal
+channel).
+
+**2026-09-01, THE TRUE FIRST CONTACT (stale-build confession + three
+mechanisms; full trail in G-63/ledger)**: the earlier jury ran stale
+binaries; fresh, the uncapped world detonated until (1) the capless
+warm store regained G-52's subtraction (build_approach on the row),
+(2) the block became an exact active-set LCP (the detonator was
+clamp-after-solve on unilateral near-singular manifolds), (3) the
+twist gate became group-aware. THE FLOOR IS FULLY GREEN (G-61
+settled - the tile class was the manifold LCP). Red harvester
+scripts/harvest_reds.py with the rebuild-first guardrail is the
+standing instrument. OPEN: the chain rate at anvil extremes
+(4.5/35.4 mm - shock ordering / pair-chain block); OWNER RULING owed
+on the impact-torsion law (ladder R2: mu*N_impact*r legitimately
+eats a flat-landing spin; the old law assumed capped impacts); the
+DEFAULT world's unwired plateau guard; the position pass's own slop
+gate (dead zone 3.5 mm vs INV-2's 1 mm, arithmetic in the G-60
+trail).
+
 ## THE LIMITS CAMPAIGN — MEASURED (G-57..G-62); fronts opened, ruling owed
 
 **Owner ruling 2026-08-28: the trio flip is DEFERRED for this study.**

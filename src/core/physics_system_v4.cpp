@@ -1062,6 +1062,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             c.min_impulse = 0.0f;
             {
                 const float approach = std::fabs(pi.vz);
+                c.build_approach = approach;   // G-63: the store law's source
                 // G-63: under the single law the cap is gone, not resized.
                 c.max_impulse = single_law
                     ? std::numeric_limits<float>::max()
@@ -1150,6 +1151,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     ck.eff_mass_share = share;
                     {
                         const float approach = std::fabs(pi.vz);
+                        ck.build_approach = approach;
                         // G-63: no cap under the single law.
                         ck.max_impulse = single_law
                             ? std::numeric_limits<float>::max()
@@ -1721,6 +1723,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         const float approach = std::fabs(
                             (pi.vx - pj.vx) * c.jx + (pi.vy - pj.vy) * c.jy +
                             (pi.vz - pj.vz) * c.jz);
+                        c.build_approach = approach;
                         // G-63: no cap under the single law.
                         c.max_impulse = single_law
                             ? std::numeric_limits<float>::max()
@@ -1942,6 +1945,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             {
                                 const float approach = std::fabs(
                                     (pi.vz - pj.vz) * c.jz);
+                                c.build_approach = approach;
                                 // G-63: no cap under the single law.
                                 c.max_impulse = single_law
                                     ? std::numeric_limits<float>::max()
@@ -3482,29 +3486,93 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             A[i][i] += 1e-9;
         }
 
-        // Gaussian elimination with partial pivoting (n <= 4).
-        double M[4][5];
-        for (int i = 0; i < n; ++i) {
-            for (int j2 = 0; j2 < n; ++j2) M[i][j2] = A[i][j2];
-            M[i][n] = b[i];
-        }
-        for (int col = 0; col < n; ++col) {
-            int piv = col;
-            for (int r = col + 1; r < n; ++r)
-                if (std::fabs(M[r][col]) > std::fabs(M[piv][col])) piv = r;
-            if (std::fabs(M[piv][col]) < 1e-20) return 0.0f;
-            if (piv != col)
-                for (int j2 = col; j2 <= n; ++j2) std::swap(M[col][j2], M[piv][j2]);
-            for (int r = col + 1; r < n; ++r) {
-                const double f = M[r][col] / M[col][col];
-                for (int j2 = col; j2 <= n; ++j2) M[r][j2] -= f * M[col][j2];
-            }
-        }
+        // THE BLOCK IS A SMALL LCP, NOT A LINEAR SOLVE (G-63 correction,
+        // 2026-09-01, measured detonation). Contacts are UNILATERAL:
+        // solving the coupled system unconstrained and clamping per row
+        // afterward turns a near-singular manifold (two almost-parallel
+        // rows) into a huge (+L, -L) pair whose negative half the clamp
+        // discards - a one-sided mega-impulse, energy from arithmetic
+        // (the tile raft detonated to 99 m/s). The joint block never
+        // met this: gluon rows are bidirectional. Here the exact
+        // active-set enumeration solves the true LCP: for each subset
+        // of free rows solve the subsystem with clamped rows at their
+        // lower bound (-accumulated: total impulse >= 0), accept the
+        // subset whose free deltas respect the bound and whose clamped
+        // rows' residual velocity is separating. n <= 4: at most 16
+        // subsets, unique solution for a PSD matrix, no iteration.
         double lam[4] = {};
-        for (int i = n - 1; i >= 0; --i) {
-            double acc = M[i][n];
-            for (int j2 = i + 1; j2 < n; ++j2) acc -= M[i][j2] * lam[j2];
-            lam[i] = acc / M[i][i];
+        {
+            double lo[4];
+            for (int i = 0; i < n; ++i)
+                lo[i] = -(double)constraints[g.first + (size_t)i]
+                             .accumulated_impulse;
+            bool solved = false;
+            // Try subsets from all-free downward: the common case first.
+            for (int mask = (1 << n) - 1; mask >= 0 && !solved; --mask) {
+                int f_idx[4]; int nf = 0;
+                for (int i = 0; i < n; ++i)
+                    if (mask & (1 << i)) f_idx[nf++] = i;
+                // Right-hand side for the free subsystem: b_F - A_FC * lo_C.
+                double M[4][5];
+                for (int r = 0; r < nf; ++r) {
+                    const int i = f_idx[r];
+                    double rhs = b[i];
+                    for (int j2 = 0; j2 < n; ++j2)
+                        if (!(mask & (1 << j2))) rhs -= A[i][j2] * lo[j2];
+                    for (int c2 = 0; c2 < nf; ++c2)
+                        M[r][c2] = A[i][f_idx[c2]];
+                    M[r][nf] = rhs;
+                }
+                // Gaussian elimination with partial pivoting (nf <= 4).
+                bool singular = false;
+                for (int col = 0; col < nf && !singular; ++col) {
+                    int piv = col;
+                    for (int r = col + 1; r < nf; ++r)
+                        if (std::fabs(M[r][col]) > std::fabs(M[piv][col]))
+                            piv = r;
+                    if (std::fabs(M[piv][col]) < 1e-20) { singular = true; break; }
+                    if (piv != col)
+                        for (int j2 = col; j2 <= nf; ++j2)
+                            std::swap(M[col][j2], M[piv][j2]);
+                    for (int r = col + 1; r < nf; ++r) {
+                        const double f = M[r][col] / M[col][col];
+                        for (int j2 = col; j2 <= nf; ++j2)
+                            M[r][j2] -= f * M[col][j2];
+                    }
+                }
+                if (singular) continue;
+                double lf[4] = {};
+                for (int i = nf - 1; i >= 0; --i) {
+                    double acc2 = M[i][nf];
+                    for (int j2 = i + 1; j2 < nf; ++j2)
+                        acc2 -= M[i][j2] * lf[j2];
+                    lf[i] = acc2 / M[i][i];
+                }
+                double cand[4];
+                bool ok = true;
+                for (int i = 0; i < n; ++i) cand[i] = lo[i];
+                for (int r = 0; r < nf; ++r) {
+                    cand[f_idx[r]] = lf[r];
+                    if (lf[r] < lo[f_idx[r]] - 1e-9) { ok = false; break; }
+                }
+                if (ok) {
+                    // Clamped rows must be legal: residual velocity
+                    // separating (pushing them would need pulling).
+                    for (int i = 0; i < n && ok; ++i) {
+                        if (mask & (1 << i)) continue;
+                        double r2 = -b[i];
+                        for (int j2 = 0; j2 < n; ++j2)
+                            r2 += A[i][j2] * cand[j2];
+                        if (r2 < -1e-6) ok = false;
+                    }
+                }
+                if (ok) {
+                    for (int i = 0; i < n; ++i) lam[i] = cand[i];
+                    solved = true;
+                }
+            }
+            if (!solved) return 0.0f;   // degenerate beyond the subsets: leave
+                                        // the group to the sequential rows
         }
 
         float worst = 0.0f;
@@ -4383,8 +4451,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // impulses are not contact forces, and a twist across
                 // an open gap killed airborne spin (ladder R2/R3, the
                 // same disease the linear gate cured).
+                // G-63 refinement (2026-09-01, measured: ladder R2/R4
+                // spin never braked): the exact LCP block routinely
+                // satisfies a micro-tilted manifold with the CARRIER
+                // row at zero while the group carries the full load.
+                // The twist's law is mu * N_TOTAL * <r> (summed below),
+                // so the carrier's OWN impulse must not gate the group.
+                // The default world keeps the old gate byte-identically.
                 if (c.twist_carrier && c.twist_r > 0.0f &&
-                    friction_limit > 0.0f &&
+                    (friction_limit > 0.0f || single_law) &&
                     (!c.is_turtle_contact || c.penetration > 0.0f)) {
                     const float nx = c.jx, ny = c.jy, nz = c.jz;
                     float w_rel = pa.omega_x*nx + pa.omega_y*ny
@@ -4542,7 +4617,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // torque through a 65x inertia mismatch), not a converged one.
         if (iter >= MIN_ITERATIONS && prev_max_impulse > 0.0f &&
             (ang_exit_off ||
-             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
+             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR) &&
+            // G-63: the registry (ConvergenceExits group) has always
+            // DOCUMENTED a linear residual guard on this door -
+            // VELOCITY_PLATEAU_FLOOR - and the code never enforced it.
+            // A chain ping-ponging at constant amplitude reads as a
+            // plateau to the rate test while its light middle body
+            // still exchanges 44 mm/s per sweep (measured, the 38.6:1
+            // anvil, canary F1000: exit at iter 9 of 32 with the wood
+            // at -0.164 m/s). Under the single law the door honors its
+            // own registry; the default keeps the drift, booked on the
+            // board.
+            (!single_law ||
+             max_dv_this_iter < PhysicsV4::VELOCITY_PLATEAU_FLOOR)) {
             float improvement = (prev_max_impulse - max_impulse_this_iter) / prev_max_impulse;
             if (improvement < MIN_IMPROVEMENT_RATE) {
                 low_improvement_count++;
@@ -4763,12 +4850,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             const bool frozen = !warm_learn &&
                                 it != warm_started_impulses.end();
             float learned = velocity_impulse;
-            // G-63: under the single law the cap is infinite, so the
-            // approach is not recoverable from it - store the TRUE
-            // TOTAL. The block solve claws back staleness; the ledgers
-            // are the jury.
-            if (warm_learn && c.effective_mass > 0.0f &&
-                std::isfinite(c.max_impulse)) {
+            // G-63 CORRECTION (2026-09-01, measured detonations): the
+            // first single-law cut stored the TRUE TOTAL when the cap
+            // was infinite - removing exactly the approach-subtraction
+            // G-52 exists for. Yesterday's capture transient re-applied
+            // onto moved geometry with NO cap to bound it detonated
+            // every contact-turnover scene (tiles at 99 m/s, the ramp
+            // cube flying 204 m). G-52's law holds in BOTH worlds; the
+            // capless world reads the approach from the row itself.
+            if (warm_learn && c.effective_mass > 0.0f) {
                 // G-52: cache what SUSTAINS, forget what CAPTURES. The
                 // accumulated impulse holds two physically different
                 // parts: the approach cancellation (a transient that
@@ -4780,9 +4870,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // approach is recoverable from its own capture bound
                 // (max_impulse = eff * (approach + cushion), every
                 // contact and turtle row site).
-                const float approach =
-                    c.max_impulse / c.effective_mass
-                    - PhysicsV4::CONTACT_CAPTURE_CUSHION;
+                const float approach = std::isfinite(c.max_impulse)
+                    ? c.max_impulse / c.effective_mass
+                      - PhysicsV4::CONTACT_CAPTURE_CUSHION
+                    : c.build_approach;
                 if (approach > 0.0f)
                     learned = std::max(
                         0.0f, velocity_impulse - c.effective_mass * approach);

@@ -112,6 +112,11 @@ struct Constraint {
     float accumulated_pseudo_impulse = 0.0f;
     float min_impulse;          // Clamp min (0 for contacts)
     float max_impulse;          // Clamp max (breaking force for gluons)
+    // G-63: the row's build-time approach speed. G-52's warm-store
+    // law (cache what SUSTAINS, forget what CAPTURES) recovered the
+    // approach from the capture cap; under the single law the cap is
+    // infinite, so the row carries the approach itself.
+    float build_approach = 0.0f;
 
     // How far the bodies overlap when this row was built, in metres. Positive
     // is interpenetration, negative is a gap.

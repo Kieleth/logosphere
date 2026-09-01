@@ -91,7 +91,27 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   strike and symmetry batteries stay clean without the cap. Extreme
   ratios (39:1 and beyond) still leave residual overlap — the
   remaining depth is across body chains, tracked. Default behavior
-  unchanged with the lever off.
+  unchanged with the lever off. Follow-up under the same lever: the
+  solver's plateau exit now honors its own registered residual guard
+  (it was quitting nine iterations into a heavy-through-light chain
+  while the middle body still moved), taking the worst standing
+  overlap at 96:1 from half a metre to 35 mm with no pass-through
+  even in transit; and the friction dial's stop-time expectation is
+  the measured affine law (a small friction-independent braking
+  channel through the contact normal rows, ~1% at stone friction).
+  The block itself is now an exact small LCP (active-set enumeration
+  over the manifold's rows) rather than a linear solve clamped after
+  the fact — the clamp discarded the negative half of near-singular
+  row pairs and detonated thin-body scenes; with the exact solve the
+  tile-raft tower, red since it was built, stands fully green. The
+  torsional-friction gate reads the manifold's total normal load
+  rather than one row's, and the warm cache's sustain/capture split
+  works without the cap (rows carry their build-time approach).
+- **Tooling: `scripts/harvest_reds.py`.** One command that rebuilds
+  its targets (a stale-build guardrail, learned the hard way — a
+  static-lib change measures as byte-identical physics until every
+  test relinks) and prints every red assert across the campaign and
+  battery with its case header and measurements, per lever world.
 - **Materials: ICE.** A real material (density 917 kg/m³, full
   elastic and strength property set) joining the mineral group. The
   limits demos now stage friction experiments on an actual white ice

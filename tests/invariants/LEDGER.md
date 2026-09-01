@@ -2082,3 +2082,63 @@ energy flag is PRE-EXISTING and larger WITHOUT the lever (+337 vs
 +266 J; unpriced turtle free-lift, G-50); the tile-tower class never
 touched its caps - not the ceiling disease, owes its own RCA.
 G-63 stays open on the across-pair rung.
+
+## 2026-09-01 — TWO ARGUS ORDERS DELIVERED: the affine law and the door guard
+
+Owner, on the single-law window: "argus this, first case is red but I
+think it's ok, and then we have sinking-penetration in a couple of
+them."
+
+**The ice red (G-58): the owner was right, now with the derivation.**
+The decay is perfectly linear at every mu; the three-point fit gives
+the AFFINE grindstone law alpha = 26.9*mu + 0.15 - exact mu-linearity
+plus a mu-independent 0.15 rad/s^2 channel through the anchor-coupled
+normal rows (dissipative, legal). Bands re-derived from the law:
+ice and slipjoint fully green. Correction booked: the 96.5 first-
+contact prose misread the leaves as on-slab; the assert had honestly
+failed (400 mm into the slab).
+
+**The sinking (G-63): the plateau door was quitting at 9 of 32.**
+Canary: two blocks exchanging constant ~20 N*s on the light middle
+body reads as a plateau to the rate test while the wood still moves
+at -0.164 m/s. The registry had ALWAYS documented the missing guard -
+VELOCITY_PLATEAU_FLOOR on the plateau exit - and the code never
+enforced it: doc-vs-code drift, wired under the lever (default keeps
+the drift, boarded as its own small front). Effect: 38.6:1 22.3 ->
+4.5 mm with the gold ASLEEP; 96.5:1 496 -> 35 mm, peak transit 36
+where it was 990. Eleven of thirteen window cases fully green under
+SINGLE_LAW. Remaining at the extremes: the pure chain rate - the
+shock-ordering rung, open in G-63. Jury re-run after the guard:
+clean at every expectation.
+
+## 2026-09-01 (later) — THE HARVESTER, THE CONFESSION, AND THE FLOOR FALLS GREEN
+
+Owner: "argus this properly please, have a way to gather/harvest red
+cases quickly." Both delivered, and the harvest's first catch was my
+own process: byte-identical results across a solver change exposed
+STALE BINARIES - the earlier "jury clean on merit" ran pre-lever
+executables for everything but anvil/ice/slipjoint/visual. Withdrawn:
+that jury claim, the "floor is lever-insensitive" cross-finding, the
+footprint "composition marginal". scripts/harvest_reds.py now
+REBUILDS its targets before measuring (the stale-build guardrail,
+owed since the build-profiles lesson, landed mechanically).
+
+The fresh single-law world then showed its true first contact:
+DETONATIONS (tiles at 99 m/s, towers at 340 m, the ramp cube flying
+204 m) - G-63's side (b) red, fixed at mechanism, never re-capped:
+(1) the capless warm store had dropped G-52's approach subtraction
+(rows now carry build_approach); (2) THE DETONATOR: clamp-after-solve
+on a unilateral near-singular block - replaced with the exact
+active-set LCP, n <= 4, at most 16 subsets; (3) the twist gate read
+the carrier row's own impulse, which the exact LCP legitimately
+zeroes - now group-aware under the lever.
+
+VERDICT AFTER THE FIXES (all fresh, full battery): limits green
+except the two anvil extremes (4.5/35.4 mm, the chain-rate rung);
+THE FLOOR FULLY GREEN - G-61's 25 mm tile class was the manifold-LCP
+disease all along, record settled; torsion/stack/mixed/strike/
+refused-ledger green; ramp at its booked G-46 pair; ladder at R5/R6
+plus ONE question of law: at slam-down mu * N_impact * r
+legitimately eats most of a spinning cube's spin (a real die loses
+its spin landing flat) - the "flight barely taxes it" law was
+derived under capped impacts. OWNER RULING owed on that law.

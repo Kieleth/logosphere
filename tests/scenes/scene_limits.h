@@ -39,9 +39,21 @@ namespace scene_limits {
 constexpr float DT = 1.0f / 60.0f;
 constexpr float MU_BASE  = 0.5f;    // the engine's actual baseline (see header)
 constexpr float R1_STOP  = 0.217f;  // measured grindstone anchor (G-55, mu 0.5, L 1)
-// G-55's stop band at the anchor (mu 0.5, L 1 m). Scaled per case by
-// (MU_BASE/mu) — the grindstone law is 1/mu — and by L (alpha ~ 1/L).
+// G-55's stop band at the anchor (mu 0.5, L 1 m), scaled per case by
+// the AFFINE grindstone law (G-58, measured 2026-09-01, three-point
+// fit at mu 0.05/0.5/0.8): alpha = K_MU * mu + ALPHA_FLOOR. The
+// floor is the mu-INDEPENDENT braking channel through the
+// anchor-coupled normal rows (dissipative, INV-17-legal): ~1% of the
+// brake at stone friction, ~10% on ice. The original bands assumed
+// ALPHA_FLOOR = 0 (pure 1/mu) and the ice case's red caught the
+// channel; owner read it as honest physics ("first case is red but I
+// think it's ok") and the fit supplies the derivation.
 constexpr float BAND_LO = 0.2f, BAND_HI = 0.6f;
+constexpr float K_MU       = 26.9f;   // rad/s^2 per unit mu (fit)
+constexpr float ALPHA_FLOOR = 0.15f;  // rad/s^2, the normal-row channel (fit)
+inline float stop_scale(float mu) {
+    return (K_MU * MU_BASE + ALPHA_FLOOR) / (K_MU * mu + ALPHA_FLOOR);
+}
 constexpr float SPIN_NOISE = 0.05f;   // rad/s (INV-34 settling)
 constexpr float SPEED_MAX  = 10.0f;   // m/s (INV-11)
 constexpr float LZ_BAND    = 1.05f;   // peak |L_z| <= initial * this (INV-17)
@@ -266,7 +278,7 @@ inline std::vector<Case> cases_ice() {
          cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, MU_BASE, 3.0f,
               "spinner")},
         540,
-        {{1, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
+        {{1, BAND_LO * stop_scale(0.05f), BAND_HI * stop_scale(0.05f)}},
         {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f}},
         {0}, false, -1, 0, 0,
         "DEMONSTRATING: a stone cube spinning on ICE (G-58).",
@@ -276,7 +288,7 @@ inline std::vector<Case> cases_ice() {
          cube(1, 0, SLAB_TOP + 0.5f, Materials::Type::STONE, 0.8f, 3.0f,
               "spinner")},
         300,
-        {{1, BAND_LO * (MU_BASE/0.8f), BAND_HI * (MU_BASE/0.8f)}},
+        {{1, BAND_LO * stop_scale(0.8f), BAND_HI * stop_scale(0.8f)}},
         {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f}},
         {0}, false, -1, 0, 0,
         "DEMONSTRATING: the same spinner, rubber-gripped slab (G-58).",
@@ -417,7 +429,7 @@ inline std::vector<Case> cases_slipjoint() {
          cube(1, 0, SLAB_TOP + 2.5f, Materials::Type::ICE, 0.05f, 3.0f,
               "ice spinner")},
         540,
-        {{3, BAND_LO * (MU_BASE/0.05f), BAND_HI * (MU_BASE/0.05f)}},
+        {{3, BAND_LO * stop_scale(0.05f), BAND_HI * stop_scale(0.05f)}},
         {{0, SLAB_T * 0.5f, 0.02f}, {1, SLAB_TOP + 0.5f, 0.02f},
          {2, SLAB_TOP + 1.5f, 0.02f}, {3, SLAB_TOP + 2.5f, 0.02f}},
         {0, 1, 2}, false, -1, 0, 0,
