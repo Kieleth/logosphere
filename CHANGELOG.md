@@ -230,15 +230,26 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   The two born-red ladders (walking wheels, the out-rolling sphere)
   are unchanged and remain open fronts. KNOWN REGRESSIONS under the
   new default, kept deliberately as born-red flags while they are
-  fixed at mechanism: bonds between very unequal masses (500:1 and
-  beyond) can tear on impact instead of ringing down; a body walking
-  through grass can sever blade bonds; a three-axis PD joint drive
-  holds its target outside its 10% band; a bonded rock aggregate
-  drifts on the ground. Each has its cause isolated and its own
-  audited red; `SINGLE_LAW=0` (or the individual `*=0` switches)
-  restores the previous behavior for A/B.
+  fixed at mechanism: a three-axis PD joint drive holds its target
+  outside its 10% band; a bonded rock aggregate drifts on the ground.
+  Each has its cause isolated and its own audited red; `SINGLE_LAW=0`
+  (or the individual `*=0` switches) restores the previous behavior
+  for A/B. (The unequal-mass bond tear and the grass severing first
+  listed here were pre-existing and are fixed below.)
 
 ### Fixed
+- **Physics: the solver no longer declares a light body converged
+  while it is still moving.** The convergence exit judged "done" by
+  impulse magnitude in N*s, which on a few-gram body can mean metres
+  per second; bond chains between very unequal masses (a 2 g blade
+  under a 500x heavier body) got one solver sweep per substep, sagged
+  through each other and tore on the next push. The exit now also
+  requires the last sweep to have stopped moving anything (the same
+  residual the plateau exit honours). Unequal-mass bonds ring down
+  instead of tearing at every ratio measured (to 1044:1) and a grass
+  patch no longer tears itself during settle. `SINGLE_LAW_DOOR=0`
+  restores the old exit for A/B. `SINGLE_LAW_SHOCK=0` is a new
+  diagnostic switch that skips the shock sweep.
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never
   says what that means for a character standing on the last one. Rank

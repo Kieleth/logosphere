@@ -1091,3 +1091,21 @@ D6 is cheap, independent of the router's election machinery, and
 useful before Kamaji exists: the counter can be built and left running
 to gather the distribution while the rest is designed. Its vocabulary
 limit is boarded as R6.
+
+## G-65 LANDED (2026-09-01): the momentum-blind convergence door
+
+Fix-one-by-one under the flip, first mechanism. The convergence exit
+compared max impulse to ABSOLUTE_THRESHOLD in N*s and so declared a 2 g
+body converged after one sweep while that sweep moved it 2 m/s (canary,
+iters=1 on every substep of the 500x column). The linear twin of the
+angular blindness fixed earlier. The door now honours the linear
+velocity residual under SINGLE_LAW_DOOR. Ringing green at every rung,
+grass green, campaign and battery unchanged. Owed before ship: the Eden
+frame-cost A/B (light bodies now iterate past one sweep).
+
+Still open from the same round: the ROCK is island-shaped (impact
+deformation 5-14 cm relaxing during rest, iters=32 every frame, a box
+spinning 1.19 rad/s about the axes the bonds do not constrain) - G-64's
+option B; the DRIVE's hold spans an impact (owner ruling owed); the
+GRASS premise is vacuous, the shin never touches a blade (owner ruling
+owed).

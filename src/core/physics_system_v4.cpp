@@ -756,6 +756,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         []{ const char* e = std::getenv("SINGLE_LAW_CAPS"); return !(e && e[0] == '0' && e[1] == '\0'); }();
     static const bool single_law_blocks =
         []{ const char* e = std::getenv("SINGLE_LAW_BLOCKS"); return !(e && e[0] == '0' && e[1] == '\0'); }();
+    // SINGLE_LAW_SHOCK=0 skips the post-loop shock sweep (G-64). RCA
+    // bisect for the rock's vertical pump (2026-09-01). Diagnostic only.
+    static const bool single_law_shock =
+        []{ const char* e = std::getenv("SINGLE_LAW_SHOCK"); return !(e && e[0] == '0' && e[1] == '\0'); }();
     // ========================================================================
     // V4.3 FIX: Changed from "count < 2" to "count < 1"
     // ========================================================================
@@ -4691,7 +4695,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         static const bool ang_exit_off = std::getenv("ANGULAR_EXIT_OFF") != nullptr;
         if (max_impulse_this_iter < ABSOLUTE_THRESHOLD &&
             (ang_exit_off ||
-             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
+             max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR) &&
+            // RCA experiment (2026-09-01, the ringing column): this door is
+            // momentum-dimensioned and blind to LINEAR rows on light bodies
+            // exactly as it was to angular rows - a 0.005 N*s bond impulse
+            // is 2 m/s on a 2.4 g box; measured exiting at iters=1 on every
+            // substep of the 500x column. Converged means the last sweep
+            // also stopped moving anything.
+            (!single_law || !single_law_door ||
+             max_dv_this_iter < PhysicsV4::VELOCITY_PLATEAU_FLOOR)) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
@@ -4758,7 +4770,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // THE SHOCK SWEEP (G-64): bottom-up once, each block's lower body
     // held immovable. Blocks whose bodies sit at equal depth, or with a
     // body the graph never reached, are solved with both sides movable.
-    if (single_law && !contact_depth.empty()) {
+    if (single_law && single_law_shock && !contact_depth.empty()) {
         float shock_dv = 0.0f;
         for (const ContactGroup& g : contact_groups) {
             const Constraint& c = constraints[g.first];
