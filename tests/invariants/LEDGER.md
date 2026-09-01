@@ -2142,3 +2142,70 @@ plus ONE question of law: at slam-down mu * N_impact * r
 legitimately eats most of a spinning cube's spin (a real die loses
 its spin landing flat) - the "flight barely taxes it" law was
 derived under capped impacts. OWNER RULING owed on that law.
+
+## 2026-09-01 (later) — MERGED to main; the pre-touch bite falls; the map is clean
+
+PR #161 squash-merged (all checks green) after two mechanical gate
+fixes: the POSIX setenv shim in the headless manifold test, and CI's
+smoke list realigned with TEST_AUDIT (inv6 has been a booked G-48
+flip mole since 2026-08-26; it now sits in CI's direction-locked red
+list per the workflow's own contract). Work continues on
+feat/physics-green-campaign.
+
+First probe of the green campaign: the ladder R2/R3 'impact-torsion
+law question' resolved as a BUG (G-45 class). The spin died 51 mm
+above the slab; the canary showed a predicted-pose face manifold at
+pen = -75.9 mm carrying twist_carrier, its uncapped capture rows
+feeding the twist across the open gap. Fixed at the law: under the
+single law torsion transmits only through rows within SLOP of
+touching (bias>=0 alone excluded REST - this world rests ~0.2 mm
+separated on speculative rows), and n_total counts only such rows.
+Ladder now at exactly its booked R5/R6. The single-law world map:
+all green except the anvil extremes (the chain-rate rung) and the
+pre-existing booked reds. No owner ruling needed on the impact law -
+the question dissolved with the bug.
+
+## 2026-09-01 (later) — the extremes split: a gate dead zone and a velocity chain
+
+Two canaries on the last anvil reds. 96.5:1 is the velocity chain:
+32 of 32 iterations spent, the 200 kg leaves still end the substep at
+-0.106 m/s, the split pass lifts 0.48 mm/substep and the sink cancels
+it at 36 mm. 38.6:1 was never the chain - its velocity converged; its
+4.5 mm was the position pass's slop gate quitting at
+SLOP*(1+1/BETA) = 3.5 mm (a BETA-scaled correction compared to the
+error tolerance). Fixed under the lever: the gate now stops when the
+ERROR is under SLOP (correction < BETA*SLOP). 38.6 -> 2.7 mm, heights
+green, asleep. Full battery clean at every expectation. OWNER RULING
+owed on the chain mechanism (shock ordering vs island LCP).
+
+## 2026-09-01 (later) — RULED: shock propagation now (G-64 option A)
+
+Owner: "shock now." Contact blocks are ordered by contact-graph
+distance from the immovable roots (INV-7's one predicate: bodies that
+cannot take momentum, plus turtle-touching bodies at depth 1; never
+world-up, INV-6) and solved bottom-up each iteration; after the loop
+one shock sweep re-solves each block with its lower body held
+immovable, so support propagates up a stack in one pass. Inside the
+single law: ordering and mass model only, no impulse bound. Jury:
+the strike battery and both ledgers (the shock sweep's known bias is
+momentum exchange favouring stability). Acceptance: the 96.5:1 anvil
+green. Island LCP (option B) stays the horizon.
+
+## 2026-09-01 (later) — G-64 landed: the anvil ladder is fully green
+
+Shock propagation under SINGLE_LAW: blocks ordered by contact-graph
+depth from the immovable roots and solved bottom-up; one shock sweep
+after the loop with each lower body held immovable. Measured: every
+ratio on the anvil ladder - 5:1 through 96.5:1 - rests at z 1.9000
+exactly, 0.0 mm peak transit overlap, asleep. The full single-law
+battery is green except the pre-existing booked pairs (ladder R5/R6,
+ramp G-46). The support ceiling (G-57) is solved under the lever;
+G-63's two sides are both green; the flip ruling on the single-law
+world now has a green battery behind it.
+
+## 2026-09-01 (later) — OWNER QA: the shock-propagation window is GREEN
+
+Owner watched the thirteen-case campaign window under SINGLE_LAW
+with shock propagation: "ok, green." The anvil ladder stands at every
+ratio on screen. Branch feat/physics-green-campaign goes to main by
+squash PR; the flip ruling and the next front are decided in chat.
