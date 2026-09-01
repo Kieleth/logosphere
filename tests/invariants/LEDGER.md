@@ -2258,3 +2258,32 @@ every red booked in TEST_AUDIT with its isolated mechanism; RCA
 kill-switch sub-levers (SINGLE_LAW_DOOR/GATE/CAPS/BLOCKS) kept as
 diagnostics; the conversion of the six tests to Argus/INV form
 dispatched; fixes follow one by one, at mechanism, never by re-cap.
+
+## 2026-09-01 (later) — conversions land: the instruments speak
+
+Drives (agent): the shoulder drive was GREEN all along - its red was
+an out-of-bounds read in the test (a swap callback registered after
+the warm-up's nine store swaps; ReadView operator[] is unchecked -
+engine hazard boarded). The 3-axis drive's "hold" spans a 9.68 m/s
+turtle strike of an unsupported pair; free flight is byte-identical
+with and without the lever; the single law changes post-impact
+ring-down 0.045 -> 0.067 rad. OWNER RULING owed: test design vs
+impact flag.
+
+Light bodies (agent): ringing - under the single law the light
+bodies' rotational response is GONE (peak |omega| 0.0000 at every
+tearing ratio vs 6-7 rad/s lever-off); a distance-constrained chain
+answers a lateral push by stretching and the anchor bond reaches
+2.12x - the defect is rotational, upstream of the tear law. Also:
+the recipe's bond (k 5000, c 100) is built as k 1e8, c 3.4, F_break
+8000 by the doors - the energy ledger flags creation in BOTH worlds.
+Grass - THE SHIN NEVER TOUCHES THE GRASS (0 contacts in 579 frames,
+a 30 mm gap; parking the shin changes nothing to the digit): the
+premise is vacuous in every world, booked as [BOOK] pending an
+owner ruling. Under the flip, resting blades a metre from the sweep
+line tear during settle with contact amplification +0.77 m/s from a
+ZERO approach - INV-17's cushion-priced check is blind in a capless
+world (mechanism note added). Fix-one-by-one starts here.
+
+Aggregates (agent): terminated by a rate limit mid-conversion; its
+uncommitted work is recovered from its worktree.
