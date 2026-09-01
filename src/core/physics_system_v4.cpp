@@ -3410,20 +3410,81 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         }
     }
 
+    // SHOCK PROPAGATION (G-64, owner ruling 2026-09-01: "shock now").
+    // A heavy-through-light chain converges at ~m_light/m_heavy per
+    // sequential sweep (measured: 32/32 iterations, the leaves still at
+    // -0.106 m/s under the gold). Two moves, both inside the single law
+    // (ordering and mass model, never an impulse bound):
+    //   1. ORDER the blocks by contact-graph distance from the immovable
+    //      roots - INV-7's one predicate (bodies that cannot take
+    //      momentum) at depth 0, turtle-touching bodies at depth 1 - and
+    //      solve bottom-up every sweep. Never world-up (INV-6).
+    //   2. After the loop, ONE SHOCK SWEEP re-solves each block with its
+    //      lower body held immovable, so support propagates up a stack
+    //      in one pass. This is the known, bounded non-physicality of
+    //      shock propagation: momentum exchange in that sweep favours
+    //      stability. The refused-momentum and energy ledgers are the
+    //      jury; no refusal is booked for a body held only for the sweep.
+    std::vector<int> contact_depth;
+    if (single_law && !contact_groups.empty()) {
+        const int UNREACHED = std::numeric_limits<int>::max();
+        contact_depth.assign(count, UNREACHED);
+        std::vector<size_t> frontier;
+        for (size_t b = 0; b < count; ++b)
+            if (inv_mass_momentum(particles[b]) == 0.0f) {
+                contact_depth[b] = 0; frontier.push_back(b);
+            }
+        for (const Constraint& c : constraints)
+            if (c.is_turtle_contact && c.body_a < count &&
+                contact_depth[c.body_a] == UNREACHED) {
+                contact_depth[c.body_a] = 1; frontier.push_back(c.body_a);
+            }
+        // BFS over box-box contact rows.
+        while (!frontier.empty()) {
+            std::vector<size_t> next;
+            for (const Constraint& c : constraints) {
+                if (!c.is_contact || c.is_turtle_contact || c.is_angular) continue;
+                if (c.body_a >= count || c.body_b >= count) continue;
+                for (int side = 0; side < 2; ++side) {
+                    const size_t from = side ? c.body_b : c.body_a;
+                    const size_t to   = side ? c.body_a : c.body_b;
+                    if (contact_depth[from] == UNREACHED) continue;
+                    if (contact_depth[to] > contact_depth[from] + 1) {
+                        contact_depth[to] = contact_depth[from] + 1;
+                        next.push_back(to);
+                    }
+                }
+            }
+            frontier.swap(next);
+        }
+        auto group_depth = [&](const ContactGroup& g) {
+            const Constraint& c = constraints[g.first];
+            const int da = contact_depth[c.body_a];
+            const int db = c.is_turtle_contact ? 0 : contact_depth[c.body_b];
+            return std::min(da, db);
+        };
+        std::stable_sort(contact_groups.begin(), contact_groups.end(),
+                         [&](const ContactGroup& x, const ContactGroup& y) {
+                             return group_depth(x) < group_depth(y);
+                         });
+    }
+
     // One manifold's rows, solved simultaneously. Mirrors the
     // sequential contact row EXACTLY: same measure gates (G-39:
     // measure-gate == apply-gate, DYNAMIC for contacts), same split-
     // impulse bias rule (only speculative negatives stay), same
     // clamped-accumulated application, same refused-momentum and
     // energy-ledger bookkeeping. Returns the largest |delta|.
+    // shock: 0 = normal; 1 = hold body_a immovable; 2 = hold body_b.
     auto solve_contact_block = [&](const ContactGroup& g, int iter,
-                                   float& max_dv) -> float {
+                                   float& max_dv, int shock) -> float {
         Constraint& c0 = constraints[g.first];
         Particle& pa = particles[c0.body_a];
         Particle& pb = particles[c0.body_b];
         const bool turtle = c0.is_turtle_contact;
-        const float inv_ma = inv_mass_momentum(pa);
-        const float inv_mb = turtle ? 0.0f : inv_mass_momentum(pb);
+        const float inv_ma = shock == 1 ? 0.0f : inv_mass_momentum(pa);
+        const float inv_mb = (turtle || shock == 2) ? 0.0f
+                                                    : inv_mass_momentum(pb);
         if (inv_ma + inv_mb <= 0.0f) return 0.0f;   // sleeping pair
         // COHERENCE (joint-block lesson): one opinion per body. A body
         // spins in this block only if it is DYNAMIC, movable, and has
@@ -3592,11 +3653,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 pb.vx -= L[i][0] * d * inv_mb;
                 pb.vy -= L[i][1] * d * inv_mb;
                 pb.vz -= L[i][2] * d * inv_mb;
-                if (inv_mb == 0.0f)
+                if (inv_mb == 0.0f && shock != 2)
                     record_refused_impulse(c.body_b, -L[i][0] * d,
                                            -L[i][1] * d, -L[i][2] * d);
             }
-            if (!turtle && inv_ma == 0.0f)
+            if (!turtle && inv_ma == 0.0f && shock != 1)
                 record_refused_impulse(c.body_a, L[i][0] * d,
                                        L[i][1] * d, L[i][2] * d);
             pa.omega_x += Ga[i][0] * d * inv_Ia;
@@ -3645,7 +3706,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         // G-63: the manifold blocks solve first each sweep; their rows'
         // sequential normal solve is skipped below (friction still runs).
         for (const ContactGroup& g : contact_groups) {
-            const float w = solve_contact_block(g, iter, max_dv_this_iter);
+            const float w = solve_contact_block(g, iter, max_dv_this_iter, 0);
             max_impulse_this_iter = std::max(max_impulse_this_iter, w);
         }
 
@@ -4673,6 +4734,23 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             }
         }
         prev_max_impulse = max_impulse_this_iter;
+    }
+
+    // THE SHOCK SWEEP (G-64): bottom-up once, each block's lower body
+    // held immovable. Blocks whose bodies sit at equal depth, or with a
+    // body the graph never reached, are solved with both sides movable.
+    if (single_law && !contact_depth.empty()) {
+        float shock_dv = 0.0f;
+        for (const ContactGroup& g : contact_groups) {
+            const Constraint& c = constraints[g.first];
+            int shock = 0;
+            if (!c.is_turtle_contact) {
+                const int da = contact_depth[c.body_a];
+                const int db = contact_depth[c.body_b];
+                if (da < db) shock = 1; else if (db < da) shock = 2;
+            }
+            solve_contact_block(g, SOLVER_ITERATIONS, shock_dv, shock);
+        }
     }
 
     // Neither door taken: the full budget ran without converging or plateauing.

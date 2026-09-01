@@ -116,6 +116,13 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   termination gate compared a scaled correction to the tolerance and
   quit at 3.5 mm of overlap; under the lever it stops when the
   remaining error is under the tolerance. Default behavior unchanged.
+- **Physics (single-law lever): shock propagation.** Contact groups
+  are solved in order of contact-graph distance from the immovable
+  bodies, and a final sweep holds each group's supporting body fixed
+  so support propagates up a stack in one pass. A gold block on a bale
+  of leaves on a slab, a 96:1 mass ratio that previously stood 35 mm
+  inside its support, now rests exactly at height and sleeps; the
+  whole heavy-on-light ladder is green. Default behavior unchanged.
 - **Tooling: `scripts/harvest_reds.py`.** One command that rebuilds
   its targets (a stale-build guardrail, learned the hard way — a
   static-lib change measures as byte-identical physics until every

@@ -615,11 +615,15 @@ clamp-after-solve on unilateral near-singular manifolds), (3) the
 twist gate became group-aware. THE FLOOR IS FULLY GREEN (G-61
 settled - the tile class was the manifold LCP). Red harvester
 scripts/harvest_reds.py with the rebuild-first guardrail is the
-standing instrument. OPEN: the VELOCITY CHAIN at 96.5:1 (35 mm; 32/32
-iterations, the light middle body converges ~1%/sweep) plus 0.7 mm
-of position-chain shallowness at 38.6 - OWNER RULING owed: shock
-ordering vs island LCP (options in the ledger/chat); the DEFAULT
-world's unwired plateau guard. RESOLVED under the lever 2026-09-01:
+standing instrument. **G-64 LANDED 2026-09-01 (owner: "shock now")**: contact blocks
+ordered by contact-graph depth from the immovable roots, one shock
+sweep after the loop - THE ANVIL LADDER IS FULLY GREEN (z 1.9000 at
+every ratio, 0.0 mm transit, asleep). The single-law battery's only
+reds are other fronts' booked pairs (ladder R5/R6, ramp G-46).
+OPEN: the DEFAULT world's unwired plateau guard (rides the flip);
+island LCP as the horizon. OWNER RULING now available: the flip of
+the single-law world (trio + SINGLE_LAW) to default, with a green
+battery behind it. RESOLVED under the lever 2026-09-01:
 the position pass's slop gate (dead zone 3.5 mm -> error < SLOP;
 38.6:1 4.5 -> 2.7 mm, asleep).
 RESOLVED 2026-09-01: the impact-torsion 'law question' was the G-45

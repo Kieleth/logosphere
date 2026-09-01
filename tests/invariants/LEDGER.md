@@ -2177,3 +2177,28 @@ error tolerance). Fixed under the lever: the gate now stops when the
 ERROR is under SLOP (correction < BETA*SLOP). 38.6 -> 2.7 mm, heights
 green, asleep. Full battery clean at every expectation. OWNER RULING
 owed on the chain mechanism (shock ordering vs island LCP).
+
+## 2026-09-01 (later) — RULED: shock propagation now (G-64 option A)
+
+Owner: "shock now." Contact blocks are ordered by contact-graph
+distance from the immovable roots (INV-7's one predicate: bodies that
+cannot take momentum, plus turtle-touching bodies at depth 1; never
+world-up, INV-6) and solved bottom-up each iteration; after the loop
+one shock sweep re-solves each block with its lower body held
+immovable, so support propagates up a stack in one pass. Inside the
+single law: ordering and mass model only, no impulse bound. Jury:
+the strike battery and both ledgers (the shock sweep's known bias is
+momentum exchange favouring stability). Acceptance: the 96.5:1 anvil
+green. Island LCP (option B) stays the horizon.
+
+## 2026-09-01 (later) — G-64 landed: the anvil ladder is fully green
+
+Shock propagation under SINGLE_LAW: blocks ordered by contact-graph
+depth from the immovable roots and solved bottom-up; one shock sweep
+after the loop with each lower body held immovable. Measured: every
+ratio on the anvil ladder - 5:1 through 96.5:1 - rests at z 1.9000
+exactly, 0.0 mm peak transit overlap, asleep. The full single-law
+battery is green except the pre-existing booked pairs (ladder R5/R6,
+ramp G-46). The support ceiling (G-57) is solved under the lever;
+G-63's two sides are both green; the flip ruling on the single-law
+world now has a green battery behind it.
