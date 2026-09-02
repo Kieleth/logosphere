@@ -40,6 +40,13 @@
 //      on the base, nothing moves. Likewise A's buried stone is
 //      refused, never born: the tile keeps its one dropped stone.
 //
+//   E  THE STRATA STACK (G-69). Eden's own floor: bedrock (12 t), a 6 t
+//      layer on it, a 2.4 t dirt layer on that, born touching. Each
+//      pair must stand within 2 mm of each other (INV-2, the manifold's
+//      own reading) and sleep. Measured on the door branch: 6-13 mm of
+//      compaction at rest, and the sleep gate rightly refuses to sleep
+//      a penetrating stack - the census population behind Eden's frame.
+//
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
 // from PhysicsSystem::last_solve().
@@ -137,6 +144,7 @@ struct Case {
     std::vector<int> admitted;              // INV-37: these creations must be BORN (on stage)
     bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
+    std::vector<std::pair<int,int>> manifold_pairs;   // more of the same (stacks)
     const char* waiver = nullptr;
     const char* demo1 = "";
     const char* demo2 = "";
@@ -164,6 +172,7 @@ struct Scene {
         switch (m) {
             case Materials::Type::WOOD_SOFT: p.r = 0.72f; p.g = 0.55f; p.b = 0.35f; break;
             case Materials::Type::LEAVES:    p.r = 0.42f; p.g = 0.62f; p.b = 0.32f; break;
+            case Materials::Type::DIRT:      p.r = 0.45f; p.g = 0.33f; p.b = 0.22f; break;
             case Materials::Type::STONE:
             default:                         p.r = 0.55f; p.g = 0.55f; p.b = 0.58f; break;
         }
@@ -526,6 +535,29 @@ inline std::vector<Case> cases() {
                   "stones stay on the base, asleep 4/4 on stage";
         v.push_back(c);
     }
+    // E. Eden's floor, three layers born touching on the turtle. The
+    //    stack must stand within INV-2's bar at every interface and sleep.
+    {
+        Case c;
+        c.name = "E THE STRATA STACK";
+        c.gid = "G-69";
+        const float l2_t = 0.15f, l3_t = 0.10f;
+        const float l2_z = TILE_TOP + l2_t * 0.5f;              // 0.375
+        const float l3_z = TILE_TOP + l2_t + l3_t * 0.5f;       // 0.50
+        c.bodies = {tile(0.0f, TILE_Z, "bedrock"),
+                    BodySpec{TILE_L, TILE_L, l2_t, 0.0f, 0.0f, l2_z, Materials::Type::STONE, "layer2"},
+                    BodySpec{TILE_L, TILE_L, l3_t, 0.0f, 0.0f, l3_z, Materials::Type::DIRT, "dirt"}};
+        c.rest_overlap_asserted = false;             // the manifold reads each interface
+        c.manifold_pairs = {{0, 1}, {1, 2}};
+        c.heights = {Height{0, TILE_Z}, Height{1, l2_z}, Height{2, l3_z}};
+        c.stills = {Still{0}, Still{1}, Still{2}};
+        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 1;    // born touching: 0 mm
+        c.demo1 = "DEMONSTRATING: three floor layers born touching must STAND within 2 mm "
+                  "of each other (INV-2) and sleep - Eden's floor sinks 6-13 mm and never sleeps";
+        c.demo2 = "WATCH: the two interface penetrations (the manifold's own reading), "
+                  "asleep 3/3, the solver's exit";
+        v.push_back(c);
+    }
     return v;
 }
 
@@ -585,13 +617,16 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     }
     // INV-2 through the engine's own manifold (a tilted pair the AABB measure
     // cannot judge): the contact's penetration at the end.
-    if (c.manifold_pair_a >= 0) {
-        const float pen = s.contact_penetration(c.manifold_pair_a, c.manifold_pair_b);
-        std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s contact penetration at rest "
-                      "%.1f mm < %.0f mm (the manifold's own reading)", c.gid,
-                      L(c.manifold_pair_a), L(c.manifold_pair_b), pen * 1000.0f,
-                      OVERLAP_TOL * 1000.0f);
-        v.push_back({t, pen < OVERLAP_TOL});
+    {
+        std::vector<std::pair<int,int>> mp = c.manifold_pairs;
+        if (c.manifold_pair_a >= 0) mp.insert(mp.begin(), {c.manifold_pair_a, c.manifold_pair_b});
+        for (const auto& pr : mp) {
+            const float pen = s.contact_penetration(pr.first, pr.second);
+            std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s contact penetration at rest "
+                          "%.1f mm < %.0f mm (the manifold's own reading)", c.gid,
+                          L(pr.first), L(pr.second), pen * 1000.0f, OVERLAP_TOL * 1000.0f);
+            v.push_back({t, pen < OVERLAP_TOL});
+        }
     }
     // INV-2: rests at the derived height.
     for (const Height& h : c.heights) {
