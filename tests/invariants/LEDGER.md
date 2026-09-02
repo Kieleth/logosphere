@@ -2318,3 +2318,24 @@ overlaps; C (G-48's interlocked stack) green, separates to 1.9 mm by
 frame 9 and sleeps only then. Owner rulings owed: the order of the
 three fixes (Eden's rock placement; G-67's progress law; G-68's door
 contract), the door-law push, R5/R6's setup.
+
+## 2026-09-01 (later) — "argus each": the chain as EXPERIMENTS
+
+Owner, watching the first window: "argus each, these tests are mostly
+wrong, they do nothing, and nothing moves/checks anything." Right: the
+four cases were end-state asserts on bodies that never moved (a stone
+hidden inside a tile, a clump that sleeps, a 2 cm rise). Redesigned per
+the lecture standard: every case has a staged EVENT, a CONTROL beside
+it, motion the eye can follow, and every interaction read through Argus
+(peak speed, separation) and the contact stream (the strike's frame and
+relative speed, the manifold's own penetration for tilted bodies).
+A drops a control stone beside the buried one (strike f26 at 4.37 m/s,
+derived 4.58); B drops a 12-ton slab on a sleeping stone (strike f18 at
+3.06 m/s, comes to rest tilted 0.121 rad inside the derived band, stone
+uncrushed, all asleep - GREEN, the repair's mass law holds in that
+direction); C's cubes are 1 m with a 10 cm interlock (rises to 0.998 by
+f11, sleeps only then); D adds a stone outside the footprint that must
+not notice (it does not). The reds that remain are the chain: A five,
+D six; C one by float dust (2.0 mm standing on a 2.0 mm bar, booked,
+bar not moved). One reflection break found and fixed: at 9 m spacing
+the window's B control landed on C's tile edge; 16 m now.

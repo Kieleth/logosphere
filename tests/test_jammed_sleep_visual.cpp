@@ -26,7 +26,7 @@ using namespace scene_jammed;
 namespace {
 constexpr int   COUNTDOWN_FRAMES = 60;
 constexpr float LIGHT_D = 8.0f;
-constexpr float CASE_SPACING = 9.0f;
+constexpr float CASE_SPACING = 16.0f;   // B's control tile sits 5 m off its case: 9 m put it on C's tile edge (measured: landed at z 0.300, tilted 0.075)
 
 void make_lamps(ParticleSystem& ps, float cx, float cy, float cz) {
     ps.queue_light(cx + 4.0f, cy - 6.0f, cz + 5.0f,
@@ -123,7 +123,7 @@ int main() {
 
     auto advance_case = [&](int next) {
         scenes[ci].set_frozen(ps, true);
-        scenes[next].rearm(ps, physics, cs[next], case_x(next));
+        scenes[next].rearm(ps, physics, case_x(next));
         load_case(next);
     };
 
@@ -138,17 +138,10 @@ int main() {
         if (frame >= 0 && frame < c.run_frames)
             scenes[ci].step(ps, physics, c, frame, case_x(ci));   // SHARED step
 
-        // Live readout: the same quantities the evaluator reads.
+        // Live readout: the numbers at the moment they matter, from the
+        // same latches the evaluator reads (one source).
         const Scene& s = scenes[ci];
-        const int story = c.rubble >= 0 ? c.rubble
-                        : c.stack_upper >= 0 ? c.stack_upper : 1;
-        const Scene::Overlap w = s.worst_overlap(ps);
-        std::snprintf(buf, sizeof buf,
-                      "%s z %.3f  overlap %.1f mm  asleep %d/%zu  exit '%s' "
-                      "(%d it, %d rows)", c.bodies[story].label,
-                      s.z(ps, story), w.pen * 1000.0f, s.asleep_count(ps),
-                      c.bodies.size(), physics.last_solve().exit,
-                      physics.last_solve().iterations, physics.last_solve().rows);
+        std::snprintf(buf, sizeof buf, "%s", readout(ps, physics, s, c).c_str());
         l_read->set_text(buf);
         if (frame < 0)
             std::snprintf(buf, sizeof buf, "[%d/%d] %s starts in %d...",

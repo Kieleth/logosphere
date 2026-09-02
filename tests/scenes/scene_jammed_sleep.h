@@ -1,47 +1,51 @@
 // =============================================================================
-// SCENE: THE JAMMED CLUMP MAY NOT SLEEP — G-67 / G-68 / G-48 (owner order
-// 2026-09-01: "I'd like to TDD all this first of any change")
+// SCENE: THE STONE AND THE SLAB — G-67 / G-68 / G-48 (owner orders
+// 2026-09-01: "TDD all this first of any change", then, watching the
+// first window: "argus each, these tests are mostly wrong, they do
+// nothing, and nothing moves/checks anything").
 // =============================================================================
-// The frame-collapse RCA (LEDGER 2026-09-01, GEDANKEN-67) found Eden at
-// 3.4 s of physics per frame because ~900 quiet bodies could never
-// sleep: stones born INSIDE strata tiles, held awake by G-48's sleep
-// veto on contact overlap, dragging 30,000 contact rows through an
-// exhausted 32-iteration budget every substep. Before any fix, the
-// four mechanisms in that chain get a born-red assert each, on a REAL
-// stage (stone tile on the turtle, stone rubble, a wood trunk with
-// leaves), headless and windowed from this one file.
+// The frame-collapse RCA (GEDANKEN-67) found Eden at 3.4 s of physics per
+// frame because ~900 quiet bodies could never sleep: stones born INSIDE
+// strata tiles, held awake by G-48's sleep veto on contact overlap,
+// dragging 30,000 contact rows through an exhausted budget every substep.
+// Before any fix, the chain gets four EXPERIMENTS on one real stage (a
+// stone strata tile on the turtle, stone rubble, both at Eden's own
+// sizes and masses), each with a staged event, a control beside it, and
+// every interaction read through Argus and the contact stream.
 //
-// The four cases, each derived in its G record:
-//   A  THE STONE BORN IN THE FLOOR (G-67, INV-4, INV-2, INV-31): Eden's
-//      recipe verbatim - rubble centred at the tile's own centre height.
-//   B  THE JAMMED CLUMP (G-67): two leaves bonded to a trunk, overlapping
-//      each other by 2 cm at rest by construction. Quiet from birth;
-//      nothing will ever move them; they must sleep. INV-2/INV-4 waived
-//      by name (the structural band, owner decision (a) on the board).
-//   C  THE INTERLOCKED STACK (G-48's own case, the guard against
-//      over-correcting G-67): a cube born 2 cm into the cube under it,
-//      free to separate. Must NOT sleep while the overlap still shrinks,
-//      must separate, then sleep. Expected green today.
-//   D  THE FLOOR ARRIVES AFTER THE STONE (G-68, INV-4): the stone sleeps
-//      on the turtle; a tile is then created around it. Nothing may be
-//      born inside anything; the stone ends ON the tile, both asleep.
+//   A  THE STONE BORN IN THE FLOOR (G-67). Two identical stones: one
+//      DROPPED onto the tile from 1.5 m (strikes at ~4.6 m/s, settles,
+//      sleeps), one born at the tile's own centre height, Eden's recipe.
+//      The control lives; the buried one holds the tile and the solver
+//      awake forever.
+//   B  THE SLAB LANDS ON THE STONE (G-67's inverse). A stone sleeps on
+//      the ground; a 12-ton tile is dropped on it from 0.8 m and must
+//      come to rest tilted on the stone with one edge on the ground,
+//      the stone uncrushed (INV-1). A second tile dropped beside it
+//      lands flat. The repair's mass law, seen from the other side.
+//   C  THE INTERLOCKED STACK (G-48, the guard). A 1 m cube born 10 cm
+//      into the cube under it rises out over ~a second and sleeps only
+//      then; a touching stack beside it sleeps at once.
+//   D  THE FLOOR ARRIVES AFTER THE STONE (G-68). Two stones sleep on
+//      the ground; at frame 60 a tile is created around one of them.
+//      Nothing may be born through anything; that stone must end ON
+//      the tile, the other must not notice.
 //
-// THE COST WITNESS on every case (G-67): once the stage is quiet, the
-// solver leaves by convergence, never by exhausting its budget - read
-// from PhysicsSystem::last_solve(), the record the level-2 trace writes.
+// THE COST WITNESS on every case (G-67): once the stage is quiet the
+// solver leaves by convergence, never by exhausting its budget, read
+// from PhysicsSystem::last_solve().
 //
-// FULL-STATE NARRATION (per case, assert-or-waive by DOF):
-//   tile:    z at 0.15 (INV-2 stands on the turtle), no spin (INV-34),
-//            asleep at the end (INV-31). x/y: waived, nothing pushes it.
-//   rubble:  A: z must LEAVE the tile (INV-2) - today it stays at 0.15;
-//            D: z ends at the tile top + half thickness (0.43). Spin:
-//            INV-34. Asleep at the end: INV-31. x/y: waived (no lateral
-//            load; a lateral escape is measured, not asserted).
-//   trunk:   z 0.90 (stands), asleep. Leaves: overlap 2 cm by design
-//            (waived INV-2/INV-4), asleep (G-67), bonds intact (INV-14).
-//   cubes:   C: lower z 0.55, upper z ends at 1.05 (INV-2 separated),
-//            first sleep frame has overlap under tolerance (G-48),
-//            both asleep at the end.
+// FULL-STATE NARRATION (assert or waive, per DOF, per case):
+//   tile:   z (INV-2 stands / INV-7 is not lifted by a stone's repair),
+//           rotation_y (B: the derived tilt; elsewhere zero), speed
+//           (Argus peak), asleep. x/y waived: nothing pushes sideways.
+//   stone:  z (rests ON the tile or the ground), min z over the run
+//           (INV-1: never pressed into the world), the strike
+//           (first contact frame and relative speed from the contact
+//           stream), Argus peak speed, spin (INV-34), asleep.
+//   cubes:  separation (Argus) from 0.90 to 1.00, first sleep only after
+//           the repair, asleep. Rotation waived: a centred stack has no
+//           torque.
 // =============================================================================
 #pragma once
 
@@ -54,28 +58,35 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
-#include <memory>
+#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace scene_jammed {
 
 constexpr float DT = 1.0f / 60.0f;
+constexpr float G = 9.81f;
 constexpr float MU = 0.5f;               // explicit on every body
-constexpr float OVERLAP_TOL = 0.002f;    // INV-2's 2x SLOP bar (scene_limits)
+constexpr float OVERLAP_TOL = 0.002f;    // INV-2's 2x SLOP bar
 constexpr float SPIN_NOISE = 0.05f;      // rad/s (INV-34)
 constexpr float SPEED_MAX = 10.0f;       // m/s (INV-11)
-constexpr float HEIGHT_TOL = 0.01f;      // m, stands-at-height bar
+constexpr float HEIGHT_TOL = 0.01f;      // m
+constexpr float STILL = 0.02f;           // m/s: a 12-ton floor that "moves" less is still
+constexpr int   SLEEP_GRACE = 90;        // frames after the last event to be asleep
 
-// THE STAGE: one stone strata tile, Eden's own (4 x 4 x 0.3 m, STONE
-// 2500 kg/m^3 = 12,000 kg), centre z 0.15, top z 0.30, on the turtle.
+// THE STAGE: Eden's strata tile (4 x 4 x 0.3 m, STONE 2500 kg/m^3 =
+// 12,000 kg) on the turtle: centre z 0.15, top 0.30.
 constexpr float TILE_L = 4.0f, TILE_T = 0.3f, TILE_Z = 0.15f;
-constexpr float TILE_TOP = TILE_Z + TILE_T * 0.5f;   // 0.30
-// Eden's rubble recipe (examples/eden/src/main.cpp): rock.z = 0.15,
-// dims 0.15 + (i%5)*0.08 by 0.15 + (i%4)*0.06 by 0.1 + (i%3)*0.08 -
-// the deepest measured pair was 0.31 x 0.21 x 0.26 at z 0.13-0.15.
+constexpr float TILE_TOP = TILE_Z + TILE_T * 0.5f;
+// Eden's rubble recipe (examples/eden/src/main.cpp): the deepest pair
+// measured in the census was 0.31 x 0.21 x 0.26 at z 0.13-0.15.
 constexpr float RUB_X = 0.31f, RUB_Y = 0.21f, RUB_Z = 0.26f;
+constexpr float RUB_ON_TILE = TILE_TOP + RUB_Z * 0.5f;   // 0.43
+constexpr float RUB_ON_GROUND = RUB_Z * 0.5f;            // 0.13
+
+inline float fall_speed(float h) { return std::sqrt(2.0f * G * h); }
+inline int   fall_frames(float h) { return (int)std::ceil(std::sqrt(2.0f * h / G) / DT); }
 
 struct BodySpec {
     float sx, sy, sz;
@@ -85,21 +96,34 @@ struct BodySpec {
     bool late = false;     // D: created at Case::late_frame, not at build
 };
 
-struct Bond { int a, b; float ax, ay, az; float bx, by, bz; float rest; };
+struct Strike {             // an instrumented impact: who hits whom, how fast
+    int a, b;
+    int by_frame;           // must have happened by this frame
+    float v_lo, v_hi;       // relative speed at first contact, m/s
+};
+struct Height { int body; float z; };
+struct Still  { int body; };                // Argus peak speed < STILL
+struct Tilt   { int body; float lo, hi; };  // |rotation_y| band, rad
+struct Sep    { int a, b; float lo, hi; };  // Argus separation band at the end
 
 struct Case {
     const char* name;
     const char* gid;
     std::vector<BodySpec> bodies;
-    std::vector<Bond> bonds;
     int run_frames = 600;
-    int late_frame = -1;               // D: when the late body is created
-    int rubble = -1;                   // the body whose z is the story
-    float rubble_z_final = -1.0f;      // where it must end (INV-2), <0 = none
-    int stack_upper = -1;              // C: the interlocked cube
-    float stack_upper_z_final = -1.0f;
-    bool birth_overlap_asserted = true;   // INV-4 at the creation frame
-    bool rest_overlap_asserted = true;    // INV-2 at the end
+    int late_frame = -1;
+    std::vector<Strike> strikes;
+    std::vector<Height> heights;            // INV-2: rests at
+    std::vector<Still>  stills;             // INV-7: not moved by a repair
+    std::vector<Tilt>   tilts;
+    std::vector<Sep>    seps;
+    std::vector<int>    ground_pinned;      // INV-1: min z >= birth z - tol
+    std::vector<int>    sleep_by_event;     // INV-31: asleep within SLEEP_GRACE of last strike
+    int repair_a = -1, repair_b = -1;       // G-48: first sleep only after separation >= repair_done
+    float repair_done = 0.0f;
+    int born_overlap_pair_a = -1, born_overlap_pair_b = -1;   // INV-4 (creation frame)
+    bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
+    int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
     const char* waiver = nullptr;
     const char* demo1 = "";
     const char* demo2 = "";
@@ -109,12 +133,17 @@ struct Verdict { std::string text; bool ok; };
 
 struct Scene {
     logosphere::Argus argus;
-    std::vector<int> ids;               // -1 until created (late bodies)
+    std::vector<int> ids;
     std::vector<BodySpec> specs;
-    // Latches the evaluator reads (one source for headless and window).
-    float birth_overlap = 0.0f;         // worst overlap right after a creation flush
-    float first_sleep_overlap = -1.0f;  // overlap at the frame the first body slept
-    int   first_sleep_frame = -1;
+    // Latches (one source for the headless asserts and the live panel).
+    float birth_overlap = 0.0f;
+    std::map<std::pair<int,int>, int>   first_contact_frame;
+    std::map<std::pair<int,int>, float> first_contact_speed;
+    std::map<std::pair<int,int>, float> last_penetration;   // the manifold's own, this frame
+    std::vector<int>   first_sleep_frame;
+    std::vector<float> min_z;
+    float repair_sep_at_first_sleep = -1.0f;
+    int   last_event_frame = 0;
     int   frames_run = 0;
 
     static void paint(Particle& p, Materials::Type m) {
@@ -137,56 +166,47 @@ struct Scene {
         paint(p, b.mat);
         p.SetMaterial(b.mat);
         p.friction = MU;
-        const int id = ps.queue_particle_addition(p);
-        ids[i] = id;
-        return id;
+        ids[i] = ps.queue_particle_addition(p);
+        return ids[i];
     }
 
-    void bond(ParticleSystem& ps, PhysicsSystem& physics, const Bond& bd) {
-        (void)ps;
-        auto g = std::make_unique<OrganicGluon>();
-        g->offset_a = {bd.ax, bd.ay, bd.az};
-        g->offset_b = {bd.bx, bd.by, bd.bz};
-        g->target_distance = bd.rest;      // born at strain 1.0 (INV-4)
-        g->rotate_offsets = true;
-        g->contact_area = 1e-3f;
-        g->stiffness = 5000.0f;
-        g->damping = 100.0f;
-        g->enable_angular_constraint = true;
-        g->angular_stiffness = 50.0f;
-        g->angular_damping = 5.0f;
-        physics.add_gluon_between(ids[bd.a], ids[bd.b], std::move(g));
+    void reset_latches() {
+        first_contact_frame.clear(); first_contact_speed.clear(); last_penetration.clear();
+        first_sleep_frame.assign(specs.size(), -1);
+        min_z.assign(specs.size(), 1e9f);
+        repair_sep_at_first_sleep = -1.0f;
+        last_event_frame = 0; frames_run = 0;
     }
 
     int build(ParticleSystem& ps, PhysicsSystem& physics, const Case& c,
               float x_off = 0.0f) {
+        (void)physics;
         specs = c.bodies;
         ids.assign(specs.size(), -1);
         for (size_t i = 0; i < specs.size(); ++i)
             if (!specs[i].late) create(ps, (int)i, x_off);
         ps.flush_pending_particles();
-        for (const Bond& bd : c.bonds) bond(ps, physics, bd);
         for (size_t i = 0; i < ids.size(); ++i)
             if (ids[i] >= 0) argus.watch(ids[i], specs[i].label);
+        reset_latches();
         birth_overlap = worst_overlap(ps).pen;
-        first_sleep_overlap = -1.0f; first_sleep_frame = -1; frames_run = 0;
         return (int)ids.size();
     }
 
-    // D: the floor arrives after the stone (a chunk streaming in around
-    // a body that already exists). Same creation path as build().
-    void create_late(ParticleSystem& ps, float x_off) {
+    // D: the floor arrives after the stone (a chunk streaming in around a
+    // body that already exists). Same creation path as build().
+    void create_late(ParticleSystem& ps, float x_off, int frame) {
         for (size_t i = 0; i < specs.size(); ++i)
             if (specs[i].late && ids[i] < 0) create(ps, (int)i, x_off);
         ps.flush_pending_particles();
         for (size_t i = 0; i < ids.size(); ++i)
             if (specs[i].late) argus.watch(ids[i], specs[i].label);
         birth_overlap = std::fmax(birth_overlap, worst_overlap(ps).pen);
+        last_event_frame = frame;
     }
 
     // TELEPORT LAW (scene_limits::rearm): the window replays a case.
-    void rearm(ParticleSystem& ps, PhysicsSystem& physics, const Case& c,
-               float x_off) {
+    void rearm(ParticleSystem& ps, PhysicsSystem& physics, float x_off) {
         auto parts = ps.lock_particles_for_write();
         for (size_t i = 0; i < ids.size(); ++i) {
             if (ids[i] < 0) continue;
@@ -206,8 +226,7 @@ struct Scene {
             physics.forget_body((size_t)ids[i]);
             argus.reset_milestones(ids[i]);
         }
-        (void)c;
-        first_sleep_overlap = -1.0f; first_sleep_frame = -1; frames_run = 0;
+        reset_latches();
     }
 
     void set_frozen(ParticleSystem& ps, bool frozen) {
@@ -218,26 +237,50 @@ struct Scene {
                                                : ParticleSolverMode::DYNAMIC;
     }
 
-    // ONE step for both drivers (the timestep trap).
+    int index_of(size_t pid) const {
+        for (size_t i = 0; i < ids.size(); ++i) if (ids[i] == (int)pid) return (int)i;
+        return -1;
+    }
+
+    // ONE step for both drivers (the timestep trap). Latches the strikes
+    // from the contact stream, the first sleep, the minimum height.
     void step(ParticleSystem& ps, PhysicsSystem& physics, const Case& c,
               int frame, float x_off = 0.0f) {
-        if (frame == c.late_frame) create_late(ps, x_off);
+        if (frame == c.late_frame) create_late(ps, x_off, frame);
         ps.update_bvh();
         physics.update(DT);
         argus.observe(ps, frame);
         frames_run = frame + 1;
-        if (first_sleep_frame < 0) {
-            for (size_t i = 0; i < ids.size(); ++i)
-                if (ids[i] >= 0 && asleep(ps, (int)i)) {
-                    first_sleep_frame = frame;
-                    first_sleep_overlap = worst_overlap(ps).pen;
-                    break;
-                }
+        for (auto& kv : last_penetration) kv.second = 0.0f;
+        for (const CollisionEvent& e : physics.get_collision_events()) {
+            const int a = index_of(e.particle_a), b = index_of(e.particle_b);
+            if (a < 0 || b < 0 || a == b) continue;
+            const std::pair<int,int> k{std::min(a, b), std::max(a, b)};
+            last_penetration[k] = std::fmax(last_penetration[k], e.penetration);
+            if (!first_contact_frame.count(k)) {
+                first_contact_frame[k] = frame;
+                first_contact_speed[k] = std::fabs(e.relative_velocity);
+                last_event_frame = std::max(last_event_frame, frame);
+            }
+        }
+        for (size_t i = 0; i < ids.size(); ++i) {
+            if (ids[i] < 0) continue;
+            min_z[i] = std::fmin(min_z[i], z(ps, (int)i));
+            if (first_sleep_frame[i] < 0 && asleep(ps, (int)i)) {
+                first_sleep_frame[i] = frame;
+                if (c.repair_a >= 0 && repair_sep_at_first_sleep < 0.0f &&
+                    ((int)i == c.repair_a || (int)i == c.repair_b))
+                    repair_sep_at_first_sleep =
+                        argus.separation(ids[c.repair_a], ids[c.repair_b]);
+            }
         }
     }
 
     float z(ParticleSystem& ps, int i) const {
         return ids[i] < 0 ? -1.0f : ps.lock_particles_for_read()[ids[i]].z;
+    }
+    float rot_y(ParticleSystem& ps, int i) const {
+        return ids[i] < 0 ? 0.0f : ps.lock_particles_for_read()[ids[i]].rotation_y;
     }
     float spin(ParticleSystem& ps, int i) const {
         if (ids[i] < 0) return 0.0f;
@@ -258,9 +301,26 @@ struct Scene {
         for (size_t i = 0; i < ids.size(); ++i) n += asleep(ps, (int)i);
         return n;
     }
+    float peak_speed(int i) const { return ids[i] < 0 ? 0.0f : argus.peak_speed(ids[i]); }
+    float separation(int a, int b) const {
+        return (ids[a] < 0 || ids[b] < 0) ? -1.0f : argus.separation(ids[a], ids[b]);
+    }
+    int   strike_frame(int a, int b) const {
+        auto it = first_contact_frame.find({std::min(a, b), std::max(a, b)});
+        return it == first_contact_frame.end() ? -1 : it->second;
+    }
+    float contact_penetration(int a, int b) const {
+        auto it = last_penetration.find({std::min(a, b), std::max(a, b)});
+        return it == last_penetration.end() ? 0.0f : it->second;
+    }
+    float strike_speed(int a, int b) const {
+        auto it = first_contact_speed.find({std::min(a, b), std::max(a, b)});
+        return it == first_contact_speed.end() ? 0.0f : it->second;
+    }
 
-    // INV-2 measured directly (scene_limits::worst_overlap): axis-aligned
-    // on birth dims; exact here, nothing rotates on this stage.
+    // INV-2 measured directly: axis-aligned on birth dims. Exact for the
+    // unrotated bodies; for B's tilted slab it is conservative by the
+    // tilt (7 deg: a few mm on a 4 m slab), stated in the assert text.
     struct Overlap { float pen = 0.0f; int a = -1, b = -1; };
     Overlap worst_overlap(ParticleSystem& ps) const {
         Overlap w;
@@ -287,205 +347,291 @@ struct Scene {
 // ---------------------------------------------------------------------------
 // THE CASE TABLE. Geometry and bars in one place; derivations in G-67/G-68.
 // ---------------------------------------------------------------------------
-inline BodySpec tile(bool late = false) {
-    return BodySpec{TILE_L, TILE_L, TILE_T, 0.0f, 0.0f, TILE_Z,
-                    Materials::Type::STONE, "tile", late};
+inline BodySpec tile(float x, float z = TILE_Z, const char* label = "tile",
+                     bool late = false) {
+    return BodySpec{TILE_L, TILE_L, TILE_T, x, 0.0f, z,
+                    Materials::Type::STONE, label, late};
 }
-inline BodySpec rubble(float z, const char* label = "rubble") {
-    return BodySpec{RUB_X, RUB_Y, RUB_Z, 0.0f, 0.0f, z,
-                    Materials::Type::STONE, label};
+inline BodySpec rubble(float x, float z, const char* label) {
+    return BodySpec{RUB_X, RUB_Y, RUB_Z, x, 0.0f, z, Materials::Type::STONE, label};
 }
 
 inline std::vector<Case> cases() {
     std::vector<Case> v;
-    // A. Eden's stone, Eden's tile: rubble centre = tile centre.
+    // A. Two identical stones on Eden's tile: one dropped (the control),
+    //    one born at the tile's centre height (Eden's recipe).
+    //    Drop: 1.5 - 0.43 = 1.07 m of fall, 4.58 m/s at the strike, 28 frames.
     {
         Case c;
         c.name = "A THE STONE BORN IN THE FLOOR";
         c.gid = "G-67";
-        c.bodies = {tile(), rubble(TILE_Z)};
-        c.rubble = 1;
-        c.rubble_z_final = TILE_TOP + RUB_Z * 0.5f;   // 0.43: on the tile
-        c.demo1 = "DEMONSTRATING: a stone born inside a floor tile (Eden's "
-                  "recipe) must be born ON it (INV-4), leave it (INV-2), sleep";
-        c.demo2 = "WATCH: rubble z (0.15 -> 0.43?), asleep count, the solver's exit";
+        const float drop_z = 1.5f;
+        c.bodies = {tile(0.0f), rubble(-1.2f, drop_z, "dropped"),
+                    rubble(+1.2f, TILE_Z, "buried")};
+        const float h = drop_z - RUB_ON_TILE;
+        c.strikes = {Strike{1, 0, fall_frames(h) + 12,
+                            fall_speed(h) * 0.75f, fall_speed(h) * 1.2f}};
+        c.heights = {Height{1, RUB_ON_TILE}, Height{2, RUB_ON_TILE}, Height{0, TILE_Z}};
+        c.stills = {Still{0}};
+        c.sleep_by_event = {1};
+        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 2;
+        c.demo1 = "DEMONSTRATING: the dropped stone strikes, settles and sleeps; the "
+                  "stone BORN in the tile (Eden's recipe) must be born ON it (INV-4)";
+        c.demo2 = "WATCH: the strike speed, 'buried' z 0.15 vs 0.43, the tile LIFTED, "
+                  "asleep 1/3, exit exhausted";
         v.push_back(c);
     }
-    // B. The clump: trunk on the tile, two leaves bonded to its top,
-    //    overlapping each other 2 cm by construction (leaves at y +-0.24,
-    //    half-height 0.25). Quiet from birth. Nothing pushes.
+    // B. The slab lands on the stone. Stone on the ground at x +0.3 (off
+    //    centre so the slab tips to -x deterministically); the tile born
+    //    at z 0.95 (bottom 0.80) falls 0.54 m onto the stone top (0.26):
+    //    3.25 m/s at the strike, 20 frames. At rest: middle on the stone,
+    //    the -x edge on the ground: tilt atan(0.26/2.3) = 0.113 rad,
+    //    centre z ~ 0.26 + 0.15 cos(tilt) - 0.3 sin(tilt)... = 0.37-0.42.
+    //    The control tile beside it lands flat and sleeps.
     {
         Case c;
-        c.name = "B THE JAMMED CLUMP";
+        c.name = "B THE SLAB LANDS ON THE STONE";
         c.gid = "G-67";
-        const float trunk_h = 1.2f, trunk_z = TILE_TOP + trunk_h * 0.5f; // 0.90
-        const float top_z = trunk_z + trunk_h * 0.5f;                     // 1.50
-        c.bodies = {tile(),
-                    BodySpec{0.3f, 0.3f, trunk_h, 0.0f, 0.0f, trunk_z,
-                             Materials::Type::WOOD_SOFT, "trunk"},
-                    BodySpec{0.5f, 0.5f, 0.06f, 0.0f, +0.24f, top_z,
-                             Materials::Type::LEAVES, "leaf+"},
-                    BodySpec{0.5f, 0.5f, 0.06f, 0.0f, -0.24f, top_z,
-                             Materials::Type::LEAVES, "leaf-"}};
-        // Attachment: trunk top centre <-> leaf centre, rest = 0.24 m
-        // (born at strain 1.0, INV-4's bond clause).
-        c.bonds = {Bond{1, 2, 0, 0, trunk_h * 0.5f, 0, 0, 0, 0.24f},
-                   Bond{1, 3, 0, 0, trunk_h * 0.5f, 0, 0, 0, 0.24f}};
-        c.birth_overlap_asserted = false;
-        c.rest_overlap_asserted = false;
-        c.waiver = "INV-2/INV-4 on the clump: the leaves overlap 2 cm BY "
-                   "DESIGN (the structural band, owner decision (a) on the "
-                   "board) - measured, not asserted; G-67 asks only that "
-                   "it SLEEPS";
-        c.demo1 = "DEMONSTRATING: a bonded clump at rest in its own overlap is "
-                  "jammed, not repairing - it must fall asleep (G-67)";
-        c.demo2 = "WATCH: asleep count reaching 4/4, bonds 2 -> 2, exit kind";
+        const float slab_z = 0.95f;
+        c.bodies = {rubble(+0.3f, RUB_ON_GROUND, "stone"),
+                    tile(0.0f, slab_z, "slab"),
+                    tile(+5.0f, slab_z, "control")};
+        const float h = slab_z - TILE_T * 0.5f - RUB_Z;
+        c.strikes = {Strike{1, 0, fall_frames(h) + 12,
+                            fall_speed(h) * 0.7f, fall_speed(h) * 1.2f}};
+        c.tilts = {Tilt{1, 0.09f, 0.14f}, Tilt{2, 0.0f, 0.01f}};
+        c.heights = {Height{2, TILE_Z}};
+        c.ground_pinned = {0};
+        c.rest_overlap_asserted = false;        // the slab is tilted: the AABB measure lies by the tilt
+        c.manifold_pair_a = 0; c.manifold_pair_b = 1;
+        c.sleep_by_event = {1, 2};
+        c.waiver = "slab z at rest: implied by the tilt band and the stone's "
+                   "height (the two bars above); not asserted twice. Stone x: "
+                   "waived, the 12-ton strike may shove it a few cm";
+        c.demo1 = "DEMONSTRATING: a 12-ton slab dropped on a stone comes to rest "
+                  "TILTED on it (INV-2), the stone uncrushed (INV-1), both asleep";
+        c.demo2 = "WATCH: the strike at ~3.2 m/s, slab tilt ~0.11 rad, control flat, "
+                  "the stone's min z";
         v.push_back(c);
     }
-    // C. G-48's stack: the upper cube born 2 cm into the lower, free to
-    //    separate. The repair must run to the end before sleep.
+    // C. G-48's stack, made visible: 1 m cubes, 10 cm interlock; a touching
+    //    stack beside it. The repair pushes the upper cube from separation
+    //    0.90 to 1.00; sleep only then.
     {
         Case c;
         c.name = "C THE INTERLOCKED STACK (G-48 guard)";
         c.gid = "G-48";
-        const float L = 0.5f;
-        const float lower_z = TILE_TOP + L * 0.5f;          // 0.55
-        const float upper_z = lower_z + L - 0.02f;          // 1.03: 2 cm in
-        c.bodies = {tile(),
-                    BodySpec{L, L, L, 0.0f, 0.0f, lower_z,
-                             Materials::Type::STONE, "lower"},
-                    BodySpec{L, L, L, 0.0f, 0.0f, upper_z,
-                             Materials::Type::STONE, "upper"}};
-        c.stack_upper = 2;
-        c.stack_upper_z_final = lower_z + L;                // 1.05
-        c.birth_overlap_asserted = false;
-        c.waiver = "INV-4 at birth: the 2 cm interlock IS the experiment "
-                   "(G-48's own case); the repair, not the birth, is under "
-                   "test";
-        c.demo1 = "DEMONSTRATING: a cube born 2 cm into another must NOT sleep "
-                  "until separated (G-48), then separate (INV-2) and sleep";
-        c.demo2 = "WATCH: upper z 1.03 -> 1.05, first-sleep overlap, exit kind";
+        const float L = 1.0f;
+        const float lower_z = TILE_TOP + L * 0.5f;          // 0.80
+        c.bodies = {tile(0.0f),
+                    BodySpec{L, L, L, -1.2f, 0.0f, lower_z, Materials::Type::STONE, "lower"},
+                    BodySpec{L, L, L, -1.2f, 0.0f, lower_z + L - 0.10f, Materials::Type::STONE, "upper"},
+                    BodySpec{L, L, L, +1.2f, 0.0f, lower_z, Materials::Type::STONE, "ctl-lower"},
+                    BodySpec{L, L, L, +1.2f, 0.0f, lower_z + L, Materials::Type::STONE, "ctl-upper"}};
+        c.seps = {Sep{1, 2, L - OVERLAP_TOL, L + 0.01f}, Sep{3, 4, L - OVERLAP_TOL, L + 0.01f}};
+        c.heights = {Height{2, lower_z + L}, Height{4, lower_z + L}, Height{0, TILE_Z}};
+        c.stills = {Still{0}};
+        c.repair_a = 1; c.repair_b = 2; c.repair_done = L - OVERLAP_TOL;
+        c.sleep_by_event = {3, 4};
+        c.waiver = "INV-4 at birth: the 10 cm interlock IS the experiment (G-48's "
+                   "own case); the repair, not the birth, is under test. Cube "
+                   "rotation waived: a centred stack carries no torque";
+        c.demo1 = "DEMONSTRATING: a cube born 10 cm into another rises OUT (INV-2) "
+                  "and may sleep only then (G-48); the touching stack sleeps at once";
+        c.demo2 = "WATCH: separation 0.90 -> 1.00, first sleep frame vs separation, "
+                  "asleep 5/5";
         v.push_back(c);
     }
-    // D. The stone first, on the turtle; the tile arrives at frame 60
-    //    around it (chunk streaming).
+    // D. Two stones asleep on the ground; the tile is created at frame 60
+    //    around the first (x 0, inside the 4 m footprint) and beside the
+    //    second (x 3.0, outside it).
     {
         Case c;
         c.name = "D THE FLOOR ARRIVES AFTER THE STONE";
         c.gid = "G-68";
-        c.bodies = {tile(/*late=*/true), rubble(RUB_Z * 0.5f)};   // bottom on the turtle
+        c.bodies = {tile(0.0f, TILE_Z, "tile", /*late=*/true),
+                    rubble(0.0f, RUB_ON_GROUND, "under"),
+                    rubble(+3.0f, RUB_ON_GROUND, "beside")};
         c.late_frame = 60;
-        c.rubble = 1;
-        c.rubble_z_final = TILE_TOP + RUB_Z * 0.5f;   // 0.43
-        c.demo1 = "DEMONSTRATING: a tile created around a sleeping stone may not "
-                  "be born through it (INV-4/G-68); the stone ends ON the tile";
-        c.demo2 = "WATCH: frame 60 - the tile appears; rubble z 0.13 -> 0.43?";
+        c.heights = {Height{1, RUB_ON_TILE}, Height{2, RUB_ON_GROUND}, Height{0, TILE_Z}};
+        c.stills = {Still{0}, Still{2}};
+        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 1;
+        c.demo1 = "DEMONSTRATING: a tile created around a sleeping stone may not be "
+                  "born THROUGH it (INV-4/G-68); the stone ends ON the tile, both asleep";
+        c.demo2 = "WATCH: frame 60 - the tile appears; 'under' z 0.13 -> 0.43?; the "
+                  "tile must not move; 'beside' must not notice";
         v.push_back(c);
     }
     return v;
 }
 
 // ---------------------------------------------------------------------------
-// THE EVALUATOR: one list of law-tagged verdicts, read by the headless
-// driver (printed) and by the window (the live panel), from the same
-// helpers and latches. Every DOF of the narration is here or waived.
+// THE EVALUATOR: law-tagged verdicts from Argus, the contact stream and the
+// latches - read by the headless driver (printed) and the window (the
+// live panel). Every narrated DOF is here or waived in the case.
 // ---------------------------------------------------------------------------
 inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
                                      const Scene& s, const Case& c) {
     std::vector<Verdict> v;
-    char t[224];
+    char t[240];
     const int n = (int)s.ids.size();
     const PhysicsSystem::SolveStats& st = physics.last_solve();
     const bool exhausted = std::strcmp(st.exit, "iteration_budget_exhausted") == 0;
+    auto L = [&](int i) { return c.bodies[i].label; };
 
+    // THE STRIKES (instrument the interaction): who hit whom, when, how fast.
+    for (const Strike& k : c.strikes) {
+        const int f = s.strike_frame(k.a, k.b);
+        const float vs = s.strike_speed(k.a, k.b);
+        std::snprintf(t, sizeof t, "hygiene: %s STRIKES %s by f%d at %.1f-%.1f m/s "
+                      "(f%d, %.2f m/s)", L(k.a), L(k.b), k.by_frame, k.v_lo, k.v_hi,
+                      f, vs);
+        v.push_back({t, f >= 0 && f <= k.by_frame && vs >= k.v_lo && vs <= k.v_hi});
+    }
     // INV-4: nothing is born inside anything (the creation frame's overlap).
-    if (c.birth_overlap_asserted) {
-        std::snprintf(t, sizeof t, "%s/INV-4: nothing is BORN inside anything "
-                      "(creation overlap %.1f mm <= %.0f mm)", c.gid,
-                      s.birth_overlap * 1000.0f, OVERLAP_TOL * 1000.0f);
+    if (c.born_overlap_pair_a >= 0) {
+        std::snprintf(t, sizeof t, "%s/INV-4: %s is not BORN inside %s (creation "
+                      "overlap %.0f mm <= %.0f mm)", c.gid, L(c.born_overlap_pair_b),
+                      L(c.born_overlap_pair_a), s.birth_overlap * 1000.0f,
+                      OVERLAP_TOL * 1000.0f);
         v.push_back({t, s.birth_overlap <= OVERLAP_TOL});
     }
     // INV-2: no standing interpenetration at the end.
-    {
+    if (c.rest_overlap_asserted) {
         const Scene::Overlap w = s.worst_overlap(ps);
-        if (c.rest_overlap_asserted) {
-            std::snprintf(t, sizeof t, "%s/INV-2: no standing interpenetration "
-                          "(worst %.1f mm%s%s%s < %.0f mm)", c.gid, w.pen * 1000.0f,
-                          w.a >= 0 ? ", " : "", w.a >= 0 ? c.bodies[w.a].label : "",
-                          w.a >= 0 ? (std::string("<->") + c.bodies[w.b].label).c_str() : "",
-                          OVERLAP_TOL * 1000.0f);
-            v.push_back({t, w.pen < OVERLAP_TOL});
-        }
-    }
-    // The story body's height (INV-2): out of the floor / on the tile.
-    if (c.rubble >= 0 && c.rubble_z_final > 0.0f) {
-        const float zr = s.z(ps, c.rubble);
-        std::snprintf(t, sizeof t, "%s/INV-2: the rubble rests ON the tile "
-                      "(z %.3f vs %.2f, tol %.2f)", c.gid, zr, c.rubble_z_final,
-                      HEIGHT_TOL);
-        v.push_back({t, std::fabs(zr - c.rubble_z_final) < HEIGHT_TOL});
-    }
-    if (c.stack_upper >= 0) {
-        const float zu = s.z(ps, c.stack_upper);
-        std::snprintf(t, sizeof t, "%s/INV-2: the upper cube is pushed OUT "
-                      "(z %.3f vs %.2f, tol %.2f)", c.gid, zu, c.stack_upper_z_final,
-                      HEIGHT_TOL);
-        v.push_back({t, std::fabs(zu - c.stack_upper_z_final) < HEIGHT_TOL});
-        // G-48: no sleep while the repair is still running.
-        std::snprintf(t, sizeof t, "%s: nobody sleeps mid-repair (first sleep at "
-                      "f%d with overlap %.1f mm < %.0f mm)", c.gid,
-                      s.first_sleep_frame, s.first_sleep_overlap * 1000.0f,
+        std::snprintf(t, sizeof t, "%s/INV-2: no standing interpenetration (worst "
+                      "%.1f mm%s%s%s < %.0f mm)", c.gid, w.pen * 1000.0f,
+                      w.a >= 0 ? ", " : "", w.a >= 0 ? L(w.a) : "",
+                      w.a >= 0 ? (std::string("<->") + L(w.b)).c_str() : "",
                       OVERLAP_TOL * 1000.0f);
-        v.push_back({t, s.first_sleep_frame >= 0 &&
-                        s.first_sleep_overlap < OVERLAP_TOL});
+        v.push_back({t, w.pen < OVERLAP_TOL});
     }
-    // The tile stands on the turtle (INV-2), every case.
-    {
-        const float zt = s.z(ps, 0);
-        const bool present = s.ids[0] >= 0;
-        std::snprintf(t, sizeof t, "%s/INV-2: the tile stands on the turtle "
-                      "(z %.3f vs %.2f)", c.gid, zt, TILE_Z);
-        v.push_back({t, present && std::fabs(zt - TILE_Z) < HEIGHT_TOL});
+    // INV-2 through the engine's own manifold (a tilted pair the AABB measure
+    // cannot judge): the contact's penetration at the end.
+    if (c.manifold_pair_a >= 0) {
+        const float pen = s.contact_penetration(c.manifold_pair_a, c.manifold_pair_b);
+        std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s contact penetration at rest "
+                      "%.1f mm < %.0f mm (the manifold's own reading)", c.gid,
+                      L(c.manifold_pair_a), L(c.manifold_pair_b), pen * 1000.0f,
+                      OVERLAP_TOL * 1000.0f);
+        v.push_back({t, pen < OVERLAP_TOL});
     }
-    // INV-34: nothing spins on this stage.
+    // INV-2: rests at the derived height.
+    for (const Height& h : c.heights) {
+        const float zz = s.z(ps, h.body);
+        std::snprintf(t, sizeof t, "%s/INV-2: %s rests at z %.2f (%.3f, tol %.2f)",
+                      c.gid, L(h.body), h.z, zz, HEIGHT_TOL);
+        v.push_back({t, s.ids[h.body] >= 0 && std::fabs(zz - h.z) < HEIGHT_TOL});
+    }
+    // INV-7: a floor is not moved by a stone's repair (Argus peak speed).
+    for (const Still& st_ : c.stills) {
+        const float pk = s.peak_speed(st_.body);
+        std::snprintf(t, sizeof t, "%s/INV-7: %s is NOT moved by anyone's repair "
+                      "(peak speed %.3f < %.2f m/s)", c.gid, L(st_.body), pk, STILL);
+        v.push_back({t, pk < STILL});
+    }
+    // The derived tilt (B): rotation_y band.
+    for (const Tilt& ti : c.tilts) {
+        const float ry = std::fabs(s.rot_y(ps, ti.body));
+        std::snprintf(t, sizeof t, "%s/INV-2: %s rests with |rot_y| in [%.2f, %.2f] "
+                      "(%.3f rad)", c.gid, L(ti.body), ti.lo, ti.hi, ry);
+        v.push_back({t, ry >= ti.lo && ry <= ti.hi});
+    }
+    // Argus separation bands (C): the repair completes.
+    for (const Sep& sp : c.seps) {
+        const float d = s.separation(sp.a, sp.b);
+        std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s separation in [%.3f, %.3f] "
+                      "(Argus %.3f m)", c.gid, L(sp.a), L(sp.b), sp.lo, sp.hi, d);
+        v.push_back({t, d >= sp.lo && d <= sp.hi});
+    }
+    // G-48: nobody sleeps mid-repair.
+    if (c.repair_a >= 0) {
+        const int fa = s.first_sleep_frame[c.repair_a], fb = s.first_sleep_frame[c.repair_b];
+        const int f = (fa < 0) ? fb : (fb < 0 ? fa : std::min(fa, fb));
+        std::snprintf(t, sizeof t, "%s: the interlocked pair sleeps only once "
+                      "separated (first sleep f%d at %.3f m >= %.3f)", c.gid, f,
+                      s.repair_sep_at_first_sleep, c.repair_done);
+        v.push_back({t, f >= 0 && s.repair_sep_at_first_sleep >= c.repair_done});
+    }
+    // INV-1: the ground is absolute - a stone is never pressed into it.
+    for (int i : c.ground_pinned) {
+        std::snprintf(t, sizeof t, "%s/INV-1: %s is never pressed into the ground "
+                      "(min z %.4f >= %.4f)", c.gid, L(i), s.min_z[i],
+                      c.bodies[i].z - OVERLAP_TOL);
+        v.push_back({t, s.min_z[i] >= c.bodies[i].z - OVERLAP_TOL});
+    }
+    // INV-31: the bodies with an event sleep within the grace after it.
+    for (int i : c.sleep_by_event) {
+        const int f = s.first_sleep_frame[i];
+        const int due = s.last_event_frame + SLEEP_GRACE;
+        std::snprintf(t, sizeof t, "%s/INV-31: %s sleeps within %d frames of the "
+                      "last event (asleep at f%d, due f%d)", c.gid, L(i), SLEEP_GRACE,
+                      f, due);
+        v.push_back({t, f >= 0 && f <= due});
+    }
+    // INV-34: nothing keeps spinning.
     {
         float worst = 0.0f;
         for (int i = 0; i < n; ++i) worst = std::fmax(worst, s.spin(ps, i));
-        std::snprintf(t, sizeof t, "%s/INV-34: no spin is invented (worst %.4f "
-                      "< %.2f)", c.gid, worst, SPIN_NOISE);
+        std::snprintf(t, sizeof t, "%s/INV-34: every spin is dead at the end (worst "
+                      "%.4f < %.2f)", c.gid, worst, SPIN_NOISE);
         v.push_back({t, worst < SPIN_NOISE});
     }
-    // INV-14: the clump's bonds survive (B only has bonds).
-    if (!c.bonds.empty()) {
-        const size_t live = physics.get_total_gluon_count();
-        std::snprintf(t, sizeof t, "%s/INV-14: every bond survives (%zu of %zu)",
-                      c.gid, live, c.bonds.size());
-        v.push_back({t, live == c.bonds.size()});
-    }
-    // INV-31 / G-67: the quiet stage falls ASLEEP.
+    // INV-31 / G-67: the whole stage falls ASLEEP.
     {
-        std::snprintf(t, sizeof t, "%s/INV-31: the quiet stage falls ASLEEP "
-                      "(%d of %d bodies at rest after %d frames)", c.gid,
-                      s.asleep_count(ps), n, s.frames_run);
+        std::snprintf(t, sizeof t, "%s/INV-31: the quiet stage falls ASLEEP (%d of %d "
+                      "after %d frames)", c.gid, s.asleep_count(ps), n, s.frames_run);
         v.push_back({t, s.all_asleep(ps)});
     }
-    // G-67 THE COST WITNESS: the solver leaves by a door, not by the wall.
+    // G-67 THE COST WITNESS.
     {
-        std::snprintf(t, sizeof t, "%s: the solver CONVERGES at rest (last exit "
-                      "'%s', %d iterations, %d rows)", c.gid, st.exit,
-                      st.iterations, st.rows);
+        std::snprintf(t, sizeof t, "%s: the solver CONVERGES at rest (exit '%s', %d "
+                      "iterations, %d rows)", c.gid, st.exit, st.iterations, st.rows);
         v.push_back({t, !exhausted});
     }
     // INV-11: speeds bounded.
     {
         float pk = 0.0f;
-        for (int i = 0; i < n; ++i)
-            if (s.ids[i] >= 0) pk = std::fmax(pk, s.argus.peak_speed(s.ids[i]));
-        std::snprintf(t, sizeof t, "INV-11: speeds stay bounded (peak %.3f < %.0f)",
+        for (int i = 0; i < n; ++i) pk = std::fmax(pk, s.peak_speed(i));
+        std::snprintf(t, sizeof t, "INV-11: speeds stay bounded (peak %.2f < %.0f)",
                       pk, SPEED_MAX);
         v.push_back({t, pk < SPEED_MAX});
     }
     return v;
+}
+
+// The live readout: the numbers at the moment they matter, per case,
+// from the same latches the asserts read.
+inline std::string readout(ParticleSystem& ps, PhysicsSystem& physics,
+                           const Scene& s, const Case& c) {
+    char b[240];
+    const PhysicsSystem::SolveStats& st = physics.last_solve();
+    if (!c.strikes.empty()) {
+        const Strike& k = c.strikes[0];
+        std::snprintf(b, sizeof b,
+                      "%s strike f%d @ %.2f m/s | %s z %.3f  %s z %.3f | asleep %d/%zu | "
+                      "exit %s (%d it, %d rows)", c.bodies[k.a].label,
+                      s.strike_frame(k.a, k.b), s.strike_speed(k.a, k.b),
+                      c.bodies[0].label, s.z(ps, 0),
+                      c.bodies[c.bodies.size() - 1].label,
+                      s.z(ps, (int)c.bodies.size() - 1), s.asleep_count(ps),
+                      c.bodies.size(), st.exit, st.iterations, st.rows);
+    } else if (c.repair_a >= 0) {
+        std::snprintf(b, sizeof b,
+                      "separation %.3f (first sleep f%d at %.3f) | upper z %.3f | "
+                      "asleep %d/%zu | exit %s (%d it, %d rows)",
+                      s.separation(c.repair_a, c.repair_b), s.first_sleep_frame[c.repair_b],
+                      s.repair_sep_at_first_sleep, s.z(ps, c.repair_b),
+                      s.asleep_count(ps), c.bodies.size(), st.exit, st.iterations, st.rows);
+    } else {
+        std::snprintf(b, sizeof b,
+                      "%s z %.3f  %s z %.3f | born overlap %.0f mm | asleep %d/%zu | "
+                      "exit %s (%d it, %d rows)", c.bodies[1].label, s.z(ps, 1),
+                      c.bodies[0].label, s.z(ps, 0), s.birth_overlap * 1000.0f,
+                      s.asleep_count(ps), c.bodies.size(), st.exit, st.iterations,
+                      st.rows);
+    }
+    return b;
 }
 
 // A driver: fresh engine per case (no cross-case contamination).
@@ -508,17 +654,16 @@ inline int run_all(const char* title) {
         for (int f = 0; f < c.run_frames; ++f) s.step(ps, physics, c, f);
         std::printf("\n-- %s --\n", c.name);
         for (size_t b = 0; b < c.bodies.size(); ++b)
-            std::printf("  [measure] %-8s z %.4f  spin %.4f  peak speed %.4f%s\n",
-                        c.bodies[b].label, s.z(ps, (int)b), s.spin(ps, (int)b),
-                        s.ids[b] >= 0 ? s.argus.peak_speed(s.ids[b]) : 0.0f,
+            std::printf("  [measure] %-9s z %.4f (min %.4f)  rot_y %+.3f  spin %.4f  "
+                        "peak speed %.3f  first sleep f%d%s\n", c.bodies[b].label,
+                        s.z(ps, (int)b), s.min_z[b], s.rot_y(ps, (int)b),
+                        s.spin(ps, (int)b), s.peak_speed((int)b), s.first_sleep_frame[b],
                         s.asleep(ps, (int)b) ? "  [asleep]" : "");
-        const Scene::Overlap w = s.worst_overlap(ps);
-        std::printf("  [measure] birth overlap %.1f mm, end overlap %.1f mm, "
-                    "first sleep f%d at %.1f mm, solver exit '%s' (%d iters, "
-                    "%d rows)\n", s.birth_overlap * 1000.0f, w.pen * 1000.0f,
-                    s.first_sleep_frame, s.first_sleep_overlap * 1000.0f,
-                    physics.last_solve().exit, physics.last_solve().iterations,
-                    physics.last_solve().rows);
+        for (const auto& kv : s.first_contact_frame)
+            std::printf("  [measure] strike %s<->%s at f%d, %.2f m/s\n",
+                        c.bodies[kv.first.first].label, c.bodies[kv.first.second].label,
+                        kv.second, s.strike_speed(kv.first.first, kv.first.second));
+        std::printf("  [measure] %s\n", readout(ps, physics, s, c).c_str());
         if (c.waiver) std::printf("  [WAIVED] %s\n", c.waiver);
         for (const Verdict& vd : evaluate(ps, physics, s, c)) {
             std::printf("  %s %s\n", vd.ok ? "[PASS]" : "[FAIL]", vd.text.c_str());
