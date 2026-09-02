@@ -224,5 +224,7 @@ int main() {
                                                   : "BORN RED where the chain is broken",
                 headless_fails);
     engine.shutdown();
-    return 0;
+    // Headless, the exit code is the verdict (the sweep reads it against
+    // the audit row); a window's exit is the owner closing it.
+    return (!interactive && headless_fails > 0) ? 1 : 0;
 }
