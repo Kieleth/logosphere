@@ -7,6 +7,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **A focused widget no longer swallows the keyboard.** A click
+  focuses whatever it lands on, and every key was then routed to the
+  text field and dropped there. So a game with a list or a panel on
+  screen stopped hearing its own keys the moment the player clicked
+  one of them, escape included, until they clicked the background;
+  the clicked widget did not get the arrow keys either, because the
+  key went to a field that was not focused. The focused widget now
+  gets first refusal and the game hears what it passes on. Typing is
+  the one exception and still takes every key, escape included, since
+  a keystroke in the middle of a sentence is a character and never a
+  command. The rule is one function, `logosphere::route_key` in
+  `logosphere/core/key_routing.h`, called from the one place that
+  routes keys and locked by `test_key_routing`.
+
 ### Changed
 - **`RuleConstant.constant_value` widens from integer to float.** A
   book may fix a probability, and a probability written as the
@@ -19,6 +34,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   both directions.
 
 ### Added
+- **`UISystem::set_chat_bounds`.** A game that lays out its whole
+  screen can say where the chat window goes instead of finding it
+  wherever the engine's default corner left it. Placing it also pins
+  it: the window drags from anywhere inside itself, so the first click
+  into the input field used to carry it out of the layout.
 - **`examples/voyager`: event mode. Seasons loop, events arrive by
   probability, moments have teeth and doors, and the world thickens.**
   Chapters Three and Four of the book fix what a life carries

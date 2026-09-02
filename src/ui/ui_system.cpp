@@ -2443,6 +2443,11 @@ bool UISystem::has_exclusive_input_focus() const {
     return focused_widget_ != nullptr && focused_widget_->is_visible();
 }
 
+bool UISystem::is_text_input_focused() const {
+    return chat_window_ != nullptr && focused_widget_ == chat_window_ &&
+           chat_window_->is_visible();
+}
+
 bool UISystem::is_point_over_widget(int x, int y) const {
     // Check if a point hits any visible widget (for click blocking)
     for (auto it = root_widgets_.rbegin(); it != root_widgets_.rend(); ++it) {
@@ -2637,6 +2642,16 @@ void UISystem::set_chat_visible(bool visible) {
     if (chat_window_) {
         chat_window_->set_visible(visible);
     }
+}
+
+void UISystem::set_chat_bounds(int x, int y, int width, int height) {
+    if (!chat_window_) return;
+    chat_window_->set_bounds(x, y, width, height);
+    // Placed by the game means owned by the game. The window is
+    // draggable from anywhere inside it, so the first click into the
+    // input field would otherwise pick it up and carry it out of the
+    // layout that just placed it.
+    chat_window_->set_draggable(false);
 }
 
 void UISystem::handle_char_input(unsigned int codepoint) {

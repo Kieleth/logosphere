@@ -10,6 +10,7 @@
 #include "object_id.h"        // For ObjectID encoding/decoding
 #include "platform/platform_layer.h"  // For IApplication interface
 #include "logosphere/core/ui_space.h"   // Window points into the UI grid
+#include "logosphere/core/key_routing.h"  // Who a key press belongs to
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -132,50 +133,58 @@ void InputSystem::handle_key_callback(GLFWwindow* window, int key, int scancode,
     //
     // For most games, we care about PRESS and RELEASE
 
-    // Update key state array
-    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-        input_state.keys[key] = true;
-    } else if (action == GLFW_RELEASE) {
-        input_state.keys[key] = false;
-    }
-
     // ARCH-017 COMPLETED: Assert pattern applied to all systems with stored dependencies
     assert(engine_ && "InputSystem requires Engine to be set via set_engine()");
 
     // Phase 3 Input Isolation: Check if UI has exclusive focus
     auto* ui = engine_->get_ui_system();
 
-    // System keys (ESC, `, F-keys) always pass to both UI and game
-    if (is_system_key(key)) {
-        if (ui) {
-            ui->handle_key_down(key);
+    // Who wants this key: see logosphere/core/key_routing.h. One rule,
+    // read from one place, so the call sites cannot drift.
+    const bool down = (action == GLFW_PRESS || action == GLFW_REPEAT);
+    const bool widget_focused = ui && ui->has_exclusive_input_focus();
+    const bool typing = ui && ui->is_text_input_focused();
+    const logosphere::KeyRoute route =
+        logosphere::route_key(is_system_key(key), widget_focused, typing);
+
+    // Update key state array. A key that went into a sentence is not
+    // a key the game is holding down: a game polling this array for
+    // movement would otherwise walk while the player types. A release
+    // always clears, so a key held before the field took focus cannot
+    // stay stuck down.
+    if (down) {
+        if (route != logosphere::KeyRoute::TextField) {
+            input_state.keys[key] = true;
         }
-        engine_->get_key_mapper().process_key_event(key, scancode, action, mods);
-        return;
+    } else if (action == GLFW_RELEASE) {
+        input_state.keys[key] = false;
     }
 
-    // Regular keys: check UI exclusive focus
-    bool has_focus = ui && ui->has_exclusive_input_focus();
-
-    // DEBUG: Log focus state and key presses
-    if (key == GLFW_KEY_COMMA || key == GLFW_KEY_PERIOD) {
-        std::cout << "[INPUT_FOCUS_DEBUG] Key=" << (key == GLFW_KEY_COMMA ? "COMMA" : "PERIOD")
-                  << " has_focus=" << has_focus << std::endl;
+    switch (route) {
+        case logosphere::KeyRoute::TextField:
+            // Typing takes every key, escape included: a keystroke in
+            // the middle of a sentence is a character or an edit and
+            // never a command.
+            if (down) ui->handle_text_input_key(key);
+            return;
+        case logosphere::KeyRoute::WidgetAndGame:
+            // System keys (ESC, `, F-keys) reach both, always.
+            if (ui) {
+                if (down) ui->handle_key_down(key);
+                else ui->handle_key_up(key);
+            }
+            break;
+        case logosphere::KeyRoute::WidgetThenGame:
+            // The focused widget first. A key it does not take is not
+            // its key, and the game has to keep hearing those, or it
+            // goes deaf the moment a click lands on one of its own
+            // widgets.
+            if (down && ui->handle_key_down(key)) return;
+            if (!down && ui->handle_key_up(key)) return;
+            break;
+        case logosphere::KeyRoute::Game:
+            break;
     }
-
-    // DEBUG: Log SPACE key routing
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        std::cout << "[InputSystem] SPACE press, has_focus=" << has_focus << std::endl;
-    }
-
-    if (has_focus) {
-        // UI has focus - route key to UI for special keys (Enter, Backspace, Escape, etc.)
-        // but BLOCK all keys from reaching KeyMapper (prevents comma/period triggering zoom, etc.)
-        ui->handle_key_down(key);
-        return;  // Block ALL keys from game when chat is active
-    }
-
-    // No UI focus - route to game via KeyMapper
     engine_->get_key_mapper().process_key_event(key, scancode, action, mods);
 }
 
@@ -197,19 +206,12 @@ void InputSystem::on_key_event(Platform::KeyCode key, int scancode, bool pressed
     if (mods.alt) glfw_mods |= GLFW_MOD_ALT;
     if (mods.super) glfw_mods |= GLFW_MOD_SUPER;
 
-    // Check UI exclusive focus - when chat is open, ALL keyboard input goes to UI only
-    if (engine_) {
-        auto* ui = engine_->get_ui_system();
-        if (ui && ui->has_exclusive_input_focus()) {
-            // UI has focus - forward ALL key presses to UI for text input
-            if (pressed) {
-                ui->handle_text_input_key(glfw_key);
-            }
-            return;  // Block from game completely
-        }
-    }
-
-    // No UI focus - route keys to game
+    // Everything goes through the one routing rule below, in
+    // handle_key_callback. This used to short-circuit on ANY focused
+    // widget and hand the key to the text field, which meant that
+    // after a click on a list the game heard nothing at all and the
+    // list itself never saw the arrow keys either: the key went to a
+    // field that was not focused and was dropped.
     handle_key_callback(nullptr, glfw_key, scancode, glfw_action, glfw_mods);
 }
 

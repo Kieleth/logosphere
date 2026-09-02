@@ -441,6 +441,11 @@ add_headless_test(test_rule_fork)
 # UI's render grid, pinned after a game rendering smaller than its
 # window put every click short by the scale (2026-09-02).
 add_headless_test(test_ui_space)
+# A widget holding focus does not swallow the keyboard: it gets first
+# refusal and the game hears the rest. A click focuses whatever it
+# lands on, so the old rule went deaf, escape included, on the first
+# click on a list (2026-09-01).
+add_headless_test(test_key_routing)
 # Verbatim-checks its citations against the vendored SRD in the tree.
 target_compile_definitions(test_rulebook_pack
     PRIVATE LOGOSPHERE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
