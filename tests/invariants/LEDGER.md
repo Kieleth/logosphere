@@ -2640,4 +2640,6 @@ against feat/creation-door's baseline. Each new red, run and read:
    RULING on the order.
 
 Kill switch added: `SLEEPER_JUDGE=0` takes a declared sleeper at its
-word (A/B only). Re-swept alone after these; verdict below.
+word (A/B only). Re-swept alone after these:
+`SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43)` -
+the standing 43 non-physics binaries and nothing else.
