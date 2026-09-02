@@ -2287,3 +2287,33 @@ world (mechanism note added). Fix-one-by-one starts here.
 
 Aggregates (agent): terminated by a rate limit mid-conversion; its
 uncommitted work is recovered from its worktree.
+
+## 2026-09-01 (later) — G-65: the momentum-blind convergence door
+
+Fix-one-by-one, first mechanism. The ringing column and the grass
+patch share one root and it is not the caps: the solver's convergence
+exit judges "converged" by impulse magnitude in N*s (ABSOLUTE_THRESHOLD
+0.01), so a 0.005 N*s bond impulse that moves a 2.4 g box 2 m/s reads
+as done and every substep exits at iters=1 (canary F6722, 500x rung).
+The heavy box crushes through the light one during settle (bond 60 mm
+-> 16 mm, +11 mm position repair per frame = the 0.6 m/s "burst"), and
+the push tears the root bond at 2.12x. Same disease the angular exit
+was cured of; the linear twin. The door now carries the linear residual
+guard the plateau door already honours (max_dv < VELOCITY_PLATEAU_FLOOR),
+under SINGLE_LAW_DOOR.
+
+Jury: ringing green at every rung (peak speed 1.2000, no amplification),
+grass green (3 -> 0), limits campaign and full battery unchanged (only
+the four known born-red rolling rungs), rock and drive unchanged.
+Correction to the flip's booking: ringing is red in EVERY lever world,
+legacy included - pre-existing, never a flip regression.
+
+Rock RCA (not fixed, booked): shock sweep exonerated (SINGLE_LAW_SHOCK=0,
+new diagnostic switch, changes nothing); blocks off removes the drift
+but the box still spins 0.72 rad/s. Canary on the worst box: the 3 m
+drop deformed the bonds 5-14 cm without tearing (budget 29,000 N*s per
+axis), the aggregate relaxes during REST at up to 1.2 m/s repair bias,
+iters=32 every frame, one box spins a constant 1.19 rad/s about x/y
+where the bonds carry only a Z-angle row. Island-shaped (G-64's B).
+
+Owner QA: the window of the shipped default, no env, closed at 0 red.
