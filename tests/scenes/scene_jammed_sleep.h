@@ -23,9 +23,12 @@
 //      come to rest tilted on the stone with one edge on the ground,
 //      the stone uncrushed (INV-1). A second tile dropped beside it
 //      lands flat. The repair's mass law, seen from the other side.
-//   C  THE INTERLOCKED STACK (G-48, the guard). A 1 m cube born 10 cm
-//      into the cube under it rises out over ~a second and sleeps only
-//      then; a touching stack beside it sleeps at once.
+//   C  THE STRUCK STACK (G-48, the guard). Nothing is born in overlap
+//      (INV-37, so the interlock cannot be a birth): a 1 m cube is
+//      DROPPED 0.5 m onto the cube under it, the impact's transient
+//      penetration is the repair G-48 protects, and the pair may sleep
+//      only once separated again; a touching stack beside it sleeps
+//      at once.
 //   D  THE FLOOR ARRIVES AFTER THE STONE (G-68). Two stones sleep on
 //      the ground; at frame 60 a tile is created around one of them.
 //      OWNER DECREE 2026-09-01 (INV-37): "under no circumstances, any
@@ -46,9 +49,9 @@
 //           (INV-1: never pressed into the world), the strike
 //           (first contact frame and relative speed from the contact
 //           stream), Argus peak speed, spin (INV-34), asleep.
-//   cubes:  separation (Argus) from 0.90 to 1.00, first sleep only after
-//           the repair, asleep. Rotation waived: a centred stack has no
-//           torque.
+//   cubes:  the strike (contact stream), peak transient overlap (latched),
+//           separation (Argus) back to 1.00, first sleep only after the
+//           repair, asleep. Rotation waived: a centred stack has no torque.
 // =============================================================================
 #pragma once
 
@@ -146,6 +149,7 @@ struct Scene {
     std::map<std::pair<int,int>, float> last_penetration;   // the manifold's own, this frame
     std::vector<int>   first_sleep_frame;
     std::vector<float> min_z;
+    float peak_overlap = 0.0f;           // the transient the repair must undo
     float repair_sep_at_first_sleep = -1.0f;
     int   last_event_frame = 0;
     int   frames_run = 0;
@@ -178,6 +182,7 @@ struct Scene {
         first_contact_frame.clear(); first_contact_speed.clear(); last_penetration.clear();
         first_sleep_frame.assign(specs.size(), -1);
         min_z.assign(specs.size(), 1e9f);
+        peak_overlap = 0.0f;
         repair_sep_at_first_sleep = -1.0f;
         last_event_frame = 0; frames_run = 0;
     }
@@ -267,13 +272,17 @@ struct Scene {
                 last_event_frame = std::max(last_event_frame, frame);
             }
         }
+        peak_overlap = std::fmax(peak_overlap, worst_overlap(ps).pen);
         for (size_t i = 0; i < ids.size(); ++i) {
             if (ids[i] < 0) continue;
             min_z[i] = std::fmin(min_z[i], z(ps, (int)i));
             if (first_sleep_frame[i] < 0 && asleep(ps, (int)i)) {
                 first_sleep_frame[i] = frame;
+                // G-48 reads the STRUCK body's first sleep: the lower cube
+                // sleeping at f9 while the upper is still in the air says
+                // nothing about the repair.
                 if (c.repair_a >= 0 && repair_sep_at_first_sleep < 0.0f &&
-                    ((int)i == c.repair_a || (int)i == c.repair_b))
+                    (int)i == c.repair_b)
                     repair_sep_at_first_sleep =
                         argus.separation(ids[c.repair_a], ids[c.repair_b]);
             }
@@ -426,32 +435,37 @@ inline std::vector<Case> cases() {
                   "the stone's min z";
         v.push_back(c);
     }
-    // C. G-48's stack, made visible: 1 m cubes, 10 cm interlock; a touching
-    //    stack beside it. The repair pushes the upper cube from separation
-    //    0.90 to 1.00; sleep only then.
+    // C. G-48's guard, born legal (INV-37): the upper 1 m cube (2,500 kg)
+    //    is DROPPED 0.5 m onto the lower one - 3.13 m/s at the strike, 19
+    //    frames. The impact's transient penetration is the repair G-48
+    //    protects: the pair may sleep only once its separation is back at
+    //    1.00. A touching stack beside it sleeps at once.
     {
         Case c;
-        c.name = "C THE INTERLOCKED STACK (G-48 guard)";
+        c.name = "C THE STRUCK STACK (G-48 guard)";
         c.gid = "G-48";
-        const float L = 1.0f;
+        const float L = 1.0f, drop = 0.5f;
         const float lower_z = TILE_TOP + L * 0.5f;          // 0.80
         c.bodies = {tile(0.0f),
                     BodySpec{L, L, L, -1.2f, 0.0f, lower_z, Materials::Type::STONE, "lower"},
-                    BodySpec{L, L, L, -1.2f, 0.0f, lower_z + L - 0.10f, Materials::Type::STONE, "upper"},
+                    BodySpec{L, L, L, -1.2f, 0.0f, lower_z + L + drop, Materials::Type::STONE, "upper"},
                     BodySpec{L, L, L, +1.2f, 0.0f, lower_z, Materials::Type::STONE, "ctl-lower"},
                     BodySpec{L, L, L, +1.2f, 0.0f, lower_z + L, Materials::Type::STONE, "ctl-upper"}};
+        c.strikes = {Strike{2, 1, fall_frames(drop) + 12,
+                            fall_speed(drop) * 0.7f, fall_speed(drop) * 1.2f}};
         c.seps = {Sep{1, 2, L - OVERLAP_TOL, L + 0.01f}, Sep{3, 4, L - OVERLAP_TOL, L + 0.01f}};
         c.heights = {Height{2, lower_z + L}, Height{4, lower_z + L}, Height{0, TILE_Z}};
         c.stills = {Still{0}};
         c.repair_a = 1; c.repair_b = 2; c.repair_done = L - OVERLAP_TOL;
-        c.sleep_by_event = {3, 4};
-        c.waiver = "INV-4 at birth: the 10 cm interlock IS the experiment (G-48's "
-                   "own case); the repair, not the birth, is under test. Cube "
-                   "rotation waived: a centred stack carries no torque";
-        c.demo1 = "DEMONSTRATING: a cube born 10 cm into another rises OUT (INV-2) "
-                  "and may sleep only then (G-48); the touching stack sleeps at once";
-        c.demo2 = "WATCH: separation 0.90 -> 1.00, first sleep frame vs separation, "
-                  "asleep 5/5";
+        c.sleep_by_event = {2, 3, 4};
+        c.born_overlap_pair_a = 1; c.born_overlap_pair_b = 2;   // born legal, asserted
+        c.waiver = "Cube rotation waived: a centred stack carries no torque. The "
+                   "impact's peak transient overlap is measured, not bounded "
+                   "(INV-2's transit clause is owed its own derivation)";
+        c.demo1 = "DEMONSTRATING: a cube dropped on another may sleep only once the "
+                  "impact's penetration is repaired (G-48); the touching stack sleeps at once";
+        c.demo2 = "WATCH: the strike at ~3.1 m/s, peak transient overlap, separation back "
+                  "to 1.00, first sleep frame, asleep 5/5";
         v.push_back(c);
     }
     // D. Two stones asleep on the ground; the tile is created at frame 60
@@ -566,11 +580,10 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     }
     // G-48: nobody sleeps mid-repair.
     if (c.repair_a >= 0) {
-        const int fa = s.first_sleep_frame[c.repair_a], fb = s.first_sleep_frame[c.repair_b];
-        const int f = (fa < 0) ? fb : (fb < 0 ? fa : std::min(fa, fb));
-        std::snprintf(t, sizeof t, "%s: the interlocked pair sleeps only once "
-                      "separated (first sleep f%d at %.3f m >= %.3f)", c.gid, f,
-                      s.repair_sep_at_first_sleep, c.repair_done);
+        const int f = s.first_sleep_frame[c.repair_b];
+        std::snprintf(t, sizeof t, "%s: %s sleeps only once the strike's penetration "
+                      "is repaired (first sleep f%d at separation %.3f >= %.3f)", c.gid,
+                      L(c.repair_b), f, s.repair_sep_at_first_sleep, c.repair_done);
         v.push_back({t, f >= 0 && s.repair_sep_at_first_sleep >= c.repair_done});
     }
     // INV-1: the ground is absolute - a stone is never pressed into it.
@@ -626,7 +639,7 @@ inline std::string readout(ParticleSystem& ps, PhysicsSystem& physics,
                            const Scene& s, const Case& c) {
     char b[240];
     const PhysicsSystem::SolveStats& st = physics.last_solve();
-    if (!c.strikes.empty()) {
+    if (c.repair_a < 0 && !c.strikes.empty()) {
         const Strike& k = c.strikes[0];
         std::snprintf(b, sizeof b,
                       "%s strike f%d @ %.2f m/s | %s z %.3f  %s z %.3f | asleep %d/%zu | "
@@ -638,10 +651,11 @@ inline std::string readout(ParticleSystem& ps, PhysicsSystem& physics,
                       c.bodies.size(), st.exit, st.iterations, st.rows);
     } else if (c.repair_a >= 0) {
         std::snprintf(b, sizeof b,
-                      "separation %.3f (first sleep f%d at %.3f) | upper z %.3f | "
-                      "asleep %d/%zu | exit %s (%d it, %d rows)",
-                      s.separation(c.repair_a, c.repair_b), s.first_sleep_frame[c.repair_b],
-                      s.repair_sep_at_first_sleep, s.z(ps, c.repair_b),
+                      "strike f%d @ %.2f m/s | peak overlap %.1f mm | separation %.3f "
+                      "(first sleep f%d at %.3f) | asleep %d/%zu | exit %s (%d it, %d rows)",
+                      s.strike_frame(c.repair_a, c.repair_b), s.strike_speed(c.repair_a, c.repair_b),
+                      s.peak_overlap * 1000.0f, s.separation(c.repair_a, c.repair_b),
+                      s.first_sleep_frame[c.repair_b], s.repair_sep_at_first_sleep,
                       s.asleep_count(ps), c.bodies.size(), st.exit, st.iterations, st.rows);
     } else {
         std::snprintf(b, sizeof b,

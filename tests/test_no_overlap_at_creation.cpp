@@ -233,7 +233,14 @@ bool test_no_overlap_at_creation() {
            "  whether bodies get LAUNCHED. That gate is test_foliage_stays_attached:\n"
            "  peak speed under 2 m/s, mean canopy drift under 0.5 m.\n"
            "  This file REPORTS the overlap that remains, so it cannot creep unnoticed.\n");
-    printf("\n  %s\n", "PASS (diagnostic)");
+    // INV-37 (owner decree 2026-09-01): "under no circumstances, any
+    // creation of particles should be allowed to overlap in space with
+    // another." The 2026-08-02 policy above is superseded: this file
+    // ASSERTS now, born red for the crown's junction pairs until the
+    // creation door and the crown generator land.
+    const bool ok = overlapping == 0;
+    printf("\n  %s INV-37: nothing is born inside anything (%d overlapping pairs, worst %.4f m)\n",
+           ok ? "[PASS]" : "[FAIL]", overlapping, worst);
     engine.shutdown();
-    return true;
+    return ok;
 }
