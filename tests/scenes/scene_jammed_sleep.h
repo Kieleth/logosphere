@@ -55,6 +55,14 @@
 //      at frame 0, a dirt tile sinking 46 mm into the layer below within
 //      two frames, 85 bonds born strained past the wake strain.
 //
+//   G  THE GENTLE WAKE (G-69). The tiled floor of F is left to fall
+//      asleep, then a 2.5 kg pebble is dropped on one dirt tile. A tile
+//      woken on a SLEEPING floor must be held by it (INV-31: a sleeper's
+//      interactions are priced with its true mass) - it must not sink,
+//      the contact it builds must read under 2 mm, and the floor must
+//      fall back asleep. Eden's dirt tiles wake with their supports
+//      asleep and fall through them; the census read them 73 mm deep.
+//
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
 // from PhysicsSystem::last_solve().
@@ -119,6 +127,7 @@ struct BodySpec {
     Materials::Type mat;
     const char* label;
     bool late = false;     // D: created at Case::late_frame, not at build
+    bool born_asleep = false;   // G: as a streamed chunk births its tiles - at rest, where stored
 };
 
 // A bond between two bodies: attachment offsets, rest length. rest 0 with
@@ -143,6 +152,7 @@ struct Strike {             // an instrumented impact: who hits whom, how fast
 struct Height { int body; float z; };
 struct Still  { int body; };                // Argus peak speed < STILL
 struct Fall   { int body; float v_max; };   // Argus peak speed <= the fall it was born to make
+struct Keep   { int body; float z_min; };   // never dips below this (a woken tile must not sink)
 struct Tilt   { int body; float lo, hi; };  // |rotation_y| band, rad
 struct Sep    { int a, b; float lo, hi; };  // Argus separation band at the end
 struct VSep   { int a, b; float lo, hi; };  // vertical separation band (Argus z's): rests ON
@@ -158,6 +168,9 @@ struct Case {
     std::vector<Height> heights;            // INV-2: rests at
     std::vector<Still>  stills;             // INV-7: not moved by a repair
     std::vector<Fall>   falls;              // INV-3: moved only by its own fall
+    std::vector<Keep>   keeps;              // INV-31/INV-2: a supported body never sinks
+    int asleep_by_frame = -1;               // hygiene: the stage must be asleep before the event
+    bool tight_heights = false;             // heights judged at INV-2's bar, not the 10 mm stand bar
     std::vector<Tilt>   tilts;
     std::vector<Sep>    seps;
     std::vector<VSep>   vseps;
@@ -199,6 +212,7 @@ struct Scene {
     float repair_sep_at_first_sleep = -1.0f;
     int   last_event_frame = 0;
     int   frames_run = 0;
+    int   all_asleep_frame = -1;         // first frame every body on stage slept
 
     static void paint(Particle& p, Materials::Type m) {
         switch (m) {
@@ -221,6 +235,7 @@ struct Scene {
         paint(p, b.mat);
         p.SetMaterial(b.mat);
         p.friction = MU;
+        p.is_at_rest = b.born_asleep;
         ids[i] = ps.queue_particle_addition(p);
         // The door judges at queue time (it hands back -1 for a refused
         // body); latch its record here, before the next birth overwrites it.
@@ -246,6 +261,7 @@ struct Scene {
     void reset_latches() {
         first_contact_frame.clear(); first_contact_speed.clear(); last_penetration.clear();
         first_sleep_frame.assign(specs.size(), -1);
+        all_asleep_frame = -1;
         min_z.assign(specs.size(), 1e9f);
         peak_overlap = 0.0f;
         repair_sep_at_first_sleep = -1.0f;
@@ -351,6 +367,7 @@ struct Scene {
             }
         }
         peak_overlap = std::fmax(peak_overlap, worst_overlap(ps).pen);
+        if (all_asleep_frame < 0 && all_asleep(ps)) all_asleep_frame = frame;
         for (size_t i = 0; i < ids.size(); ++i) {
             if (ids[i] < 0) continue;
             min_z[i] = std::fmin(min_z[i], z(ps, (int)i));
@@ -482,6 +499,10 @@ inline BodySpec tile(float x, float z = TILE_Z, const char* label = "tile",
 inline BodySpec rubble(float x, float z, const char* label) {
     return BodySpec{RUB_X, RUB_Y, RUB_Z, x, 0.0f, z, Materials::Type::STONE, label};
 }
+
+// F's layers are born a few mm above rest (Eden's births): the rest z is
+// the born z minus that gap, by layer index (4-7 layer 2, 8-11 dirt).
+inline float born_gap_of(float, int k) { return k >= 8 ? 0.007f : (k >= 4 ? 0.002f : 0.0f); }
 
 inline std::vector<Case> cases() {
     std::vector<Case> v;
@@ -684,6 +705,85 @@ inline std::vector<Case> cases() {
                   "tile at its height, asleep 12/12, the exit";
         v.push_back(c);
     }
+    // G. A 3 x 3 grid per layer (the phantom needs a neighbour of j that lies
+    //    beyond i), asleep; then a pebble wakes the CENTRE dirt tile at frame
+    //    120 while its eight neighbours sleep.
+    {
+        Case c;
+        c.name = "G THE GENTLE WAKE (a floor born asleep in the air)";
+        c.gid = "G-69";
+        c.run_frames = 420;
+        c.late_frame = 120;
+        c.asleep_by_frame = 100;
+        const float l2_t = 0.15f, l3_t = 0.10f;
+        const float born_gap[3] = {0.0f, 0.002f, 0.007f};
+        const float lz[3] = {TILE_Z, TILE_TOP + l2_t * 0.5f, TILE_TOP + l2_t + l3_t * 0.5f};
+        const float lt[3] = {TILE_T, l2_t, l3_t};
+        const Materials::Type lm[3] = {Materials::Type::STONE, Materials::Type::STONE,
+                                       Materials::Type::DIRT};
+        static char gnames[27][8];
+        // The heights assert the REST height: a tile born asleep in the air
+        // that never wakes stays there (its own INV-2 red); the woken centre
+        // and whatever it wakes must settle to rest.
+        int k = 0;
+        for (int layer = 0; layer < 3; ++layer)
+            for (int iy = 0; iy < 3; ++iy)
+                for (int ix = 0; ix < 3; ++ix) {
+                    std::snprintf(gnames[k], sizeof gnames[k], "%c%d%d", "bld"[layer], ix, iy);
+                    // Eden's chunk store births its tiles ASLEEP where it stored
+                    // them - a few mm above their supports (census f0: layer 2 at
+                    // 0.377, dirt at 0.507) - and they hang there until woken.
+                    c.bodies.push_back(BodySpec{TILE_L, TILE_L, lt[layer],
+                                                (ix - 1.0f) * TILE_L, (iy - 1.0f) * TILE_L,
+                                                lz[layer] + born_gap[layer], lm[layer], gnames[k],
+                                                /*late=*/false, /*born_asleep=*/layer > 0});
+                    c.heights.push_back(Height{k, lz[layer]});
+                    if (layer == 0) c.stills.push_back(Still{k});
+                    else {
+                        c.falls.push_back(Fall{k, 2.0f * fall_speed(born_gap[layer]) + STILL});
+                        c.keeps.push_back(Keep{k, lz[layer] - OVERLAP_TOL});
+                    }
+                    ++k;
+                }
+        // Eden bonds only its bedrock (the census: bedrock 2-4 bonds, the
+        // layers above 0): a woken dirt tile's neighbours stay ASLEEP,
+        // which is the merge's precondition.
+        {
+            const int o = 0;
+            for (int iy = 0; iy < 3; ++iy)
+                for (int ix = 0; ix < 3; ++ix) {
+                    const int a = o + iy * 3 + ix;
+                    if (ix < 2) c.bonds.push_back(edge_bond(c.bodies, a, a + 1));
+                    if (iy < 2) c.bonds.push_back(edge_bond(c.bodies, a, a + 3));
+                }
+        }
+        c.rest_overlap_asserted = false;
+        c.all_contacts_asserted = true;
+        // The waker: a 0.5 m stone (312 kg) dropped 0.5 m - heavy enough that
+        // the wake transfer (m/(m+M))*v = 0.33 m/s clears the threshold a
+        // 2.5 kg pebble could not (measured: threshold-blocked, the floor
+        // never woke). In Eden the wakers are the trees and grass standing
+        // on the tiles, awake from birth on strained bonds.
+        const float peb = 0.50f;
+        const float dirt_top = TILE_TOP + l2_t + l3_t;                 // 0.55
+        const int D_CENTRE = 18 + 4;                                   // d11
+        c.bodies.push_back(BodySpec{peb, peb, peb, 0.0f, 0.0f, dirt_top + born_gap[2] + peb * 0.5f + 0.5f,
+                                    Materials::Type::STONE, "stone", /*late=*/true});
+        const int P = (int)c.bodies.size() - 1;
+        c.strikes = {Strike{P, D_CENTRE, 120 + fall_frames(0.5f) + 12,
+                            fall_speed(0.5f) * 0.7f, fall_speed(0.5f) * 1.2f}};
+        c.heights.push_back(Height{P, dirt_top + peb * 0.5f});
+        // No tile may SLEEP IN THE AIR: every upper tile's rest height within
+        // INV-2's bar (Eden's f0 census: asleep 2-7 mm above their supports).
+        c.tight_heights = true;
+        c.sleep_by_event = {D_CENTRE, P};
+        c.born_overlap_pair_a = P; c.born_overlap_pair_b = D_CENTRE;
+        c.demo1 = "DEMONSTRATING: a tile woken on a SLEEPING floor is held by it (INV-31): "
+                  "the pebble strikes, the dirt tile must not sink, the floor sleeps again";
+        c.demo2 = "WATCH: frame 120 - the pebble; d00's min z, the worst contact reading, "
+                  "asleep 13/13 again";
+        v.push_back(c);
+    }
     return v;
 }
 
@@ -774,9 +874,11 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     // INV-2: rests at the derived height.
     for (const Height& h : c.heights) {
         const float zz = s.z(ps, h.body);
-        std::snprintf(t, sizeof t, "%s/INV-2: %s rests at z %.2f (%.3f, tol %.2f)",
-                      c.gid, L(h.body), h.z, zz, HEIGHT_TOL);
-        v.push_back({t, s.ids[h.body] >= 0 && std::fabs(zz - h.z) < HEIGHT_TOL});
+        const float tol = c.tight_heights ? OVERLAP_TOL : HEIGHT_TOL;
+        std::snprintf(t, sizeof t, "%s/INV-2: %s rests at z %.3f (%.3f, tol %.3f)%s",
+                      c.gid, L(h.body), h.z, zz, tol,
+                      c.tight_heights ? " - a sleeper in the air is not at rest (INV-31)" : "");
+        v.push_back({t, s.ids[h.body] >= 0 && std::fabs(zz - h.z) < tol});
     }
     // INV-7: a floor is not moved by a stone's repair (Argus peak speed).
     for (const Still& st_ : c.stills) {
@@ -791,6 +893,16 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
         std::snprintf(t, sizeof t, "%s/INV-3: %s moves only by its own fall (peak speed "
                       "%.3f <= %.3f m/s)", c.gid, L(fl.body), pk, fl.v_max);
         v.push_back({t, pk <= fl.v_max});
+    }
+    for (const Keep& kp : c.keeps) {
+        std::snprintf(t, sizeof t, "%s/INV-31: %s never sinks below its rest (min z %.4f >= "
+                      "%.4f)", c.gid, L(kp.body), s.min_z[kp.body], kp.z_min);
+        v.push_back({t, s.min_z[kp.body] >= kp.z_min});
+    }
+    if (c.asleep_by_frame >= 0) {
+        std::snprintf(t, sizeof t, "hygiene: the floor was ASLEEP before the event (all asleep "
+                      "by f%d, needed f%d)", s.all_asleep_frame, c.asleep_by_frame);
+        v.push_back({t, s.all_asleep_frame >= 0 && s.all_asleep_frame <= c.asleep_by_frame});
     }
     // The derived tilt (B): rotation_y band.
     for (const Tilt& ti : c.tilts) {
