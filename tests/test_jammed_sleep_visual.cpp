@@ -13,6 +13,7 @@
 #include "../src/ui/widgets.h"
 
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -160,15 +161,22 @@ int main() {
         // THE LIVE ASSERT PANEL: evaluate() is the one source.
         const std::vector<Verdict> vs = evaluate(ps, physics, s, c);
         int passing = 0;
+        for (const Verdict& vd : vs) if (vd.ok) ++passing;
+        // Reds first: a case with more verdicts than rows (G carries 86)
+        // must never hide a red below the panel's edge.
+        std::vector<const Verdict*> shown;
+        for (const Verdict& vd : vs) if (!vd.ok) shown.push_back(&vd);
+        for (const Verdict& vd : vs) if (vd.ok)  shown.push_back(&vd);
         for (int i = 0; i < PANEL_ROWS; ++i) {
-            if (i >= (int)vs.size()) { rows[i]->set_text(""); continue; }
-            if (vs[i].ok) ++passing;
-            rows[i]->set_text((vs[i].ok ? "[V] " : "[X] ") + vs[i].text);
-            if (vs[i].ok) rows[i]->set_color(120, 230, 140);
-            else          rows[i]->set_color(255, 120, 120);
+            if (i >= (int)shown.size()) { rows[i]->set_text(""); continue; }
+            const Verdict& vd = *shown[i];
+            rows[i]->set_text((vd.ok ? "[V] " : "[X] ") + vd.text);
+            if (vd.ok) rows[i]->set_color(120, 230, 140);
+            else       rows[i]->set_color(255, 120, 120);
         }
-        std::snprintf(buf, sizeof buf, "ASSERTS %d/%zu passing, all %zu shown "
-                      "(sleep lines go green late)", passing, vs.size(), vs.size());
+        std::snprintf(buf, sizeof buf, "ASSERTS %d/%zu passing, %d of %zu shown, reds first "
+                      "(sleep lines go green late)", passing, vs.size(),
+                      std::min((int)vs.size(), PANEL_ROWS), vs.size());
         l_verdict->set_text(buf);
         l_verdict->set_color(passing == (int)vs.size() ? 120 : 255,
                              passing == (int)vs.size() ? 230 : 120, 120);

@@ -409,6 +409,9 @@ public:
     // (the same record the level-2 trace writes as solve_exit).
     struct SolveStats { int rows = 0; int iterations = 0; const char* exit = "none"; };
     const SolveStats& last_solve() const { return last_solve_; }
+    // How many declared sleepers the judge (G-72) has woken since start:
+    // a store that births its tiles in the air shows here, not on a screen.
+    size_t woken_at_birth() const { return woken_at_birth_; }
 
     // Centralized gluon validation - removes gluons with stale particle indices
     // Called once at physics update start. Logs when pruning happens for diagnostics.
@@ -734,6 +737,13 @@ private:
     // Phase 7: At-rest state update (MUST be after turtle boundary)
     // Checks final velocities after all corrections to determine rest state
     void update_rest_state(ParticleSystem::WriteView& particles);
+
+    // THE SLEEPER'S SUPPORT (G-72, INV-31): a body declared asleep from
+    // outside the law is judged once, at the next update, and keeps its
+    // sleep only if something holds it. Implementation note above the
+    // definition in physics_system_v4.cpp.
+    void admit_declared_sleepers(ParticleSystem::WriteView& particles);
+    size_t woken_at_birth_ = 0;
 };
 
 #endif // PHYSICS_SYSTEM_H

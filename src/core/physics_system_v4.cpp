@@ -95,6 +95,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 #include "logosphere/physics/physics_system.h"
+#include "logosphere/physics/creation_door.h"
 #include "physics_trace.h"
 #include "explosion_detector.h"
 #include "logosphere/physics/physics_solver.h"
@@ -325,6 +326,11 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     // Remove gluons with stale particle indices BEFORE any physics processing.
     // This logs diagnostic info to help find the root cause of stale indices.
     prune_invalid_gluons(particles.size());
+
+    // A sleeper declared from outside the law (a chunk restored from the
+    // store, a tile born at rest) is judged before anything else sees it
+    // (G-72): asleep in the air is not a state, it is a photograph of a fall.
+    admit_declared_sleepers(particles);
 
     // ==========================================================================
     // SAVE PRE-CONSTRAINT OMEGA_Z
@@ -590,6 +596,78 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                                          p.GetMass(), p.x, p.y, p.z);
         }
         ::logosphere::expdet::end_frame();
+    }
+}
+
+// ============================================================================
+// THE SLEEPER'S SUPPORT (G-72, INV-31)
+// ============================================================================
+// A body may be DECLARED asleep from outside the sleep law - a chunk
+// restored from the store, a scene's born-at-rest tile, a game's rock - but
+// it may only STAY asleep if it rests on something. Eden's store births its
+// tiles 2-7 mm above their supports and asleep; two sleepers never pair in
+// the broad phase, so nothing ever finds the gap, and a stone dropped on
+// one lands on a tile held by nothing (test_jammed_sleep, case G).
+//
+// Judged ONCE, at the first update after the declaration. A declared
+// sleeper is a body asleep without the law's own count: frames_at_rest is
+// below REST_FRAMES_REQUIRED, because the law reaches that count as it puts
+// a body to sleep and every wake site zeroes it. Supported means: a bond
+// holds it (its strain is the bond law's business, and it wakes through the
+// dissatisfaction gate), or the turtle or a live body lies within SLOP along
+// the direction it would fall - the solver's gravity, so nothing falls in
+// zero-g. The measure is the creation door's own (ParticleSystem::
+// overlap_depth): one index, one narrow phase, no second geometry. A
+// sleeper with nothing under it is woken, loudly, and falls to its support
+// like any other body; a supported one is booked as earned and never
+// judged again.
+void PhysicsSystem::admit_declared_sleepers(ParticleSystem::WriteView& particles) {
+    const size_t count = particles.size();
+    std::vector<size_t> declared;
+    for (size_t i = 0; i < count; ++i) {
+        const Particle& p = particles[i];
+        if (!p.is_at_rest || p.frames_at_rest >= REST_FRAMES_REQUIRED) continue;
+        if (p.solver_mode == ParticleSolverMode::KINEMATIC || p.GetMass() == 0.0f) continue;
+        declared.push_back(i);
+    }
+    if (declared.empty()) return;
+
+    std::vector<uint8_t> bonded(count, 0);
+    for (const auto& g : gluon_constraints_v2_) {
+        if (g->particle_a < count) bonded[g->particle_a] = 1;
+        if (g->particle_b < count) bonded[g->particle_b] = 1;
+    }
+    const Vec3 g = get_solver_gravity();
+    const float g_len = std::sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
+
+    for (size_t i : declared) {
+        Particle& p = particles[i];
+        bool supported = bonded[i] || g_len == 0.0f;
+        if (!supported) {
+            Particle probe = p;   // the body, one SLOP further along its fall
+            probe.x += g.x / g_len * SLOP;
+            probe.y += g.y / g_len * SLOP;
+            probe.z += g.z / g_len * SLOP;
+            supported = logosphere::describe_creation_body(-1, probe).world_min_z < TURTLE_Z ||
+                        particle_system_->overlap_depth(probe, static_cast<int>(i)) > 0.0f;
+        }
+        if (supported) {
+            p.frames_at_rest = REST_FRAMES_REQUIRED;   // earned by geometry, judged once
+            continue;
+        }
+        p.is_at_rest = false;
+        p.frames_at_rest = 0;
+        ++woken_at_birth_;
+        const logosphere::CreationBody b = logosphere::describe_creation_body(static_cast<int>(i), p);
+        std::fprintf(stderr,
+                     "[PHYSICS WOKEN] body %zu declared asleep with nothing under it within "
+                     "%.0f mm: %s %.0fx%.0fx%.0f mm at (%.3f, %.3f, %.3f), bottom z %.4f "
+                     "- a sleeper rests on its support (G-72, INV-31)\n",
+                     i, SLOP * 1000.0f, b.shape,
+                     b.half[0] * 2000.0f, b.half[1] * 2000.0f, b.half[2] * 2000.0f,
+                     p.x, p.y, p.z, b.world_min_z);
+        PHYS_TRACE_F(::logosphere::phystrace::Pair, "woken_at_birth", (int)i, -1,
+                     "unsupported", b.world_min_z, 0.0f, 0.0f);
     }
 }
 

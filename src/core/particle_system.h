@@ -147,6 +147,13 @@ public:
     // door refused anything, and callable on demand.
     void report_creation_door() const;
 
+    // THE DOOR'S MEASURE, offered to the sleep law (G-72): the deepest overlap
+    // `probe` has with any live body other than `exclude` (pass the probe's
+    // own index when it is a shifted copy of a live body). 0.0 when it meets
+    // nothing. Same index, same narrow phase as the refusal, so "supported"
+    // and "overlapping" are one geometry.
+    float overlap_depth(const Particle& probe, int exclude);
+
     // Deferred particle deletion for GPU triple buffering safety
     // Queue deletions with frame number, flush when GPU has finished with those frames
     void queue_particle_deletion(size_t index, int current_frame_number);
@@ -425,6 +432,10 @@ private:
     bool creation_door_refuses(const Particle& p, int would_be_index,
                                const char* door_name, bool against_pending);
     void sync_creation_index();   // refit / rebuild as the flags demand
+    // The world half of the judgement: deepest overlap of p against every
+    // live body but `exclude`, with the blocker and the normal.
+    float deepest_against_world(const Particle& p, int exclude, int& blocker,
+                                float& nx, float& ny, float& nz);
 
     // Deferred deletion queue for GPU triple buffering safety
     // Mirrors pending_particles pattern - deletions queued with future frame number

@@ -288,6 +288,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **A sleeper rests on its support (G-72, INV-31).** A body declared asleep
+  from outside the sleep law - a chunk restored from the store, a scene's
+  born-at-rest tile, a game's `is_at_rest = true` - is judged once at its
+  next physics update and keeps its sleep only if a bond holds it, or the
+  turtle or a live body lies within `SLOP` along the solver's gravity
+  (zero-g supports everything). Otherwise it is woken with a
+  `[PHYSICS WOKEN]` line naming the body, its size and its bottom, and it
+  falls to its support like any other body. Eden's store birthed its
+  floor tiles 2-7 mm above their supports, asleep; nothing could find the
+  gap because two sleepers never pair in the broad phase. New public
+  readings: `PhysicsSystem::woken_at_birth()` (the judge's count) and
+  `ParticleSystem::overlap_depth()` (the creation door's measure, offered
+  to the law so "supported" and "overlapping" are one geometry).
 - **Every body Eden places itself now reads the ground it stands on.** The
   80 scattered rocks were born fully inside the bedrock layer, the cubes
   and the pole and both ruin walls inside the strata, Eva and the three

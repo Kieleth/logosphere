@@ -65,7 +65,7 @@
 //
 //   H  THE AWAKE SIBLING (G-69's phantom). G's floor, born asleep at
 //      Eden's stored heights, but the CENTRE dirt tile is born AWAKE at
-//      its true rest height, 7 mm below its eight sleeping siblings -
+//      its true rest height, 5 mm below its eight sleeping siblings -
 //      the state of Eden's dirt tile the moment after it wakes and
 //      falls. Every contact it builds must read under 2 mm: the
 //      surface-continuity merge must not manufacture a coplanar
@@ -196,6 +196,7 @@ struct Case {
     std::vector<std::pair<int,int>> manifold_pairs;   // more of the same (stacks)
     bool all_contacts_asserted = false;               // INV-2 over EVERY contact the engine built
     bool phantom_watch = false;                       // INV-2 over every contact at EVERY frame (the seam phantom)
+    int  woken_expected = 0;                          // G-72: bodies born asleep in the air, woken at their first update
     const char* waiver = nullptr;
     const char* demo1 = "";
     const char* demo2 = "";
@@ -225,6 +226,7 @@ struct Scene {
     int   last_event_frame = 0;
     int   frames_run = 0;
     int   all_asleep_frame = -1;         // first frame every body on stage slept
+    size_t woken_base = 0;               // PhysicsSystem::woken_at_birth() when this case was armed (G-72)
 
     static void paint(Particle& p, Materials::Type m) {
         switch (m) {
@@ -283,6 +285,7 @@ struct Scene {
 
     int build(ParticleSystem& ps, PhysicsSystem& physics, const Case& c,
               float x_off = 0.0f) {
+        woken_base = physics.woken_at_birth();
         specs = c.bodies;
         ids.assign(specs.size(), -1);
         for (size_t i = 0; i < specs.size(); ++i)
@@ -323,6 +326,7 @@ struct Scene {
 
     // TELEPORT LAW (scene_limits::rearm): the window replays a case.
     void rearm(ParticleSystem& ps, PhysicsSystem& physics, float x_off) {
+        woken_base = physics.woken_at_birth();
         auto parts = ps.lock_particles_for_write();
         for (size_t i = 0; i < ids.size(); ++i) {
             if (ids[i] < 0) continue;
@@ -797,6 +801,7 @@ inline std::vector<Case> cases() {
         // No tile may SLEEP IN THE AIR: every upper tile's rest height within
         // INV-2's bar (Eden's f0 census: asleep 2-7 mm above their supports).
         c.tight_heights = true;
+        c.woken_expected = 18;                  // the two upper layers, born 2 and 7 mm in the air
         c.sleep_by_event = {D_CENTRE, P};
         c.born_overlap_pair_a = P; c.born_overlap_pair_b = D_CENTRE;
         c.demo1 = "DEMONSTRATING: a tile woken on a SLEEPING floor is held by it (INV-31): "
@@ -815,12 +820,26 @@ inline std::vector<Case> cases() {
         c.late_frame = -1;                      // no stone: the tile is the event
         c.bodies.pop_back();                    // drop G's stone
         c.strikes.clear(); c.heights.pop_back();
-        c.tight_heights = false;                // G already carries the sleepers' red
+        c.tight_heights = true;                 // the phantom's shove is millimetres: INV-2's bar
+        c.woken_expected = 0;                   // every sibling sits on its support: nothing to wake
         c.born_overlap_pair_a = -1;
+        // Born LEGAL (INV-37) and SUPPORTED (G-72): no tile hangs in the air.
+        // Every sibling sits on its support; the centre COLUMN's layer-2 tile
+        // is thinner by Eden's measured step (its dirt tile sat 5 mm above
+        // its support, census f0), so the awake centre tile rests 5 mm below
+        // its eight sleeping siblings with a legal cause.
+        constexpr float EDEN_STEP = 0.005f;
+        const float l2_t = 0.15f, l3_t = 0.10f;
+        for (int k = 9; k < 27; ++k)
+            c.bodies[k].z = TILE_TOP + (k < 18 ? l2_t * 0.5f : l2_t + l3_t * 0.5f);
+        BodySpec& below = c.bodies[9 + 4];
+        below.sz = l2_t - EDEN_STEP;
+        below.z  = TILE_TOP + below.sz * 0.5f;
+        for (Height& h : c.heights) if (h.body == 9 + 4) h.z = below.z;
         const int D_CENTRE = 18 + 4;
         BodySpec& centre = c.bodies[D_CENTRE];
         centre.born_asleep = false;
-        centre.z = TILE_TOP + 0.15f + 0.10f * 0.5f;   // 0.500, its true rest
+        centre.z = TILE_TOP + below.sz + l3_t * 0.5f;   // 0.495: on its support, awake
         c.keeps.clear();
         c.keeps.push_back(Keep{D_CENTRE, centre.z - OVERLAP_TOL});
         c.falls.clear();
@@ -832,7 +851,7 @@ inline std::vector<Case> cases() {
         for (Height& h : c.heights) if (h.body == D_CENTRE) h.z = centre.z;
         c.sleep_by_event = {D_CENTRE};
         c.asleep_by_frame = -1;
-        c.demo1 = "DEMONSTRATING: a tile awake among sleeping siblings 7 mm higher builds NO "
+        c.demo1 = "DEMONSTRATING: a tile awake among sleeping siblings 5 mm higher builds NO "
                   "phantom seam row (INV-2) and is not shoved into the layer below";
         c.demo2 = "WATCH: the worst contact the engine reports for d11, its min z, the "
                   "solver's exit, asleep count";
@@ -854,6 +873,16 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     const PhysicsSystem::SolveStats& st = physics.last_solve();
     const bool exhausted = std::strcmp(st.exit, "iteration_budget_exhausted") == 0;
     auto L = [&](int i) { return c.bodies[i].label; };
+
+    // G-72 / INV-31: a sleeper rests on its support. A body DECLARED asleep
+    // with nothing under it is woken at its first update, loudly; the count
+    // is the mechanism's own (PhysicsSystem::woken_at_birth).
+    {
+        const long woken = (long)physics.woken_at_birth() - (long)s.woken_base;
+        std::snprintf(t, sizeof t, "G-72/INV-31: bodies born asleep in the air are WOKEN "
+                      "at their first update (%ld, expected %d)", woken, c.woken_expected);
+        v.push_back({t, woken == c.woken_expected});
+    }
 
     // THE STRIKES (instrument the interaction): who hit whom, when, how fast.
     for (const Strike& k : c.strikes) {
