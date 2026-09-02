@@ -522,14 +522,31 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
             if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
             deep.push_back({dissat_depth_[i], (int)i});
         }
+        // The gluon-held bodies carry no depth: name the first ten by line.
+        {
+            int shown = 0;
+            for (size_t i = 0; i < particles.size() && shown < 10; ++i) {
+                const Particle& p = particles[i];
+                if (p.is_at_rest || dissat_line_[i] == 0 || dissat_depth_[i] > 0.0f) continue;
+                if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+                char why[200];
+                std::snprintf(why, sizeof why,
+                    "P%zu %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) z=%.3g bonds=%zu line=%d",
+                    i, p.shape == ParticleShape::BOX ? "BOX" : "SPH", (int)p.material_type,
+                    p.GetMass(), p.width, p.height, p.thickness, p.z,
+                    get_gluons_for_particle((int)i).size(), dissat_line_[i]);
+                PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_gluon_who", shown, 0, why, 0.0, 0.0);
+                ++shown;
+            }
+        }
         std::sort(deep.begin(), deep.end(), [](auto& x, auto& y){ return x.first > y.first; });
         for (size_t k = 0; k < deep.size() && k < 10; ++k) {
             const Particle& p = particles[deep[k].second];
             char why[200];
             std::snprintf(why, sizeof why,
-                "P%d %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) z=%.3g bonds=%zu line=%d partner=P%d",
+                "P%d %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) at(%.1f,%.1f,%.3f) bonds=%zu line=%d partner=P%d",
                 deep[k].second, p.shape == ParticleShape::BOX ? "BOX" : "SPH", (int)p.material_type,
-                p.GetMass(), p.width, p.height, p.thickness, p.z,
+                p.GetMass(), p.width, p.height, p.thickness, p.x, p.y, p.z,
                 get_gluons_for_particle(deep[k].second).size(), dissat_line_[deep[k].second],
                 dissat_partner_[deep[k].second]);
             PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_who", (int)k, 0, why,
@@ -844,6 +861,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         canary_init = true;
         const char* env = std::getenv("CANARY_PID");
         if (env) canary_pid = std::atoi(env);
+        // CANARY_AT=x,y,z: pick the body nearest that point (ids follow the
+        // chunk streaming order and differ run to run; a place does not).
+        if (const char* at = std::getenv("CANARY_AT")) {
+            float ax = 0, ay = 0, az = 0;
+            if (std::sscanf(at, "%f,%f,%f", &ax, &ay, &az) == 3) {
+                float best = 1e30f;
+                for (size_t i = 0; i < count; ++i) {
+                    const Particle& q = particles[i];
+                    const float d = (q.x-ax)*(q.x-ax) + (q.y-ay)*(q.y-ay) + (q.z-az)*(q.z-az);
+                    if (d < best) { best = d; canary_pid = (int)i; }
+                }
+                std::cout << "[CANARY AT] (" << ax << "," << ay << "," << az << ") -> P"
+                          << canary_pid << std::endl;
+            }
+        }
         const char* env_min = std::getenv("CANARY_FRAME_MIN");
         if (env_min) canary_frame_min = std::atoi(env_min);
         const char* env_max = std::getenv("CANARY_FRAME_MAX");
