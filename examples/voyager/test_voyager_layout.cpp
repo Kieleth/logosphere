@@ -243,6 +243,16 @@ int main() {
                            << " put a rectangle at " << say(rect)
                            << " outside it");
             }
+            // The one rule that has to hold even here: the column
+            // backgrounds are drawn after the engine's text field and
+            // hit-tested before it, so either of them over it is a
+            // field nobody can see or click.
+            CHECK(!layout.left.overlaps(layout.field) &&
+                      !layout.right.overlaps(layout.field),
+                  "a " << window.first << "x" << window.second
+                       << " window at scale " << scale
+                       << " put a column background over the text "
+                          "field at " << say(layout.field));
         }
     }
 

@@ -150,7 +150,11 @@ inline ScreenLayout compute_layout(int screen_w, int screen_h,
     const int field_h = std::min(kFieldH, column_h);
     out.field = {pad, std::max(0, bottom - field_h), left_w, field_h};
     const int stop = std::max(body_top, out.field.y - pad / 2);
-    out.left = {pad, pad, left_w, std::max(0, stop - pad)};
+    // Clamped against the field a second time: `stop` has a floor of
+    // its own for windows too short to hold the layout, and in one of
+    // those the background would otherwise reach over the field again.
+    out.left = {pad, pad, left_w,
+                std::max(0, std::min(stop, out.field.y) - pad)};
     out.title = {out.left.x, std::min(pad, std::max(0, bottom)), left_w,
                  std::min(line, column_h)};
 
