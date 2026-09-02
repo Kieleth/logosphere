@@ -314,6 +314,20 @@ struct Scene {
         for (size_t i = 0; i < ids.size(); ++i) n += asleep(ps, (int)i);
         return n;
     }
+    // The bodies ON STAGE: a refused creation is not one (INV-37), so
+    // every "x of y" reads y from here, never from the case table.
+    int alive_count(ParticleSystem& ps) const {
+        int n = 0;
+        for (size_t i = 0; i < ids.size(); ++i) n += alive(ps, (int)i);
+        return n;
+    }
+    // A body's height for the readout: "refused" when it is not on stage.
+    std::string z_text(ParticleSystem& ps, int i) const {
+        char b[32];
+        if (!alive(ps, (int)i)) return "refused";
+        std::snprintf(b, sizeof b, "%.3f", z(ps, i));
+        return b;
+    }
     float peak_speed(int i) const { return ids[i] < 0 ? 0.0f : argus.peak_speed(ids[i]); }
     // A refused creation leaves no body on stage (INV-37): no id, or an id
     // the flush dropped (mass 0 / beyond the live range).
@@ -613,7 +627,8 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     // INV-31 / G-67: the whole stage falls ASLEEP.
     {
         std::snprintf(t, sizeof t, "%s/INV-31: the quiet stage falls ASLEEP (%d of %d "
-                      "after %d frames)", c.gid, s.asleep_count(ps), n, s.frames_run);
+                      "on stage after %d frames)", c.gid, s.asleep_count(ps),
+                      s.alive_count(ps), s.frames_run);
         v.push_back({t, s.all_asleep(ps)});
     }
     // G-67 THE COST WITNESS.
@@ -642,27 +657,27 @@ inline std::string readout(ParticleSystem& ps, PhysicsSystem& physics,
     if (c.repair_a < 0 && !c.strikes.empty()) {
         const Strike& k = c.strikes[0];
         std::snprintf(b, sizeof b,
-                      "%s strike f%d @ %.2f m/s | %s z %.3f  %s z %.3f | asleep %d/%zu | "
+                      "%s strike f%d @ %.2f m/s | %s z %s  %s z %s | asleep %d/%d on stage | "
                       "exit %s (%d it, %d rows)", c.bodies[k.a].label,
                       s.strike_frame(k.a, k.b), s.strike_speed(k.a, k.b),
-                      c.bodies[0].label, s.z(ps, 0),
+                      c.bodies[0].label, s.z_text(ps, 0).c_str(),
                       c.bodies[c.bodies.size() - 1].label,
-                      s.z(ps, (int)c.bodies.size() - 1), s.asleep_count(ps),
-                      c.bodies.size(), st.exit, st.iterations, st.rows);
+                      s.z_text(ps, (int)c.bodies.size() - 1).c_str(), s.asleep_count(ps),
+                      s.alive_count(ps), st.exit, st.iterations, st.rows);
     } else if (c.repair_a >= 0) {
         std::snprintf(b, sizeof b,
                       "strike f%d @ %.2f m/s | peak overlap %.1f mm | separation %.3f "
-                      "(first sleep f%d at %.3f) | asleep %d/%zu | exit %s (%d it, %d rows)",
+                      "(first sleep f%d at %.3f) | asleep %d/%d on stage | exit %s (%d it, %d rows)",
                       s.strike_frame(c.repair_a, c.repair_b), s.strike_speed(c.repair_a, c.repair_b),
                       s.peak_overlap * 1000.0f, s.separation(c.repair_a, c.repair_b),
                       s.first_sleep_frame[c.repair_b], s.repair_sep_at_first_sleep,
-                      s.asleep_count(ps), c.bodies.size(), st.exit, st.iterations, st.rows);
+                      s.asleep_count(ps), s.alive_count(ps), st.exit, st.iterations, st.rows);
     } else {
         std::snprintf(b, sizeof b,
-                      "%s z %.3f  %s z %.3f | born overlap %.0f mm | asleep %d/%zu | "
-                      "exit %s (%d it, %d rows)", c.bodies[1].label, s.z(ps, 1),
-                      c.bodies[0].label, s.z(ps, 0), s.birth_overlap * 1000.0f,
-                      s.asleep_count(ps), c.bodies.size(), st.exit, st.iterations,
+                      "%s z %s  %s z %s | born overlap %.0f mm | asleep %d/%d on stage | "
+                      "exit %s (%d it, %d rows)", c.bodies[1].label, s.z_text(ps, 1).c_str(),
+                      c.bodies[0].label, s.z_text(ps, 0).c_str(), s.birth_overlap * 1000.0f,
+                      s.asleep_count(ps), s.alive_count(ps), st.exit, st.iterations,
                       st.rows);
     }
     return b;
@@ -687,12 +702,18 @@ inline int run_all(const char* title) {
         s.build(ps, physics, c);
         for (int f = 0; f < c.run_frames; ++f) s.step(ps, physics, c, f);
         std::printf("\n-- %s --\n", c.name);
-        for (size_t b = 0; b < c.bodies.size(); ++b)
+        for (size_t b = 0; b < c.bodies.size(); ++b) {
+            if (!s.alive(ps, (int)b)) {
+                std::printf("  [measure] %-9s REFUSED at creation (not on stage)\n",
+                            c.bodies[b].label);
+                continue;
+            }
             std::printf("  [measure] %-9s z %.4f (min %.4f)  rot_y %+.3f  spin %.4f  "
                         "peak speed %.3f  first sleep f%d%s\n", c.bodies[b].label,
                         s.z(ps, (int)b), s.min_z[b], s.rot_y(ps, (int)b),
                         s.spin(ps, (int)b), s.peak_speed((int)b), s.first_sleep_frame[b],
                         s.asleep(ps, (int)b) ? "  [asleep]" : "");
+        }
         for (const auto& kv : s.first_contact_frame)
             std::printf("  [measure] strike %s<->%s at f%d, %.2f m/s\n",
                         c.bodies[kv.first.first].label, c.bodies[kv.first.second].label,

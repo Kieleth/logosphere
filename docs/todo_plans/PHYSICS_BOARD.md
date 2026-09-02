@@ -1256,3 +1256,11 @@ a sleep veto that never lifts - can occur for such a pair. Whether the
 door should read that same declaration is an amendment to the decree,
 not a class list, and it is the owner's call. The fixture places its
 ball by hand meanwhile, and says so in the file.
+## IN FLIGHT (2026-09-02): the creation door + the audit's fixes, one agent
+
+Owner rulings 1 and 2 (LEDGER 2026-09-02). feat/creation-door, stacked
+on #166: test_creation_door born red; the refusal inside add_particle
+with an incremental BVH; the headless bench before/after; Eden's first-
+run refusal census as the red list; every audit-found birth fixed at
+its source; sweep alone; PR for the owner's merge. Windows after the
+report, launched by the dispatcher.
