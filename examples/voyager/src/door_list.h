@@ -11,6 +11,12 @@
 // A widget of this game rather than the engine's list because the
 // engine's list is one line per item and owns its rows privately;
 // what this needs is a block per item, and that is a different shape.
+//
+// The scrolling arithmetic is not here. It is in scroll_geometry.h,
+// shared with the boxes of text that scroll for the same reason and
+// measured in test_voyager_doors, because a click landing on the
+// door above the one under the pointer is not a thing to find out
+// about by clicking.
 
 #ifndef VOYAGER_DOOR_LIST_H
 #define VOYAGER_DOOR_LIST_H
@@ -19,6 +25,8 @@
 #include "ui/widget.h"
 
 #include "logosphere/rendering/i_draw_surface.h"
+
+#include "scroll_geometry.h"
 
 #include <algorithm>
 #include <chrono>
@@ -43,6 +51,15 @@ public:
 
     std::function<void(int index)> on_selected;
     std::function<void(const std::string& key)> on_taken;
+
+    // The type size changed under it: same doors, new metrics.
+    void set_metrics(int line_height, int pad, int text_scale) {
+        line_ = line_height;
+        pad_ = pad;
+        scale_ = text_scale;
+        scroll_ = shape().clamp_scroll(scroll_);
+        invalidate();
+    }
 
     void set_doors(std::vector<Door> doors) {
         doors_ = std::move(doors);
@@ -128,10 +145,11 @@ public:
         return false;
     }
     bool on_mouse_scroll(int delta) override {
-        if (max_scroll() == 0) return false;
+        const auto geometry = shape();
+        if (geometry.max_scroll() == 0) return false;
         // Positive delta is the wheel rolling up, which brings the top
         // back into view.
-        scroll_ = std::clamp(scroll_ - delta * line_, 0, max_scroll());
+        scroll_ = geometry.clamp_scroll(scroll_ - delta * line_);
         invalidate();
         return true;
     }
@@ -180,32 +198,23 @@ private:
     int block_height(const Door& door) const {
         return static_cast<int>(door.lines.size()) * line_ + pad_;
     }
-    int content_height() const {
-        int total = pad_;
-        for (const auto& door : doors_) total += block_height(door);
-        return total;
-    }
-    int max_scroll() const {
-        return std::max(0, content_height() - get_absolute_bounds().height);
-    }
-    int door_at(int local_y) const {
-        int y = pad_ - scroll_;
-        for (size_t i = 0; i < doors_.size(); ++i) {
-            const int height = block_height(doors_[i]);
-            if (local_y >= y && local_y < y + height) return static_cast<int>(i);
-            y += height;
+    ScrollGeometry shape() const {
+        ScrollGeometry geometry;
+        geometry.heights.reserve(doors_.size());
+        for (const auto& door : doors_) {
+            geometry.heights.push_back(block_height(door));
         }
-        return -1;
+        geometry.panel = get_absolute_bounds().height;
+        geometry.lead = pad_;
+        return geometry;
+    }
+    int max_scroll() const { return shape().max_scroll(); }
+    int door_at(int local_y) const {
+        return shape().block_at(local_y, scroll_);
     }
     // Scroll just enough that the selected door is whole in the panel.
     void keep_in_view(int index) {
-        int y = pad_;
-        for (int i = 0; i < index; ++i) y += block_height(doors_[static_cast<size_t>(i)]);
-        const int height = block_height(doors_[static_cast<size_t>(index)]);
-        const int panel = get_absolute_bounds().height;
-        if (y - scroll_ < 0) scroll_ = y;
-        else if (y + height - scroll_ > panel) scroll_ = y + height - panel;
-        scroll_ = std::clamp(scroll_, 0, max_scroll());
+        scroll_ = shape().keep_in_view(static_cast<size_t>(index), scroll_);
     }
     void select(int index) {
         selected_ = index;

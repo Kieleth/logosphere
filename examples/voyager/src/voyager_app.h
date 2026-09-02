@@ -56,6 +56,30 @@ public:
 
     void pin_seed(uint64_t seed) { seed_ = seed; pinned_ = true; }
 
+    // Bigger or smaller type, at any moment: plus and minus, on the
+    // main row or on the keypad. The screen keeps the words rather
+    // than the pixels, so one call re-lays the whole thing out.
+    //
+    // Consumed whether or not the size changed. The engine maps the
+    // same two keys to its own UI scale, and that multiplier has to
+    // stay at one or every click lands somewhere else.
+    //
+    // Keys reach a game only while the text field is hidden; an open
+    // field takes every key, which is what typing is.
+    bool handle_key(int key, int, int action, int) override {
+        if (action != 1 && action != 2) return false;   // press, repeat
+        int step = 0;
+        switch (key) {
+            case 61:                        // = and, shifted, +
+            case 334: step = 1; break;      // keypad +
+            case 45:                        // -
+            case 333: step = -1; break;     // keypad -
+            default: return false;
+        }
+        screen_.set_text_scale(screen_.text_scale() + step);
+        return true;
+    }
+
     void initialize_game(void* engine_ptr) override {
         engine_ = static_cast<Engine*>(engine_ptr);
         auto& world = engine_->get_kg();

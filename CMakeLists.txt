@@ -594,6 +594,22 @@ logosphere_game_corpus(test_voyager_book cepheus-srd VOYAGER)
 logosphere_game_corpus(test_voyager_book voyager-book VOYAGER_BOOK)
 register_headless_test(test_voyager_book)
 
+# Voyager's screen, measured rather than looked at. Three headless
+# executables over the three pure pieces the windowed game is built on:
+# where every rectangle lands at every type size, how text is broken
+# into lines, and how a list that outgrows its panel scrolls. None of
+# them links a widget, a draw surface or a window; that is the point,
+# and it is why a layout defect fails in CI instead of in a screenshot.
+foreach(voyager_ui_test test_voyager_layout test_voyager_text
+                        test_voyager_doors)
+    add_executable(${voyager_ui_test} examples/voyager/${voyager_ui_test}.cpp)
+    target_link_libraries(${voyager_ui_test} PRIVATE logosphere_core)
+    target_compile_features(${voyager_ui_test} PRIVATE cxx_std_17)
+    target_include_directories(${voyager_ui_test} PRIVATE
+        examples/voyager examples/voyager/src)
+    register_headless_test(${voyager_ui_test})
+endforeach()
+
 # Logovger: the referee's answer, held to the rule that asked for it.
 # Deliberately free of any LLM dependency (logosphere_llm is defined
 # below the headless short-circuit), because this is the check that

@@ -34,6 +34,22 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   both directions.
 
 ### Added
+- **`examples/voyager`: the type size is the player's, one to four, on
+  the plus and minus keys.** Every rectangle on the screen is a
+  function of the window, the type size and how many rows the sheet
+  has, so a keypress re-lays out the whole thing: columns re-wrap,
+  boxes resize, the doors move, the text field follows. The screen
+  keeps the words rather than the pixels, which is what makes that one
+  call. The story, the question, the notes and the sheet now scroll on
+  the wheel with a mark at the edge they continue past, so a life that
+  outgrows its box is scrolled back through rather than trailed off,
+  and the notes start below the sheet's last row instead of over it.
+  Three headless tests hold it: `test_voyager_layout` (no two
+  rectangles overlap and none leaves the window, at every size, on
+  three window shapes, for sheets of eight to thirty rows),
+  `test_voyager_text` (no word split, no word lost) and
+  `test_voyager_doors` (the block under the pointer is the block that
+  gets the click).
 - **`UISystem::set_chat_bounds`.** A game that lays out its whole
   screen can say where the chat window goes instead of finding it
   wherever the engine's default corner left it. Placing it also pins
