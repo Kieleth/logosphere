@@ -23,6 +23,8 @@
 #include <cassert>
 #include <cstdlib>  // For std::abort()
 #include <algorithm>  // For std::find
+#include <chrono>     // The creation door measures its own cost
+#include "logosphere/physics/creation_door.h"
 
 // EDUCATIONAL NOTE: The Pimpl Idiom (not used here, but worth knowing)
 // In C++, we often separate the interface (.h) from implementation (.cpp)
@@ -48,6 +50,11 @@ ParticleSystem::ParticleSystem() {
 ParticleSystem::~ParticleSystem() {
     // Destructor - vectors clean themselves up automatically
     // This is like Python's __del__ but more predictable
+    //
+    // The door's census, once, on the way out. A refusal scrolls past in a
+    // world that creates twelve thousand bodies; the census is what turns
+    // those lines into a list of SITES to fix.
+    if (door_stats_.refusals > 0) report_creation_door();
 }
 
 // ============================================================================
@@ -116,6 +123,176 @@ static void assert_above_turtle(const Particle& p, const char* where) {
     }
 }
 
+// ============================================================================
+// THE CREATION DOOR — NOTHING IS BORN INSIDE ANYTHING (INV-37)
+// ============================================================================
+// Owner decree 2026-09-01: "under no circumstances, any creation of particles
+// should be allowed to overlap in space with another... we should have an
+// assert/except for any creation-overlapping moment." Owner ruling 2026-09-02
+// on the shape: "fresh at the choke point, with the incremental BVH cost
+// measured on the headless bench before it ships, in TDD please."
+//
+// This is the twin of assert_above_turtle above, at the same boundary and for
+// the same reason: a body placed inside another body is not a tight fit to be
+// relaxed on frame one. The solver's only correct response to two solids in
+// one place is a separating impulse, and when the pair cannot separate the two
+// bodies never sleep — GEDANKEN-67 traced Eden's 3.4 s frames to exactly that,
+// stones born inside strata tiles. Refusing at creation costs a rejected
+// placement; accepting it costs the world.
+//
+// The DIFFERENCE from the earlier batch-audit design (feat/creation-overlap-
+// door): that one ran at the end of flush_pending_particles, so it could not
+// see a direct add until somebody flushed — and the chunk paths, entity
+// activation, the generators and add_particle_with_gluon_to are all direct
+// adds, while a headless run may never flush at all. This one stands at the
+// push_back, which is the only line every birth crosses.
+//
+// The reasoning, the threshold (PhysicsV4::SLOP, no new constant — INV-29) and
+// the geometry (the engine's own narrow phase, oriented — INV-12) are in
+// include/logosphere/physics/creation_door.h.
+
+// Bring the index up to date with the live array. Three states, cheapest
+// first: nothing changed (free), the world moved (one refit), indices moved
+// (one rebuild — swap-and-pop makes every stored index mean a different body).
+void ParticleSystem::sync_creation_index() {
+    using clock = std::chrono::high_resolution_clock;
+    if (creation_index_invalid_) {
+        const auto t0 = clock::now();
+        creation_index_.rebuild(particles);
+        creation_indexed_count_ = particles.size();
+        creation_index_invalid_ = false;
+        creation_index_stale_ = false;
+        door_stats_.rebuilds++;
+        door_stats_.rebuild_micros +=
+            std::chrono::duration<double, std::micro>(clock::now() - t0).count();
+        return;
+    }
+    if (creation_index_stale_) {
+        const auto t0 = clock::now();
+        creation_index_.refit(particles);
+        creation_index_stale_ = false;
+        door_stats_.refits++;
+        door_stats_.refit_micros +=
+            std::chrono::duration<double, std::micro>(clock::now() - t0).count();
+    }
+    // Bodies that arrived without going through the door's insert (there are
+    // none today, but a future writer must not be able to make the index lie).
+    for (size_t i = creation_indexed_count_; i < particles.size(); ++i) {
+        if (particles[i].is_light_source) continue;
+        creation_index_.insert(static_cast<int>(i), logosphere::creation_bounds(particles[i]));
+    }
+    creation_indexed_count_ = particles.size();
+}
+
+bool ParticleSystem::creation_door_refuses(const Particle& p, int would_be_index,
+                                           const char* door_name,
+                                           bool against_pending) {
+    last_refusal_ = logosphere::CreationRefusal{};
+    if (!logosphere::creation_door_enabled()) return false;
+    if (p.is_light_source) return false;   // a light is not a body
+
+    using clock = std::chrono::high_resolution_clock;
+    const auto t0 = clock::now();
+    door_stats_.births++;
+
+    sync_creation_index();
+
+    const AABB6 box = logosphere::creation_bounds(p);
+    std::vector<int> candidates;
+    float depth = 0.0f, nx = 0.0f, ny = 0.0f, nz = 0.0f;
+    int blocker = -1;
+    const Particle* blocker_body = nullptr;
+
+    // Against the world.
+    creation_index_.query(box, candidates);
+    door_stats_.candidates += candidates.size();
+    for (int ci : candidates) {
+        if (ci < 0 || static_cast<size_t>(ci) >= particles.size()) continue;
+        const Particle& b = particles[ci];
+        if (b.is_light_source) continue;
+        door_stats_.exact_tests++;
+        float tx, ty, tz;
+        const float d = logosphere::creation_penetration(p, b, tx, ty, tz);
+        if (d > depth) { depth = d; nx = tx; ny = ty; nz = tz;
+                         blocker = ci; blocker_body = &b; }
+    }
+
+    // Against the batch already queued. Two bodies queued into the same place
+    // are still two bodies in the same place, and the second one must not be
+    // counted in a predicted index it will never take.
+    if (against_pending && !pending_index_.empty()) {
+        pending_index_.query(box, candidates);
+        door_stats_.candidates += candidates.size();
+        for (int ci : candidates) {
+            if (ci < 0 || static_cast<size_t>(ci) >= (int)pending_particles.size()) continue;
+            const Particle& b = pending_particles[ci];
+            if (b.is_light_source) continue;
+            door_stats_.exact_tests++;
+            float tx, ty, tz;
+            const float d = logosphere::creation_penetration(p, b, tx, ty, tz);
+            if (d > depth) {
+                depth = d; nx = tx; ny = ty; nz = tz;
+                // Named by the index it will take once flushed, which is the
+                // only name a queued body has.
+                blocker = static_cast<int>(particles.size()) + ci;
+                blocker_body = &b;
+            }
+        }
+    }
+
+    door_stats_.micros +=
+        std::chrono::duration<double, std::micro>(clock::now() - t0).count();
+
+    // TOUCHING IS NOT OVERLAPPING. SLOP is the engine's own "geometric error,
+    // not geometry" constant; adjacent floor tiles and bonded segments share a
+    // face and measure zero.
+    if (depth <= PhysicsV4::SLOP || blocker_body == nullptr) return false;
+
+    last_refusal_.refused = true;
+    last_refusal_.would_be_index = would_be_index;
+    last_refusal_.depth = depth;
+    last_refusal_.nx = nx; last_refusal_.ny = ny; last_refusal_.nz = nz;
+    last_refusal_.newborn = logosphere::describe_creation_body(-1, p);
+    last_refusal_.blocker = logosphere::describe_creation_body(blocker, *blocker_body);
+    last_refusal_.text = logosphere::creation_refusal_text(last_refusal_, door_name);
+
+    door_stats_.refusals++;
+    door_census_[logosphere::creation_site_signature(last_refusal_.newborn,
+                                                     last_refusal_.blocker)]++;
+
+    // Every refusal is printed: the census on a first run under the door IS
+    // the red list of placements to fix, and a silent drop would be the
+    // opposite of a door. A world that refuses thousands says so once past the
+    // cap and keeps the log readable; CREATION_DOOR_VERBOSE=1 prints them all.
+    static const bool verbose = std::getenv("CREATION_DOOR_VERBOSE") != nullptr;
+    constexpr size_t LINE_CAP = 400;
+    if (verbose || door_lines_printed_ < LINE_CAP) {
+        std::cerr << last_refusal_.text << std::endl;
+        door_lines_printed_++;
+    } else if (door_lines_printed_ == LINE_CAP) {
+        std::cerr << "[PHYSICS REFUSED] ... further refusals counted, not printed "
+                     "(CREATION_DOOR_VERBOSE=1 prints every one; the census "
+                     "arrives at shutdown)" << std::endl;
+        door_lines_printed_++;
+    }
+    return true;
+}
+
+void ParticleSystem::report_creation_door() const {
+    const logosphere::CreationDoorStats& s = door_stats_;
+    std::cerr << "\n[CREATION DOOR] INV-37 census: " << s.refusals
+              << " refused of " << s.births << " births judged"
+              << " | " << s.candidates << " index candidates, "
+              << s.exact_tests << " exact narrow-phase tests"
+              << " | door " << s.micros / 1000.0 << " ms total ("
+              << (s.births ? s.micros / (double)s.births : 0.0) << " us/birth)"
+              << ", of which rebuild " << s.rebuild_micros / 1000.0 << " ms x"
+              << s.rebuilds << " and refit " << s.refit_micros / 1000.0
+              << " ms x" << s.refits << std::endl;
+    for (const auto& kv : door_census_)
+        std::cerr << "  " << kv.second << "  " << kv.first << std::endl;
+}
+
 int ParticleSystem::add_particle(const Particle& particle) {
     assert_above_turtle(particle, "add_particle");
     // THREAD SAFETY: Acquire exclusive lock for particle addition
@@ -162,6 +339,15 @@ int ParticleSystem::add_particle(const Particle& particle) {
         assert(false && "Particle must have mass > 0 or density > 0 (unless is_light_source=true)");
     }
 
+    // THE CREATION DOOR (INV-37). Last gate before the body exists: it is
+    // judged with the geometry it will actually have (the quaternion seed and
+    // the mass are already computed above), and a refusal leaves the world
+    // exactly as it was. No lenient switch, no class list.
+    if (creation_door_refuses(p, static_cast<int>(particles.size()),
+                              "add_particle", /*against_pending=*/false)) {
+        return -1;
+    }
+
     // Assign stable particle ID for BVH slot mapping (before adding to vector)
     if (p.particle_id == 0) {  // Only assign if not already set
         p.particle_id = next_particle_id_++;
@@ -188,6 +374,18 @@ int ParticleSystem::add_particle(const Particle& particle) {
     // Mark BVH as dirty when adding particles so shadows work immediately
     mark_bvh_dirty();
 
+    // The door's index owns this body from here. Inserted AFTER
+    // mark_bvh_dirty, which sets the stale flag: our own insert is exact, so
+    // a birth must not cost the next birth a refit. With the door killed
+    // (CREATION_DOOR=0) the index is never built and never queried, so the
+    // A/B measures the door and nothing else.
+    if (logosphere::creation_door_enabled()) {
+        if (!p.is_light_source)
+            creation_index_.insert(particle_index, logosphere::creation_bounds(p));
+        creation_indexed_count_ = particles.size();
+        creation_index_stale_ = false;
+    }
+
     // Return the particle index (0, 1, 2, ...) which is what the rendering system uses
     return particle_index;
 }
@@ -198,6 +396,12 @@ void ParticleSystem::clear_particles() {
 
     particles.clear();
     entity_particle_indices_.clear();  // Clear entity→particle mapping
+
+    // The door's index is a map from live-array indices to bodies; an empty
+    // array makes every entry a lie (INV-37).
+    creation_index_.clear();
+    creation_indexed_count_ = 0;
+    creation_index_invalid_ = true;
     next_particle_id_ = 1;  // Reset ID counter (0 is reserved)
 
     // Mark BVH dirty so acceleration structures rebuild with empty scene
@@ -314,6 +518,12 @@ void ParticleSystem::remove_particle_unlocked(size_t index) {
 
     // CRITICAL: Mark BVH dirty - swap-and-pop changes particle indices
     mark_bvh_dirty();
+
+    // Same reason, for the creation door's index: after a swap-and-pop every
+    // stored index means a DIFFERENT body, so the tree cannot be refitted, it
+    // has to be rebuilt. Deferred to the next birth — a chunk unload that
+    // removes seven hundred bodies pays for one rebuild, not seven hundred.
+    creation_index_invalid_ = true;
 }
 
 void ParticleSystem::remove_particle(size_t index) {
@@ -356,13 +566,33 @@ void ParticleSystem::update_bvh() {
 
 int ParticleSystem::queue_particle_addition(const Particle& particle) {
     assert_above_turtle(particle, "queue_particle_addition");
+
+    // THE CREATION DOOR, at the queue as well as at the push_back (INV-37).
+    // Not belt-and-braces: this function hands back a PREDICTED index
+    // (live count + queue length), and generators bond by it. A body dropped
+    // later at the flush would silently shift every prediction handed out
+    // after it, so a body that cannot be born must never be counted here
+    // either (GEDANKEN-69). Judged against the live world AND against the
+    // batch already queued.
+    {
+        std::shared_lock<std::shared_mutex> lock(particles_mutex_);
+        const int would_be = static_cast<int>(particles.size() + pending_particles.size());
+        if (creation_door_refuses(particle, would_be, "queue_particle_addition",
+                                  /*against_pending=*/true)) {
+            return -1;
+        }
+        if (logosphere::creation_door_enabled() && !particle.is_light_source)
+            pending_index_.insert(static_cast<int>(pending_particles.size()),
+                                  logosphere::creation_bounds(particle));
+    }
+
     // Queue the particle for deferred addition
-    pending_particles.push(particle);
-    
+    pending_particles.push_back(particle);
+
     // CRITICAL: Mark BVH as dirty immediately when particles are queued
     // This ensures shadows work as soon as particles are flushed
     mark_bvh_dirty();
-    
+
     // Return what the future ID will be (current size + pending count)
     return static_cast<int>(particles.size() + pending_particles.size() - 1);
 }
@@ -372,8 +602,11 @@ void ParticleSystem::flush_pending_particles() {
     // This should be called between frames when no rendering is happening
     while (!pending_particles.empty()) {
         add_particle(pending_particles.front());
-        pending_particles.pop();
+        pending_particles.pop_front();
     }
+    // The batch is over: its bodies are live (or were refused), and the
+    // pending index has nothing left to stand for.
+    pending_index_.clear();
 }
 
 void ParticleSystem::queue_particle_deletion(size_t index, int current_frame_number) {

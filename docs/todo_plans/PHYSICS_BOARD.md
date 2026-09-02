@@ -1129,3 +1129,45 @@ fix, not exemptions. CLEAN NOW: port the door into this tree, strict;
 witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
 scatter (rock.z = 0.15 inside the tile) gets refused on first run and
 is fixed at its source.
+
+## CLEAN NOW — THE CREATION DOOR AT THE CHOKE POINT (INV-37), IN PROGRESS
+
+Owner ruling 2026-09-02, choosing the design: "fresh at the choke point,
+with the incremental BVH cost measured on the headless bench before it
+ships, in TDD please", and on the audit's source fixes: "all of them need
+fixing, I'd just bundle it up with [the door]".
+
+WHERE. `ParticleSystem::add_particle`, before the `push_back` — the one
+point every birth crosses (the pending flush, `Engine::add_particle`,
+both chunk paths, entity activation, the generators' direct adds,
+`PhysicsSystem::add_particle_with_gluon_to`). A door at the flush
+boundary (the shape designed on `feat/creation-overlap-door`) misses
+every direct add until the next flush, and headless runs never flush.
+
+CONTRACT. A creation overlapping a live body deeper than SLOP is
+REFUSED: the body never enters the array, the call returns the invalid
+id `-1`, the reason is readable through `last_creation_refusal()`, and a
+`[PHYSICS REFUSED] add_particle(...)` line names both bodies and the
+depth in mm. No lenient switch and no class list (INV-37).
+`CREATION_DOOR=0` kills the door for A/B measurement only (INV-36's
+pattern: a diagnostic, never a shipping mode).
+
+COST. An incremental AABB tree owned by the door, insert per birth,
+refit only when the world has moved, rebuild only when indices shift.
+The batch audit on the old branch cost 20.4 ms for 12,440 bodies with a
+full BVH rebuild; that is the number to beat, and the headless Eden
+bench is the jury.
+
+THE SOURCE FIXES bundled with it (`docs/todo_plans/CREATION_OVERLAP_AUDIT.md`
+§2-4), each red before it is touched: Eden's literal heights against the
+0.55 m floor; the chunk re-created around leftover ad-hoc bodies (G-68);
+the humanoid rig's arm/hair/eye overlaps; the fourteen humanoid tests at
+`world_z = 0.0`; the generators by design (tree crown junctions, grass
+stem seams and tilted blades, grass foliage, the rock clump's tilt-blind
+check, the predator examples); `test_solver_residual`'s interlocked
+instrument and `test_humanoid_movement`'s grass rooted in the slab.
+
+OPEN QUESTIONS, registered before the code: GEDANKEN-69 (can a per-birth
+door be afforded, and what does a caller do with a refusal),
+GEDANKEN-70 (the crown placement law), GEDANKEN-71 (what Eden owes its
+ad-hoc bodies when their chunk comes back).

@@ -6603,7 +6603,23 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     }
 
     // Add particle B
-    size_t particle_b_id = particle_system_->add_particle(pb);
+    const int added_b = particle_system_->add_particle(pb);
+
+    // THE CREATION DOOR may have refused it (INV-37): the placement law
+    // pb = pa + offset_a - offset_b puts a bonded part wherever the offsets
+    // say, and "the generator drew it that way" is not a licence to be born
+    // inside something. A refused body gets NO BOND — a gluon whose B is
+    // (size_t)-1 would index past the array on its first solve, and a bond to
+    // a body that does not exist is a lie about the structure.
+    if (added_b < 0) {
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_particle_with_gluon_to(P%zu, ...): the "
+            "creation door refused body B (INV-37, see the line above) — the "
+            "bond was NOT created. Fix the part's placement at its generator.\n",
+            particle_a_id);
+        return static_cast<size_t>(-1);
+    }
+    size_t particle_b_id = static_cast<size_t>(added_b);
 
     // Setup gluon
     gluon->particle_a = particle_a_id;
