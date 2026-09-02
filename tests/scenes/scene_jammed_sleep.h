@@ -135,6 +135,7 @@ struct Case {
     int born_overlap_pair_a = -1, born_overlap_pair_b = -1;   // INV-37 (creation frame)
     int refused = -1;                       // INV-37: this creation must be REFUSED (absent)
     std::vector<int> admitted;              // INV-37: these creations must be BORN (on stage)
+    float refusal_depth = -1.0f;            // INV-37: the door's own reading of the refused depth (m)
     bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
     const char* waiver = nullptr;
@@ -150,6 +151,9 @@ struct Scene {
     std::vector<BodySpec> specs;
     // Latches (one source for the headless asserts and the live panel).
     float birth_overlap = 0.0f;
+    // THE DOOR'S OWN RECORD (feat/creation-door): what it refused and how deep.
+    bool  door_refused = false;
+    float door_depth = 0.0f;
     std::map<std::pair<int,int>, int>   first_contact_frame;
     std::map<std::pair<int,int>, float> first_contact_speed;
     std::map<std::pair<int,int>, float> last_penetration;   // the manifold's own, this frame
@@ -205,6 +209,8 @@ struct Scene {
             if (ids[i] >= 0) argus.watch(ids[i], specs[i].label);
         reset_latches();
         birth_overlap = worst_overlap(ps).pen;
+        door_refused = ps.last_creation_refusal().refused;
+        door_depth = ps.last_creation_refusal().depth;
         return (int)ids.size();
     }
 
@@ -217,6 +223,10 @@ struct Scene {
         for (size_t i = 0; i < ids.size(); ++i)
             if (specs[i].late) argus.watch(ids[i], specs[i].label);
         birth_overlap = std::fmax(birth_overlap, worst_overlap(ps).pen);
+        if (ps.last_creation_refusal().refused) {
+            door_refused = true;
+            door_depth = ps.last_creation_refusal().depth;
+        }
         last_event_frame = frame;
     }
 
@@ -424,6 +434,7 @@ inline std::vector<Case> cases() {
         c.sleep_by_event = {1};
         c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 2;
         c.refused = 2;
+        c.refusal_depth = TILE_T * 0.5f + RUB_Z * 0.5f;          // 0.28: tile half + rubble half
         c.demo1 = "DEMONSTRATING: the dropped stone strikes, settles and sleeps; the "
                   "stone BORN in the tile (Eden's recipe) is REFUSED at creation (INV-37)";
         c.demo2 = "WATCH: the strike speed, 'buried' on stage or not, the tile LIFTED, "
@@ -519,6 +530,7 @@ inline std::vector<Case> cases() {
         c.stills = {Still{0}, Still{1}, Still{2}};
         c.born_overlap_pair_a = 3; c.born_overlap_pair_b = 1;
         c.refused = 3;
+        c.refusal_depth = TILE_T * 0.5f + RUB_Z * 0.5f - (layer2_z - RUB_ON_TILE);   // 0.26
         c.admitted = {4};
         c.demo1 = "DEMONSTRATING: a layer arriving THROUGH sleeping stones is REFUSED, "
                   "a tile arriving BESIDE them is born (INV-37/G-68); nothing moves";
@@ -566,6 +578,14 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
         std::snprintf(t, sizeof t, "%s/INV-37: the door REFUSES %s (%s)", c.gid,
                       L(c.refused), on_stage ? "it is on stage" : "absent, as ruled");
         v.push_back({t, !on_stage});
+    }
+    if (c.refused >= 0 && c.refusal_depth > 0.0f) {
+        std::snprintf(t, sizeof t, "%s/INV-37: the door's own reading names the depth "
+                      "(refused=%d, %.0f mm vs the derived %.0f mm)", c.gid,
+                      (int)s.door_refused, s.door_depth * 1000.0f,
+                      c.refusal_depth * 1000.0f);
+        v.push_back({t, s.door_refused &&
+                        std::fabs(s.door_depth - c.refusal_depth) < 0.02f});
     }
     for (int i : c.admitted) {
         const bool on_stage = s.alive(ps, i);
