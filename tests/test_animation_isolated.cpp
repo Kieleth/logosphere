@@ -16,6 +16,12 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
+// The floor these scenes build is 0.1 m thick with its bottom on the
+// turtle, so its walking surface is 0.10 m. world_z for a humanoid is
+// the FEET'S BOTTOM: spawning at 0.0 buried them 80 mm in the slab,
+// which the creation door refuses (INV-37).
+static constexpr float FLOOR_TOP = 0.10f;
+
 // ========================================
 // ISOMETRIC FACING DIRECTIONS
 // ========================================
@@ -114,7 +120,9 @@ int main(int, char**) {
     spec1.clothing_g = 0.3f;
     spec1.clothing_b = 0.8f;
 
-    auto h1 = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec1, false);
+    // world_z is the feet's BOTTOM and this floor's top is 0.10: spawning at
+    // zero buried every foot 80 mm inside the slab (INV-37).
+    auto h1 = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP, -1, spec1, false);
 
     engine.get_humanoid_locomotion().register_humanoid_direct(
         h1.hips_id,
@@ -234,7 +242,7 @@ int main(int, char**) {
                     spec2.clothing_g = 0.2f;
                     spec2.clothing_b = 0.2f;
 
-                    auto h2 = humanoid_gen.generate_humanoid_physics(2.0f, 0.0f, 0.0f, -1, spec2, false);
+                    auto h2 = humanoid_gen.generate_humanoid_physics(2.0f, 0.0f, FLOOR_TOP, -1, spec2, false);
                     h2_hips_id = h2.hips_id;
 
                     engine.get_humanoid_locomotion().register_humanoid_direct(

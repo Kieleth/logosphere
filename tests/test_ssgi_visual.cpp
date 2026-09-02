@@ -166,6 +166,12 @@ static ScreenBBox find_rendered_bbox(const uint8_t* native_data, int width, int 
 // Scene building helpers
 // ============================================================================
 
+// The tile floor these scenes build is 0.15 m thick with its bottom on the
+// turtle, so its walking surface is 0.15 m. Anything standing on it starts
+// there: a wall centred at 1.5 with a 3.0 m body spans 0..3 and is born
+// 0.15 m INSIDE the floor, which INV-37 refuses.
+static constexpr float SSGI_FLOOR_TOP = 0.15f;
+
 // Add a floor tile at (world_x, world_y, z=0), size 1x1
 static void add_floor_tile(Engine& engine, float wx, float wy, float r, float g, float b) {
     Particle tile = {};
@@ -189,7 +195,11 @@ static void add_wall(Engine& engine, float wx, float wy, float wz,
     Particle wall = {};
     wall.x = wx;
     wall.y = wy;
-    wall.z = wz;
+    // wz is the wall's centre ABOVE THE FLOOR. Taken as a world height it put
+    // every wall in these scenes 0.15 m inside the tiles it stands on, which
+    // INV-37 refuses at creation - and a refused wall is a case measuring an
+    // empty room.
+    wall.z = wz + SSGI_FLOOR_TOP;
     wall.shape = ParticleShape::BOX;
     wall.width = wall_w;
     wall.height = wall_h;
@@ -226,7 +236,8 @@ static void add_glass(Engine& engine, float wx, float wy, float wz,
                       float gw, float gh, float gt,
                       float r, float g, float b, float alpha = 0.5f) {
     Particle glass = {};
-    glass.x = wx; glass.y = wy; glass.z = wz;
+    // Same as add_wall: wz is the centre ABOVE THE FLOOR (INV-37).
+    glass.x = wx; glass.y = wy; glass.z = wz + SSGI_FLOOR_TOP;
     glass.shape = ParticleShape::BOX;
     glass.width = gw; glass.height = gh; glass.thickness = gt;
     glass.size = std::max({gw, gh, gt});
@@ -450,7 +461,15 @@ bool test_ssgi_visual() {
             for (float x = -4; x <= 4; x += 1.0f) {
                 for (float y = -4; y <= 4; y += 1.0f) {
                     Particle ceil = {};
-                    ceil.x = x; ceil.y = y; ceil.z = 6.0f;
+                    // The walls are 6 m tall standing on a floor whose top
+                    // is SSGI_FLOOR_TOP, so their tops are at
+                    // SSGI_FLOOR_TOP + 6.0 and the ceiling rests on THAT.
+                    // At a literal 6.0 it was born 0.225 m inside all four
+                    // of them (INV-37), and a refused wall is a Cornell box
+                    // with no walls - which is what the colour asserts were
+                    // reading.
+                    ceil.x = x; ceil.y = y;
+                    ceil.z = SSGI_FLOOR_TOP + 6.0f + 0.15f * 0.5f;
                     ceil.shape = ParticleShape::BOX;
                     ceil.width = 0.5f; ceil.height = 0.5f; ceil.thickness = 0.15f;
                     ceil.size = 0.5f;
@@ -461,12 +480,15 @@ bool test_ssgi_visual() {
             }
             // Right wall (green) — inner -X face visible from camera
             add_wall(engine,  4.0f, 0.0f, 3.0f, 0.3f, 8.0f, 6.0f, 0.1f, 0.9f, 0.1f);
-            // Back wall (red) — inner -Y face visible from camera
-            add_wall(engine, 0.0f, 4.0f, 3.0f, 8.0f, 0.3f, 6.0f, 0.9f, 0.1f, 0.1f);
+            // Back wall (red) — inner -Y face visible from camera.
+            // 7.7 m, not 8.0: the X walls stand at +/-4 and are 0.3 thick, so
+            // their inner faces are at +/-3.85 and an 8 m Y wall was born
+            // through both corners (INV-37).
+            add_wall(engine, 0.0f, 4.0f, 3.0f, 7.7f, 0.3f, 6.0f, 0.9f, 0.1f, 0.1f);
             // Left wall (white) — inner face hidden, neutral color OK
             add_wall(engine, -4.0f, 0.0f, 3.0f, 0.3f, 8.0f, 6.0f, 0.8f, 0.8f, 0.8f);
             // Front wall (white) — inner face hidden, neutral color OK
-            add_wall(engine, 0.0f, -4.0f, 3.0f, 8.0f, 0.3f, 6.0f, 0.8f, 0.8f, 0.8f);
+            add_wall(engine, 0.0f, -4.0f, 3.0f, 7.7f, 0.3f, 6.0f, 0.8f, 0.8f, 0.8f);
             // Ceiling light
             add_light(engine, 0.0f, 0.0f, 5.5f, 1.5f, 1.0f, 1.0f, 1.0f, 500000.0f, 20.0f);
             break;

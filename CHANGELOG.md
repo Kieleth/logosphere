@@ -8,6 +8,55 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **The creation door: nothing is born inside anything (INV-37).** A body
+  created overlapping a live body by more than `SLOP` is now REFUSED at
+  `ParticleSystem::add_particle`, the one point every birth crosses: the
+  body never enters the world, the call returns `-1`, the reason is
+  readable through `last_creation_refusal()`, and a
+  `[PHYSICS REFUSED] add_particle(...)` line names both bodies with their
+  oriented extents and the depth in millimetres. `queue_particle_addition`
+  refuses the same way, so the index it predicts is never a body that will
+  not exist, and `PhysicsSystem::add_particle_with_gluon_to` creates no
+  bond for a body that was refused. Touching is not overlapping, and there
+  is no exempt class: a bonded structure's own parts are judged like
+  everything else. `CREATION_DOOR=0` disables the door for A/B measurement
+  only. Cost on Eden's world: 0.76 us per birth, 9.0 ms for 11,783
+  bodies, against the 20.4 ms a single batch rebuild cost 12,440 on the
+  earlier design. Eden's headless steady frame goes from 2740.9 ms to
+  822.4 ms with the births that could never sleep refused.
+- **`ParticleSystem::deepest_overlap()`.** One overlap predicate for the
+  whole engine: how deep a proposed body would be inside the deepest thing
+  it touches, through the engine's own narrow phase. `can_place_at`,
+  `can_place_at_ignoring` and `try_place_with_retry` answer through it, so
+  a generator's placement search reaches the same verdict the creation
+  door will. They previously compared world-axis boxes widened by
+  `facing_angle`, which is not the solid a body rotated in three axes has.
+- **`test_creation_door`.** The door's contract at 31 checks: both entry
+  paths, two newborns in one batch, a run that never flushes, sphere-box
+  and sphere-sphere, a rotated box judged as its oriented solid and not
+  its slab, no gluon on a refused body, and the turtle door still standing
+  beside it.
+- **Physics: `PhysicsSystem::last_solve()`.** The solver's own verdict for
+  the last substep, readable by a test without the trace: rows taken in,
+  iterations run, and which exit it took (`impulse_under_absolute_threshold`,
+  `improvement_below_min_rate`, `iteration_budget_exhausted`). Every new
+  test asserts on it as the cost witness: a quiet stage must leave by a
+  door, never by the wall.
+- **`test_jammed_sleep` (+ `_visual`): the frame-collapse chain, born red
+  before any fix.** One real stage (a stone strata tile on the turtle) and
+  four cases from one scene header: a stone born inside the tile (Eden's
+  own recipe) must be born ON it, leave it and sleep; a bonded clump at rest
+  in its own overlap must sleep; an interlocked stack must not sleep
+  mid-repair; a tile created around a sleeping stone may not be born
+  through it. A and D are red today (the cause of Eden's 3.4 s frames,
+  GEDANKEN-67/68), B and C are the guards.
+- **Physics trace: the level-1 frame record and a level-2 row census.**
+  `LOGOSPHERE_PHYS_TRACE=1` now emits, per frame, bodies / asleep /
+  awake-but-quiet / held-by-the-dissatisfaction-gate; level 2 adds rows by
+  kind (turtle, contact, bond, angular) per substep. The per-body omega
+  probe moves to level 5 (it wrote 6.5 million lines in 12 Eden frames at
+  level 2), and the trace sink flushes at exit so short runs keep their
+  records.
 - **Physics: two default-off levers that make a stack of boxes stand
   still under contact torque.** `MANIFOLD_SPAN=1` reduces a face
   contact's manifold to a set that spans the contact polygon instead of
@@ -239,6 +288,37 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **Every body Eden places itself now reads the ground it stands on.** The
+  80 scattered rocks were born fully inside the bedrock layer, the cubes
+  and the pole and both ruin walls inside the strata, Eva and the three
+  NPCs 50 mm into it with their 8 cm feet. All of them carried literal
+  heights written against a floor whose top is 0.55 m.
+- **A tree stands on the surface, not on the lowest layer under it.**
+  `find_floor_tile_at` answered with the first tile in array order, which
+  on a layered floor is the one created first: every tree on Eden's strata
+  planted its trunk 250 mm inside the two layers above the bedrock.
+- **A branch is no longer drawn through its parent or its siblings.** A
+  child's near face sat on the parent's tip point, so a tilted child's
+  corners reached back into the parent (88 mm at the worst). Children now
+  start beyond the parent's own supporting plane and slide clear of
+  siblings by the measured depth. Supersedes the 2026-08-02 policy that
+  accepted minimal overlap in crowns.
+- **The humanoid rig's arms, hair and eyes.** The upper arm hung through
+  the shoulder cube (22.5-37.5 mm depending on the spec) and now hangs
+  from its underside, outboard of the widest part of the body it passes;
+  the hair cap no longer overhangs the head into the back hair; the eye
+  plates sit on the face instead of 5 mm inside it, and are thick enough
+  for the narrow phase to resolve.
+- **Grass foliage, snake segments and butterfly bodies no longer overlap
+  each other at birth.**
+- **A bonded part whose parent was refused is no longer built at the world
+  origin**, where it was then reported by the turtle door one generation
+  downstream of the real defect; and a refused particle id is no longer
+  written into the KG, where `std::stoi` on it terminated the process.
+- **Eden `--bench` recorded the clamped frame delta.** Every frame slower
+  than the 100 ms cap read as exactly 100.0 ms at every percentile while
+  the run took over a second per frame. The bench now records the wall
+  clock.
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never
   says what that means for a character standing on the last one. Rank

@@ -254,9 +254,11 @@ void test_litter_does_not_hide_the_floor() {
     {
         Harness hh;
         hh.slab(0.0f, 0.0f, 1.0f);                    // the floor
-        // A pebble resting on it, overlapping the surface plane the
-        // way settled debris does.
-        hh.slab(0.0f, 0.0f, 1.10f, /*size=*/0.12f, /*thickness=*/0.12f);
+        // A pebble RESTING ON it. It used to be sunk 20 mm into the
+        // surface plane "the way settled debris does", which INV-37
+        // refuses at creation: the pebble was never made and this case
+        // stopped testing anything. Debris sits on the ground.
+        hh.slab(0.0f, 0.0f, 1.0f + 0.12f, /*size=*/0.12f, /*thickness=*/0.12f);
         hh.settle();
         float surface = 0.0f;
         const bool ok = hh.locator.surface_at(0.0f, 0.0f, surface);
@@ -268,9 +270,19 @@ void test_litter_does_not_hide_the_floor() {
         // The control, and the reason this is a size test and not a
         // blanket removal: something big enough to stand on is big
         // enough to block. A slab overhead is a ledge, not litter.
+        // The headroom is the GAP, and the ledge is a body above it. The
+        // two slabs used to be given tops 0.30 m apart while each is 0.40
+        // thick, so the ledge was born 0.10 m inside the floor - a creation
+        // INV-37 refuses, which left no ledge and nothing to block. Stated
+        // as the geometry it means: floor top, then 0.30 m of air, then the
+        // ledge.
+        const float floor_top = 1.0f;
+        const float headroom = 0.30f;
+        const float ledge_thickness = 0.4f;
+        const float ledge_top = floor_top + headroom + ledge_thickness;
         Harness hh;
-        hh.slab(0.0f, 0.0f, 1.0f);
-        hh.slab(0.0f, 0.0f, 1.30f);                   // full-size, overhead
+        hh.slab(0.0f, 0.0f, floor_top);
+        hh.slab(0.0f, 0.0f, ledge_top, 2.0f, ledge_thickness);  // full-size, overhead
         hh.settle();
         logosphere::PlacementRequest req;
         req.x = req.y = 0.0f;
@@ -278,7 +290,7 @@ void test_litter_does_not_hide_the_floor() {
         req.height = 1.75f;                           // a standing body
         req.mode = logosphere::SupportMode::STANDING;
         const logosphere::Placement p = hh.locator.locate(req);
-        CHECK(!p.found || std::fabs(p.surface_z - 1.30f) < 0.01f,
+        CHECK(!p.found || std::fabs(p.surface_z - ledge_top) < 0.01f,
               "a full-size slab overhead still blocks the floor under it "
               "(a body of 1.75 m does not fit in 0.30 m)");
     }

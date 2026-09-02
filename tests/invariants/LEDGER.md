@@ -2287,3 +2287,274 @@ world (mechanism note added). Fix-one-by-one starts here.
 
 Aggregates (agent): terminated by a rate limit mid-conversion; its
 uncommitted work is recovered from its worktree.
+
+## 2026-09-01 (later) — THE FRAME COLLAPSE: RCA, then TDD before any fix
+
+Owner: "well 1fps was concerning" and, after the RCA, "I'd like to TDD
+all this first of any change." The RCA (GEDANKEN-67): Eden headless at
+3.4 s of physics per frame, 12,446 bodies, 92% asleep, yet 30,000 body-
+body contact rows per substep from ~900 awake-but-quiet bodies, the
+32-iteration budget exhausted every substep. Bisect: the four flip
+levers and CONTACT_TORQUE change nothing; SLEEP_LAW_OFF=1 (diagnostic)
+gives 49 ms; the commit before today's squash gives 229 ms. The gate is
+G-48's sleep veto on contact overlap over 3 mm. The naming pass: the
+deepest quiet-awake bodies are STONE rubble born INSIDE stone strata
+tiles (Eden's rock.z = 0.15 against a tile top of 0.30), 24-26 cm deep,
+unbonded, a 12-ton partner - a repair that can never progress, so the
+veto never lifts (GEDANKEN-68 for the tile arriving around the stone).
+Three instruments were broken on the way and are repaired here: the
+bench recorded the clamped delta, the trace emitted no frame record and
+spammed a per-body probe at level 2, the sink never flushed short runs.
+
+TDD FIRST (this slice, no fix): test_jammed_sleep (+ _visual), four
+cases on a real stage, reading the solver's verdict through the new
+PhysicsSystem::last_solve(). First run: A (Eden's stone in Eden's tile)
+red six ways - the tile LIFTS to 0.236 under the stone's repair, the
+stone stays at 0.130, 0/2 asleep, 32 iterations on 5 rows; D (the tile
+born around the sleeping stone) red six ways the same way; B (bonded
+clump, 30 mm overlap) GREEN - contact rows inside one bonded structure
+are denied at the pair stage, so the veto only ever sees unbonded
+overlaps; C (G-48's interlocked stack) green, separates to 1.9 mm by
+frame 9 and sleeps only then. Owner rulings owed: the order of the
+three fixes (Eden's rock placement; G-67's progress law; G-68's door
+contract), the door-law push, R5/R6's setup.
+
+## 2026-09-01 (later) — "argus each": the chain as EXPERIMENTS
+
+Owner, watching the first window: "argus each, these tests are mostly
+wrong, they do nothing, and nothing moves/checks anything." Right: the
+four cases were end-state asserts on bodies that never moved (a stone
+hidden inside a tile, a clump that sleeps, a 2 cm rise). Redesigned per
+the lecture standard: every case has a staged EVENT, a CONTROL beside
+it, motion the eye can follow, and every interaction read through Argus
+(peak speed, separation) and the contact stream (the strike's frame and
+relative speed, the manifold's own penetration for tilted bodies).
+A drops a control stone beside the buried one (strike f26 at 4.37 m/s,
+derived 4.58); B drops a 12-ton slab on a sleeping stone (strike f18 at
+3.06 m/s, comes to rest tilted 0.121 rad inside the derived band, stone
+uncrushed, all asleep - GREEN, the repair's mass law holds in that
+direction); C's cubes are 1 m with a 10 cm interlock (rises to 0.998 by
+f11, sleeps only then); D adds a stone outside the footprint that must
+not notice (it does not). The reds that remain are the chain: A five,
+D six; C one by float dust (2.0 mm standing on a 2.0 mm bar, booked,
+bar not moved). One reflection break found and fixed: at 9 m spacing
+the window's B control landed on C's tile edge; 16 m now.
+
+## 2026-09-01 (later) — OWNER DECREE: creation never overlaps (INV-37)
+
+Owner, after QA of the four experiments: "I like these tests but
+remember that under no circumstances, any creation of particles should
+be allowed to overlap in space with another." Registered as INV-37
+(aspirational, born red), deriving from INV-30's strict-first clause,
+INV-4 and INV-2. What it decides: G-68's design question - the tile
+created around a sleeping stone is REFUSED, never created-then-
+repaired; case A's buried stone is refused at birth. What it changes:
+the creation door designed on feat/creation-overlap-door (a BVH audit
+at flush start; not yet in this tree) lands STRICT and UNCONDITIONAL -
+the two classes the board had left exempt (crown branches drawn through
+siblings, the humanoid's 23 unbonded boxes) are refusals to fix at
+their generators, not exemptions. What it contradicts: nothing ruled;
+it supersedes the board's "abort stays behind LOGOSPHERE_CREATION_STRICT
+until both classes read zero" with "strict, and the classes are bugs".
+Consequence stated for the record: a streamed chunk whose floor tile
+would be born through a body the game already placed is refused, and
+the refusal is the loud signal that the game placed or ordered wrongly.
+test_jammed_sleep A and D now assert the refusal (the offending body
+absent from the stage), red until the door lands.
+
+## 2026-09-02 — THE CREATION DOOR LANDS, AND THE BIRTHS IT REFUSES ARE FIXED
+
+Owner ruling, choosing the door's shape: "fresh at the choke point, with
+the incremental BVH cost measured on the headless bench before it ships,
+in TDD please", and on the audit's list of source defects: "all of them
+need fixing, I'd just bundle it up with [the door]".
+
+THE DOOR sits in ParticleSystem::add_particle immediately before the
+push_back, which is the only line every birth crosses. The earlier design
+on feat/creation-overlap-door audited at the end of flush_pending_particles
+and therefore could not see a direct add until somebody flushed - and the
+chunk sync and async apply, entity activation, every generator and
+add_particle_with_gluon_to are direct adds, while a headless run may never
+flush at all. A refused creation returns -1, never enters the array, and
+prints a [PHYSICS REFUSED] line naming both bodies and the depth in mm.
+No LENIENT switch, no class list. It stands at queue_particle_addition as
+well, because that function hands back a PREDICTED index and generators
+bond by it (GEDANKEN-69).
+
+THE COST, measured before it shipped, as ordered. Acceleration is a new
+incremental AABB tree (CreationIndex): insert per birth, refit when the
+world has moved, rebuild only when swap-and-pop changes what an index
+means. FINAL, on Eden's world: 11,783 births judged, 45,523 index
+candidates, 45,523 exact narrow-phase tests, 9.01 ms TOTAL - 0.76 us per
+birth, one rebuild, two refits. The batch design's own number was 20.4 ms
+for 12,440 bodies with a full BVH rebuild, so the per-birth door costs
+half of what the per-batch one did. One defect was found on the way and
+it is the reason a per-birth door is affordable at all:
+queue_particle_addition calls mark_bvh_dirty, which is also the index's
+"the world has moved" signal, so every queued body paid a full O(n) refit
+for the previous one's sake - O(n^2) over a floor generator's batch, and
+test_layered_floor_v3 went from 95 s to minutes before it was found.
+
+THE HEADLESS EDEN BENCH, fixed instrument, 140 frames at 320x180:
+  BEFORE  [BENCH_STEADY] frames=19 avg=2740.9ms (0.4 FPS) median=2584.5
+                          p90=2803.7 p99=6281.3
+  AFTER   [BENCH_STEADY] frames=19 avg=822.4ms (1.2 FPS) median=759.7
+                          p90=1210.3 p99=1256.3
+3.33x on the mean, 3.40x on the median. The door's own 9.01 ms is 1% of
+ONE frame across the whole run. G-67's chain is NOT fully cured - 822 ms
+is not a frame - so the frame-collapse front stays open with a new fact:
+with nothing born in overlap, Eden is still three times slower than the
+229 ms it measured before the squash, and the remaining cost is not
+creation overlap.
+
+THE CENSUS on Eden's first run under the door, and what each fix did:
+  Eden's own literals    5 refused -> 0. The 80 rocks (inside bedrock),
+                         3 red cubes, 2 A/B cubes, the pole, 10 ruin
+                         blocks, Eva + 3 NPCs (50 mm), the keyboard
+                         serpent. All read the ground locator now.
+  the humanoid rig       6 refused -> 0. Arm-into-shoulder 22.5-37.5 mm
+                         (the arm hangs from the underside now, outboard
+                         of the widest part of the body it passes),
+                         hair-into-hair 9.1 mm (the cap is the head's
+                         footprint), eye plates 5 mm inside the face and
+                         14 mm "inside" each other - the second is the
+                         SAT reading two sub-BOUNDARY_EPSILON plates as
+                         aligned, so the plates are now 6 mm and 2 mm.
+  the tree's floor       961 refused -> 0. find_floor_tile_at answered
+                         with the first tile in array order, which on a
+                         layered floor is the bedrock: every trunk was
+                         born 250 mm inside the two layers above it.
+  the crown (G-70)       57 -> 53. A child's near FACE sat on the
+                         parent's tip POINT, so a tilted child's CORNERS
+                         reached 88 mm back into it. Children now start
+                         beyond the parent's own supporting plane
+                         (d = r/(az.n), geometry only) and slide clear of
+                         siblings by the measured depth. 36 branch-branch
+                         and 17 branch-trunk pairs remain.
+  the tree's leaves      ~500 -> 0, by making the placement search and
+                         the door answer the SAME question
+                         (ParticleSystem::deepest_overlap).
+  the snake              9 of 30 segments -> 0. The layout stepped by
+                         segment_length while each segment's X extent was
+                         its GIRTH.
+  the butterfly          4 -> 0. Segments advanced by `size` while their
+                         Y extent is size*1.2; wing pairs shared their Y.
+  the grass              1670 REMAIN. The biggest class and the one that
+                         is not fixed: leaf-into-stem 565, leaf-into-tiny
+                         365, stem-into-leaf 266, stem-into-stem 262,
+                         leaf-into-tile 128. The within-blade retry
+                         landed and found almost nothing, which is the
+                         finding: these are CROSS-BLADE, between blades
+                         that are independent generate() calls storing
+                         into the KG and materialised later by the chunk
+                         activator, which replays the stored position
+                         verbatim. Fixing it needs a patch-level
+                         placement law (blade spacing derived from blade
+                         girth and foliage radius) or a placement query
+                         at activation. Booked, not guessed.
+
+TWO CASCADES closed at the mechanism: a bonded part whose parent was
+refused used to be built at the world origin (get_particle_copy answers
+Particle{} for an index it does not have) and then reported by the TURTLE
+door, naming the wrong defect one generation downstream; and a refused id
+stored as unsigned is 4294967295, which std::stoi turned into an
+uncaught std::out_of_range that killed the process.
+
+WHAT FLIPPED. test_jammed_sleep: 10 red -> 0. Case A's buried stone and
+case D's late tile are refused and absent, the stage sleeps, the solver
+leaves by convergence in 2 iterations on 2-4 rows; B and C stayed green
+on every line. test_creation_door is new and green (31 of 31), and its
+red is demonstrated through the kill switch rather than claimed:
+CREATION_DOOR=0 gives 11 of 31, and the 11 are exactly the legal-birth
+cases.
+
+ON THE TDD ORDER, honestly. The law's field witnesses were born red
+before this branch existed (test_jammed_sleep A and D, 2026-09-01).
+test_creation_door was written AFTER the mechanism it tests, which is not
+the protocol; the kill-switch A/B is what stands in for the red, and it
+is recorded here rather than dressed up.
+
+## 2026-09-02 (later) — THE SWEEP, TWICE, AND WHAT IT COST
+
+FIRST ARMED SWEEP: `SWEEP_VERDICT: MOLES 58 (new-red 15, gone-green 0,
+unaudited 43)`. FINAL: `SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0,
+unaudited 43)`. The 43 unaudited are the known non-physics binaries.
+
+Ten of the fifteen were defects the door exposed and they are fixed at
+the source; five are the two open fronts under other names and are
+BOOKED with numbers (F-CROWN: test_ancient_oak,
+test_tree_bonds_born_at_rest, test_tree_shadow_wiggly,
+test_tree_repair_visual, test_foliage_stays_attached; F-GRASS:
+test_plants_are_rooted; F-BIKE: at_logotron_full_game_loop).
+
+ONE FAILED EXPERIMENT, kept with its numbers rather than quietly
+dropped. GEDANKEN-70's sibling slide separated crown branches by sliding
+each along its own axis until the engine's own predicate read clear. It
+worked geometrically and broke the tree, because the separation it buys
+is a GAP between the parent's tip and the child's near face, and that gap
+is the joint's rest length. Measured with the door OFF so geometry was
+the only variable: no push, mean canopy drift 0.0056 m (PASS); parent
+push only, 0.5943 m with peak leaf 0.51 m/s; push + slide, 1.2389 m with
+peak leaf 4.54 m/s. An earlier version of the push was worse still
+(1.7305 / 3.5574 m) because it reached the child's anchor BACK to the
+parent's tip, outside the branch - a lever arm longer than the body it
+holds. Both anchors now sit on their own bodies and the clearance is
+carried as the joint's rest LENGTH. The slide is removed; G-70 carries
+the proof that siblings sharing ONE attachment point cannot be separated
+by sliding at all, and names the whorl as the mechanism that works.
+
+ONE OWNER RULING OWED: a body cannot be BORN inside a declared medium.
+test_interaction_volume_forces puts a ball in a water column and the door
+refuses it (10.15 m of penetration, never created). The solver already
+refuses to build a contact row for a declared-passable pair
+(interaction_->should_contact), so none of the harm INV-37 names can
+occur for one. Whether the door should read that same declaration is an
+amendment to the decree - not a class list - and it is not mine to make.
+The fixture places its ball by hand meanwhile and says so in the file.
+## 2026-09-02 — OWNER RULINGS on the creation door and the audit's fixes
+
+1. The door: "fresh at the choke point, with the incremental BVH cost
+   measured on the headless bench before it ships, in TDD please" -
+   built inside ParticleSystem::add_particle, refusal by construction,
+   the cost measured on Eden's headless bench before it ships, asserts
+   first (test_creation_door born red). Dispatched to an Opus 5 agent
+   with the audit as its map, on feat/creation-door stacked on #166.
+2. The source fixes the audit found (Eden's literal heights, chunk
+   reloads around leftover bodies, the rig's arm/hair/eye overlaps, the
+   fourteen tests at world_z 0, the crown, grass seams and foliage, the
+   rock generator's add-anyway path, the predator examples,
+   test_solver_residual and the rooted grass): "all of them need fixing,
+   I'd just bundle it up with [the door] and that agent". Bundled.
+Still open, explained to the owner the same day: the door-law branch
+push (G-65; parked behind the creation door so its cost can be
+measured on a healed Eden) and the R5/R6 rungs' setup (G-66).
+
+## 2026-09-02 — G-69: Eden's floor, rebuilt piece by piece
+
+Owner: "what is next then to fix Eden situation?" The census with the
+door in: 1,275 ms/frame, 47 quiet tiles held by the sleep gate, the
+6-ton layer 6-13 mm into bedrock; SLEEP_LAW_OFF=1 on the same tree:
+16.6 ms. The floor was rebuilt in the jammed-sleep scene one
+ingredient at a time (cases E, F, G): a lone stack, a 2 x 2 grid with
+seams, the generator's bonds, a staggered layer, Eden's birth gaps, a
+3 x 3 grid with a woken centre - every staging green with 0.0 mm
+contacts. The floor's own physics does not compact. Three defects
+stand on their own evidence: (1) the chunk store births its tiles
+ASLEEP where it stored them, 2-7 mm above their supports, and nothing
+checks that a sleeper rests on anything (case G, nineteen red at
+INV-2's bar; a 312 kg stone does not wake a 2.4-ton tile, correctly);
+(2) the surface-continuity merge builds phantom rows for a coplanar
+sibling once a woken tile's height differs from its sleeping
+neighbours' - Eden's dirt tile traced by position: 4 m along x, then
+94 mm along z, then shoved 20 mm in a frame into the layer below
+(booked in G-69; no case yet, the wakers are Eden's trees and grass);
+(3) the tree generator births leaf bonds strained past the 2 cm wake
+strain with no material set (the 85 bond-held bodies at frame 0).
+Instruments added on the way: the sleep gate's census by setter line,
+depth, partner and position; CANARY_AT to pick a canary by place
+(ids follow the chunk streaming order and differ run to run); the
+window re-arms born-asleep bodies asleep (a reflection break found by
+G). Owner rulings owed: the order of the three fixes (recommended: the
+birth-asleep check, then the merge's containment case, then the tree
+bonds), the merge order of #166 / #168 / #169, the door agent's three
+decided-alone items.

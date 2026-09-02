@@ -181,6 +181,9 @@ set(LOGOSPHERE_CORE_SOURCES
     src/particle_shape_methods.cpp
     # Narrow-phase collision (AABB SAT + sphere-sphere + sphere-box)
     src/core/narrow_phase.cpp
+    # The creation door (INV-37): the incremental index and the exact
+    # overlap verdict every birth is judged by. Pure geometry + std.
+    src/core/creation_door.cpp
     # Ground locator: where a body can be, asked of the world rather
     # than assumed. No z constant lives here or anywhere downstream.
     src/core/ground_locator.cpp
@@ -1450,6 +1453,34 @@ foreach(limits_probe ice anvil size footprint slipjoint floor)
     target_compile_features(test_limits_${limits_probe} PRIVATE cxx_std_17)
 endforeach()
 
+# THE JAMMED CLUMP MAY NOT SLEEP (G-67 / G-68 / G-48): the frame-collapse
+# chain, born red before any fix (owner order 2026-09-01). Shared scene +
+# evaluator in tests/scenes/scene_jammed_sleep.h.
+add_executable(test_jammed_sleep tests/test_jammed_sleep.cpp)
+target_link_libraries(test_jammed_sleep PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_jammed_sleep PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_jammed_sleep PRIVATE cxx_std_17)
+
+# THE CREATION DOOR (INV-37): the refusal at the one point every birth
+# crosses, at the granularity the field witnesses cannot reach — every entry
+# path, every shape pair, the same-batch case, the oriented box, and the bond
+# that must not attach to a body that was never born. CREATION_DOOR=0 turns
+# this file back into the world before the door.
+add_executable(test_creation_door tests/test_creation_door.cpp)
+target_link_libraries(test_creation_door PRIVATE
+    logosphere_dynamics logosphere_physics logosphere_core
+    logosphere_dynamics)
+target_include_directories(test_creation_door PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_compile_features(test_creation_door PRIVATE cxx_std_17)
+
 # D7, born red: what slows a spinning body down? Today, a constant.
 # ANGULAR_DRAG is multiplied into omega four times a frame for every
 # body in every surrounding, so a cube spinning in vacuum stops in a
@@ -1567,6 +1598,21 @@ if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_limits_visual PRIVATE cxx_std_17)
+
+    # The jammed clump's window (G-67 / G-68 / G-48): four cases, SPACE advances.
+    add_executable(test_jammed_sleep_visual tests/test_jammed_sleep_visual.cpp)
+    target_link_libraries(test_jammed_sleep_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_jammed_sleep_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_jammed_sleep_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

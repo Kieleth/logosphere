@@ -174,10 +174,20 @@ int main() {
     pathfinding::NavGrid grid;
     grid.init(-20.0f, -20.0f, 20.0f, 20.0f, 1.0f);
 
+    // THE STAGE IS MADE OF BODIES, AND EVERYTHING STANDS ON IT.
+    // The decorative tile grid used to be sunk entirely BELOW the turtle
+    // (centre -0.4, thickness 0.8) so it would not collide with the props
+    // standing on z = 0 - which is the turtle's free-lift leak, and under
+    // INV-37 the props would be born inside the tiles the moment the tiles
+    // came up. The tiles now sit ON the turtle and every prop stands on
+    // THEM. Headless (no tiles) the ground is still the turtle at zero, and
+    // every number this AT asserts is unchanged.
+    const float kGroundTop = g_visual ? 0.8f : 0.0f;
+
     auto wall = [&](float x, float y, float w, float d) {
         Particle p{};
         p.shape = ParticleShape::BOX;
-        p.x = x; p.y = y; p.z = 1.1f;
+        p.x = x; p.y = y; p.z = kGroundTop + 1.1f;
         p.width = w; p.height = d; p.thickness = 2.2f;
         p.size = std::max(w, d);
         p.r = 0.42f; p.g = 0.40f; p.b = 0.38f; p.a = 1.0f;
@@ -200,7 +210,10 @@ int main() {
             for (int gy = -2; gy <= 2; ++gy) {
                 Particle p{};
                 p.shape = ParticleShape::BOX;
-                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = -0.4f;
+                // The tile is 0.8 thick and its bottom sits ON the turtle:
+                // a centre at -0.4 put the whole slab under the world floor,
+                // which the turtle lifts every substep for free.
+                p.x = gx * 8.0f; p.y = gy * 8.0f; p.z = 0.4f;
                 p.width = p.height = 8.0f; p.thickness = 0.8f;
                 p.size = 8.0f;
                 const float t = ((gx + gy) & 1) ? 0.30f : 0.26f;
@@ -239,7 +252,7 @@ int main() {
 
     Particle pred{};
     pred.shape = ParticleShape::SPHERE;
-    pred.x = -14.0f; pred.y = -12.0f; pred.z = 0.8f;
+    pred.x = -14.0f; pred.y = -12.0f; pred.z = kGroundTop + 0.8f;
     pred.width = pred.height = pred.thickness = 1.6f;
     pred.size = 1.6f;
     pred.r = 0.95f; pred.g = 0.75f; pred.b = 0.20f; pred.a = 1.0f;
@@ -264,7 +277,7 @@ int main() {
         const kg::EntityID te = kg.createEntity("Thorns");
         Particle th{};
         th.shape = ParticleShape::BOX;
-        th.x = tx; th.y = ty; th.z = 0.35f;
+        th.x = tx; th.y = ty; th.z = kGroundTop + 0.35f;
         th.width = 1.8f; th.height = 1.6f; th.thickness = 0.7f;
         th.size = 1.8f;
         th.r = 0.20f; th.g = 0.45f; th.b = 0.12f; th.a = 1.0f;
@@ -279,7 +292,7 @@ int main() {
     const float kFoodX = 12.0f, kFoodY = 16.5f;
     Particle carc{};
     carc.shape = ParticleShape::BOX;
-    carc.x = kFoodX; carc.y = kFoodY; carc.z = 0.5f;
+    carc.x = kFoodX; carc.y = kFoodY; carc.z = kGroundTop + 0.5f;
     carc.width = carc.height = carc.thickness = kCarcassFull;
     carc.size = kCarcassFull;
     carc.r = 0.90f; carc.g = 0.12f; carc.b = 0.10f; carc.a = 1.0f;
@@ -488,7 +501,7 @@ int main() {
         view[carc_idx].width = view[carc_idx].height =
             view[carc_idx].thickness = kCarcassFull;
         view[carc_idx].size = kCarcassFull;
-        view[carc_idx].z = kCarcassFull * 0.5f;
+        view[carc_idx].z = kGroundTop + kCarcassFull * 0.5f;
         view[carc_idx].a = 1.0f;
         view[carc_idx].odor_radius = 17.0f;
     };
@@ -689,7 +702,7 @@ int main() {
             view[carc_idx].width = view[carc_idx].height =
                 view[carc_idx].thickness = sz;
             view[carc_idx].size = sz;
-            view[carc_idx].z = sz * 0.5f;
+            view[carc_idx].z = kGroundTop + sz * 0.5f;
             if (frac <= 0.001f) view[carc_idx].a = 0.0f;
         }
 
