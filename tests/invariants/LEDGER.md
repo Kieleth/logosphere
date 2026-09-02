@@ -2675,3 +2675,10 @@ mechanism alone turned red.
 Kill switches: SEAM_MERGE_PRECONDITION=0, SEAM_FACE_AREA=0. Not the
 stack-statics levers: WARM_LEARN on/off changed nothing here. Sweep and
 Eden A/B (alone) below.
+
+Gone-green on the seam branch, read and booked: `test_single_blade_contact`
+(audited red until the A+B bend mechanisms exist) passes - on the
+sleeper branch it slingshots (peak stretch 2.289 m) and shears (139.6
+deg) where the seam branch carries the blade (2.6 vs 1.2 m/s), bends it
+by rotation (1.3 deg) and keeps it on the plant. The slingshot was
+manufactured rows. OWNER RULING: whether A+B are still owed.
