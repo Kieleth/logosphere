@@ -63,6 +63,15 @@
 //      fall back asleep. Eden's dirt tiles wake with their supports
 //      asleep and fall through them; the census read them 73 mm deep.
 //
+//   H  THE AWAKE SIBLING (G-69's phantom). G's floor, born asleep at
+//      Eden's stored heights, but the CENTRE dirt tile is born AWAKE at
+//      its true rest height, 7 mm below its eight sleeping siblings -
+//      the state of Eden's dirt tile the moment after it wakes and
+//      falls. Every contact it builds must read under 2 mm: the
+//      surface-continuity merge must not manufacture a coplanar
+//      sibling's overlap (Eden's canary: 4 m along x, 94 mm along z,
+//      then a 20 mm shove into the layer below).
+//
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
 // from PhysicsSystem::last_solve().
@@ -185,6 +194,7 @@ struct Case {
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
     std::vector<std::pair<int,int>> manifold_pairs;   // more of the same (stacks)
     bool all_contacts_asserted = false;               // INV-2 over EVERY contact the engine built
+    bool phantom_watch = false;                       // INV-2 over every contact at EVERY frame (the seam phantom)
     const char* waiver = nullptr;
     const char* demo1 = "";
     const char* demo2 = "";
@@ -205,6 +215,8 @@ struct Scene {
     std::vector<int>   first_sleep_frame;
     std::vector<float> min_z;
     float peak_overlap = 0.0f;           // the transient the repair must undo
+    float peak_contact_pen = 0.0f;       // the deepest reading any contact ever gave (the phantom's trace)
+    int   peak_contact_frame = -1, peak_contact_a = -1, peak_contact_b = -1;
     float repair_sep_at_first_sleep = -1.0f;
     int   last_event_frame = 0;
     int   frames_run = 0;
@@ -254,6 +266,7 @@ struct Scene {
         all_asleep_frame = -1;
         min_z.assign(specs.size(), 1e9f);
         peak_overlap = 0.0f;
+        peak_contact_pen = 0.0f; peak_contact_frame = -1; peak_contact_a = peak_contact_b = -1;
         repair_sep_at_first_sleep = -1.0f;
         last_event_frame = 0; frames_run = 0;
     }
@@ -354,6 +367,10 @@ struct Scene {
             if (a < 0 || b < 0 || a == b) continue;
             const std::pair<int,int> k{std::min(a, b), std::max(a, b)};
             last_penetration[k] = std::fmax(last_penetration[k], e.penetration);
+            if (e.penetration > peak_contact_pen) {
+                peak_contact_pen = e.penetration; peak_contact_frame = frame;
+                peak_contact_a = k.first; peak_contact_b = k.second;
+            }
             if (!first_contact_frame.count(k)) {
                 first_contact_frame[k] = frame;
                 first_contact_speed[k] = std::fabs(e.relative_velocity);
@@ -776,6 +793,39 @@ inline std::vector<Case> cases() {
                   "asleep 13/13 again";
         v.push_back(c);
     }
+    // H. G's floor with the centre dirt tile born AWAKE at its rest height
+    //    among sleeping siblings 7 mm higher: the merge's precondition.
+    {
+        Case c = v.back();                      // start from G
+        c.name = "H THE AWAKE SIBLING (the seam phantom)";
+        c.gid = "G-69";
+        c.run_frames = 300;
+        c.late_frame = -1;                      // no stone: the tile is the event
+        c.bodies.pop_back();                    // drop G's stone
+        c.strikes.clear(); c.heights.pop_back();
+        c.tight_heights = false;                // G already carries the sleepers' red
+        c.born_overlap_pair_a = -1;
+        const int D_CENTRE = 18 + 4;
+        BodySpec& centre = c.bodies[D_CENTRE];
+        centre.born_asleep = false;
+        centre.z = TILE_TOP + 0.15f + 0.10f * 0.5f;   // 0.500, its true rest
+        c.keeps.clear();
+        c.keeps.push_back(Keep{D_CENTRE, centre.z - OVERLAP_TOL});
+        c.falls.clear();
+        c.stills.clear();
+        c.stills.push_back(Still{D_CENTRE});      // nothing pushes it: it must not move at all
+        // No phantom watch through the event stream: CollisionEvent carries the
+        // manifold's clamped depth, not the row's - it read 0.0 while the tile
+        // was written 20.7 mm up with zero velocity. The height line is the flag.
+        for (Height& h : c.heights) if (h.body == D_CENTRE) h.z = centre.z;
+        c.sleep_by_event = {D_CENTRE};
+        c.asleep_by_frame = -1;
+        c.demo1 = "DEMONSTRATING: a tile awake among sleeping siblings 7 mm higher builds NO "
+                  "phantom seam row (INV-2) and is not shoved into the layer below";
+        c.demo2 = "WATCH: the worst contact the engine reports for d11, its min z, the "
+                  "solver's exit, asleep count";
+        v.push_back(c);
+    }
     return v;
 }
 
@@ -854,6 +904,14 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
                       OVERLAP_TOL * 1000.0f, w * 1000.0f, pa >= 0 ? ", " : "",
                       pa >= 0 ? L(pa) : "", pa >= 0 ? (std::string("<->") + L(pb)).c_str() : "");
         v.push_back({t, w < OVERLAP_TOL});
+    }
+    if (c.phantom_watch) {
+        std::snprintf(t, sizeof t, "%s/INV-2: no contact EVER reads over %.0f mm (deepest %.1f mm "
+                      "at f%d%s%s%s)", c.gid, OVERLAP_TOL * 1000.0f, s.peak_contact_pen * 1000.0f,
+                      s.peak_contact_frame, s.peak_contact_a >= 0 ? ", " : "",
+                      s.peak_contact_a >= 0 ? L(s.peak_contact_a) : "",
+                      s.peak_contact_a >= 0 ? (std::string("<->") + L(s.peak_contact_b)).c_str() : "");
+        v.push_back({t, s.peak_contact_pen < OVERLAP_TOL});
     }
     // INV-2: rests at the derived height.
     for (const Height& h : c.heights) {
