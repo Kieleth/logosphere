@@ -28,8 +28,11 @@
 //      then; a touching stack beside it sleeps at once.
 //   D  THE FLOOR ARRIVES AFTER THE STONE (G-68). Two stones sleep on
 //      the ground; at frame 60 a tile is created around one of them.
-//      Nothing may be born through anything; that stone must end ON
-//      the tile, the other must not notice.
+//      OWNER DECREE 2026-09-01 (INV-37): "under no circumstances, any
+//      creation of particles should be allowed to overlap in space
+//      with another" - the door REFUSES the tile; both stones stay
+//      asleep on the ground, nothing moves. Likewise A's buried stone
+//      is refused, never born: the tile keeps its one dropped stone.
 //
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
@@ -121,7 +124,8 @@ struct Case {
     std::vector<int>    sleep_by_event;     // INV-31: asleep within SLEEP_GRACE of last strike
     int repair_a = -1, repair_b = -1;       // G-48: first sleep only after separation >= repair_done
     float repair_done = 0.0f;
-    int born_overlap_pair_a = -1, born_overlap_pair_b = -1;   // INV-4 (creation frame)
+    int born_overlap_pair_a = -1, born_overlap_pair_b = -1;   // INV-37 (creation frame)
+    int refused = -1;                       // INV-37: this creation must be REFUSED (absent)
     bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
     const char* waiver = nullptr;
@@ -293,7 +297,7 @@ struct Scene {
     }
     bool all_asleep(ParticleSystem& ps) const {
         for (size_t i = 0; i < ids.size(); ++i)
-            if (ids[i] >= 0 && !asleep(ps, (int)i)) return false;
+            if (alive(ps, (int)i) && !asleep(ps, (int)i)) return false;
         return true;
     }
     int asleep_count(ParticleSystem& ps) const {
@@ -302,6 +306,13 @@ struct Scene {
         return n;
     }
     float peak_speed(int i) const { return ids[i] < 0 ? 0.0f : argus.peak_speed(ids[i]); }
+    // A refused creation leaves no body on stage (INV-37): no id, or an id
+    // the flush dropped (mass 0 / beyond the live range).
+    bool alive(ParticleSystem& ps, int i) const {
+        if (ids[i] < 0) return false;
+        auto v = ps.lock_particles_for_read();
+        return (size_t)ids[i] < v.size() && v[ids[i]].GetMass() > 0.0f;
+    }
     float separation(int a, int b) const {
         return (ids[a] < 0 || ids[b] < 0) ? -1.0f : argus.separation(ids[a], ids[b]);
     }
@@ -371,14 +382,15 @@ inline std::vector<Case> cases() {
         const float h = drop_z - RUB_ON_TILE;
         c.strikes = {Strike{1, 0, fall_frames(h) + 12,
                             fall_speed(h) * 0.75f, fall_speed(h) * 1.2f}};
-        c.heights = {Height{1, RUB_ON_TILE}, Height{2, RUB_ON_TILE}, Height{0, TILE_Z}};
+        c.heights = {Height{1, RUB_ON_TILE}, Height{0, TILE_Z}};
         c.stills = {Still{0}};
         c.sleep_by_event = {1};
         c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 2;
+        c.refused = 2;
         c.demo1 = "DEMONSTRATING: the dropped stone strikes, settles and sleeps; the "
-                  "stone BORN in the tile (Eden's recipe) must be born ON it (INV-4)";
-        c.demo2 = "WATCH: the strike speed, 'buried' z 0.15 vs 0.43, the tile LIFTED, "
-                  "asleep 1/3, exit exhausted";
+                  "stone BORN in the tile (Eden's recipe) is REFUSED at creation (INV-37)";
+        c.demo2 = "WATCH: the strike speed, 'buried' on stage or not, the tile LIFTED, "
+                  "asleep 1/3, exit";
         v.push_back(c);
     }
     // B. The slab lands on the stone. Stone on the ground at x +0.3 (off
@@ -453,13 +465,14 @@ inline std::vector<Case> cases() {
                     rubble(0.0f, RUB_ON_GROUND, "under"),
                     rubble(+3.0f, RUB_ON_GROUND, "beside")};
         c.late_frame = 60;
-        c.heights = {Height{1, RUB_ON_TILE}, Height{2, RUB_ON_GROUND}, Height{0, TILE_Z}};
-        c.stills = {Still{0}, Still{2}};
+        c.heights = {Height{1, RUB_ON_GROUND}, Height{2, RUB_ON_GROUND}};
+        c.stills = {Still{1}, Still{2}};
         c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 1;
-        c.demo1 = "DEMONSTRATING: a tile created around a sleeping stone may not be "
-                  "born THROUGH it (INV-4/G-68); the stone ends ON the tile, both asleep";
-        c.demo2 = "WATCH: frame 60 - the tile appears; 'under' z 0.13 -> 0.43?; the "
-                  "tile must not move; 'beside' must not notice";
+        c.refused = 0;
+        c.demo1 = "DEMONSTRATING: a tile created around a sleeping stone is REFUSED "
+                  "(INV-37/G-68): no tile on stage, both stones stay asleep on the ground";
+        c.demo2 = "WATCH: frame 60 - does the tile appear? 'under' z 0.13 must not "
+                  "change; nothing may move; asleep 2/2";
         v.push_back(c);
     }
     return v;
@@ -488,13 +501,20 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
                       f, vs);
         v.push_back({t, f >= 0 && f <= k.by_frame && vs >= k.v_lo && vs <= k.v_hi});
     }
-    // INV-4: nothing is born inside anything (the creation frame's overlap).
+    // INV-37 (owner decree 2026-09-01): no creation overlaps anything - the
+    // creation frame's overlap, and the offending body REFUSED (absent).
     if (c.born_overlap_pair_a >= 0) {
-        std::snprintf(t, sizeof t, "%s/INV-4: %s is not BORN inside %s (creation "
-                      "overlap %.0f mm <= %.0f mm)", c.gid, L(c.born_overlap_pair_b),
-                      L(c.born_overlap_pair_a), s.birth_overlap * 1000.0f,
-                      OVERLAP_TOL * 1000.0f);
+        std::snprintf(t, sizeof t, "%s/INV-37: no creation overlaps anything "
+                      "(%s vs %s at creation: %.0f mm <= %.0f mm)", c.gid,
+                      L(c.born_overlap_pair_b), L(c.born_overlap_pair_a),
+                      s.birth_overlap * 1000.0f, OVERLAP_TOL * 1000.0f);
         v.push_back({t, s.birth_overlap <= OVERLAP_TOL});
+    }
+    if (c.refused >= 0) {
+        const bool on_stage = s.alive(ps, c.refused);
+        std::snprintf(t, sizeof t, "%s/INV-37: the door REFUSES %s (%s)", c.gid,
+                      L(c.refused), on_stage ? "it is on stage" : "absent, as ruled");
+        v.push_back({t, !on_stage});
     }
     // INV-2: no standing interpenetration at the end.
     if (c.rest_overlap_asserted) {

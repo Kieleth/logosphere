@@ -1116,3 +1116,16 @@ phantom; it is not this slice's (the only default-path change here is
 a member assignment in the solver). Booked for its own hunt: run it
 under ASan (the heap-corruption chain in memory) when a physics round
 has room.
+
+## OWNER DECREE (2026-09-01): CREATION NEVER OVERLAPS — INV-37
+
+"Under no circumstances, any creation of particles should be allowed to
+overlap in space with another." Supersedes the creation-door merge note
+above: the door lands STRICT and UNCONDITIONAL, refusing (dropping from
+the flush, with a [PHYSICS REFUSED] line naming the pair) any creation
+that overlaps an existing body beyond SLOP. No class list. The crown's
+structural band and the humanoid's boxes become generator defects to
+fix, not exemptions. CLEAN NOW: port the door into this tree, strict;
+witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
+scatter (rock.z = 0.15 inside the tile) gets refused on first run and
+is fixed at its source.

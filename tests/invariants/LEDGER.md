@@ -2339,3 +2339,25 @@ not notice (it does not). The reds that remain are the chain: A five,
 D six; C one by float dust (2.0 mm standing on a 2.0 mm bar, booked,
 bar not moved). One reflection break found and fixed: at 9 m spacing
 the window's B control landed on C's tile edge; 16 m now.
+
+## 2026-09-01 (later) — OWNER DECREE: creation never overlaps (INV-37)
+
+Owner, after QA of the four experiments: "I like these tests but
+remember that under no circumstances, any creation of particles should
+be allowed to overlap in space with another." Registered as INV-37
+(aspirational, born red), deriving from INV-30's strict-first clause,
+INV-4 and INV-2. What it decides: G-68's design question - the tile
+created around a sleeping stone is REFUSED, never created-then-
+repaired; case A's buried stone is refused at birth. What it changes:
+the creation door designed on feat/creation-overlap-door (a BVH audit
+at flush start; not yet in this tree) lands STRICT and UNCONDITIONAL -
+the two classes the board had left exempt (crown branches drawn through
+siblings, the humanoid's 23 unbonded boxes) are refusals to fix at
+their generators, not exemptions. What it contradicts: nothing ruled;
+it supersedes the board's "abort stays behind LOGOSPHERE_CREATION_STRICT
+until both classes read zero" with "strict, and the classes are bugs".
+Consequence stated for the record: a streamed chunk whose floor tile
+would be born through a body the game already placed is refused, and
+the refusal is the loud signal that the game placed or ordered wrongly.
+test_jammed_sleep A and D now assert the refusal (the offending body
+absent from the stage), red until the door lands.
