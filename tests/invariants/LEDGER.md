@@ -2287,3 +2287,34 @@ world (mechanism note added). Fix-one-by-one starts here.
 
 Aggregates (agent): terminated by a rate limit mid-conversion; its
 uncommitted work is recovered from its worktree.
+
+## 2026-09-01 (later) — THE FRAME COLLAPSE: RCA, then TDD before any fix
+
+Owner: "well 1fps was concerning" and, after the RCA, "I'd like to TDD
+all this first of any change." The RCA (GEDANKEN-67): Eden headless at
+3.4 s of physics per frame, 12,446 bodies, 92% asleep, yet 30,000 body-
+body contact rows per substep from ~900 awake-but-quiet bodies, the
+32-iteration budget exhausted every substep. Bisect: the four flip
+levers and CONTACT_TORQUE change nothing; SLEEP_LAW_OFF=1 (diagnostic)
+gives 49 ms; the commit before today's squash gives 229 ms. The gate is
+G-48's sleep veto on contact overlap over 3 mm. The naming pass: the
+deepest quiet-awake bodies are STONE rubble born INSIDE stone strata
+tiles (Eden's rock.z = 0.15 against a tile top of 0.30), 24-26 cm deep,
+unbonded, a 12-ton partner - a repair that can never progress, so the
+veto never lifts (GEDANKEN-68 for the tile arriving around the stone).
+Three instruments were broken on the way and are repaired here: the
+bench recorded the clamped delta, the trace emitted no frame record and
+spammed a per-body probe at level 2, the sink never flushed short runs.
+
+TDD FIRST (this slice, no fix): test_jammed_sleep (+ _visual), four
+cases on a real stage, reading the solver's verdict through the new
+PhysicsSystem::last_solve(). First run: A (Eden's stone in Eden's tile)
+red six ways - the tile LIFTS to 0.236 under the stone's repair, the
+stone stays at 0.130, 0/2 asleep, 32 iterations on 5 rows; D (the tile
+born around the sleeping stone) red six ways the same way; B (bonded
+clump, 30 mm overlap) GREEN - contact rows inside one bonded structure
+are denied at the pair stage, so the veto only ever sees unbonded
+overlaps; C (G-48's interlocked stack) green, separates to 1.9 mm by
+frame 9 and sleeps only then. Owner rulings owed: the order of the
+three fixes (Eden's rock placement; G-67's progress law; G-68's door
+contract), the door-law push, R5/R6's setup.

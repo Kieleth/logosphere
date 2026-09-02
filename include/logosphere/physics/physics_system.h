@@ -404,6 +404,11 @@ public:
 
     // Total gluon count (useful for worldgen cross-checks and instrumentation)
     size_t get_total_gluon_count() const { return gluon_constraints_v2_.size(); }
+    // THE SOLVER'S OWN VERDICT, readable by a test without the trace:
+    // rows it took in, iterations it ran, and which door it left by
+    // (the same record the level-2 trace writes as solve_exit).
+    struct SolveStats { int rows = 0; int iterations = 0; const char* exit = "none"; };
+    const SolveStats& last_solve() const { return last_solve_; }
 
     // Centralized gluon validation - removes gluons with stale particle indices
     // Called once at physics update start. Logs when pruning happens for diagnostics.
@@ -629,6 +634,7 @@ private:
     // limit cycle: woken mid-build every frame, re-captured by frame end,
     // recovering at ~0.1 mm/frame while probes read rest=1, v=0.)
     std::vector<uint8_t> constraint_dissatisfied_;
+    SolveStats last_solve_;
     size_t next_gluon_id_;  // For gluon ID assignment
     std::vector<size_t> gluons_to_remove_;  // Deferred removal (can't modify during iteration)
 

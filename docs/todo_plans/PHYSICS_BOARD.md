@@ -1091,3 +1091,19 @@ D6 is cheap, independent of the router's election machinery, and
 useful before Kamaji exists: the counter can be built and left running
 to gather the distribution while the rest is designed. Its vocabulary
 limit is boarded as R6.
+
+## OWNER RULING — THE FRAME COLLAPSE, TDD FIRST (2026-09-01)
+
+Owner: "I'd like to TDD all this first of any change." Eden's 3.4 s
+frames (G-67's RCA) are one chain: stones born inside strata tiles
+(Eden's rock.z = 0.15, INV-4), G-48's sleep veto reading a permanent
+overlap as a repair in progress, 30,000 contact rows from ~900 quiet
+bodies that cannot sleep, the solver's budget exhausted every substep.
+`test_jammed_sleep` (+ `_visual`) carries the chain as four born-red
+cases on a real stage (G-67 A/B, G-48 C as the guard, G-68 D), reading
+the solver's own verdict through the new `PhysicsSystem::last_solve()`.
+Instruments repaired in the same slice: the bench records the wall
+clock; the trace emits its frame record, a row census by kind, no
+per-body probe at level 2, and flushes at exit. NOTHING IS FIXED YET:
+Eden's rock placement, G-67's progress law and G-68's door contract
+each wait on their red and on the owner's order.

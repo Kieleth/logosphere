@@ -8,6 +8,27 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **Physics: `PhysicsSystem::last_solve()`.** The solver's own verdict for
+  the last substep, readable by a test without the trace: rows taken in,
+  iterations run, and which exit it took (`impulse_under_absolute_threshold`,
+  `improvement_below_min_rate`, `iteration_budget_exhausted`). Every new
+  test asserts on it as the cost witness: a quiet stage must leave by a
+  door, never by the wall.
+- **`test_jammed_sleep` (+ `_visual`): the frame-collapse chain, born red
+  before any fix.** One real stage (a stone strata tile on the turtle) and
+  four cases from one scene header: a stone born inside the tile (Eden's
+  own recipe) must be born ON it, leave it and sleep; a bonded clump at rest
+  in its own overlap must sleep; an interlocked stack must not sleep
+  mid-repair; a tile created around a sleeping stone may not be born
+  through it. A and D are red today (the cause of Eden's 3.4 s frames,
+  GEDANKEN-67/68), B and C are the guards.
+- **Physics trace: the level-1 frame record and a level-2 row census.**
+  `LOGOSPHERE_PHYS_TRACE=1` now emits, per frame, bodies / asleep /
+  awake-but-quiet / held-by-the-dissatisfaction-gate; level 2 adds rows by
+  kind (turtle, contact, bond, angular) per substep. The per-body omega
+  probe moves to level 5 (it wrote 6.5 million lines in 12 Eden frames at
+  level 2), and the trace sink flushes at exit so short runs keep their
+  records.
 - **Physics: two default-off levers that make a stack of boxes stand
   still under contact torque.** `MANIFOLD_SPAN=1` reduces a face
   contact's manifold to a set that spans the contact polygon instead of
@@ -239,6 +260,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **Eden `--bench` recorded the clamped frame delta.** Every frame slower
+  than the 100 ms cap read as exactly 100.0 ms at every percentile while
+  the run took over a second per frame. The bench now records the wall
+  clock.
 - **Logovger: a rank ladder now has a top.** Cepheus prints seven rungs
   per career and says only "you may improve your rank by one"; it never
   says what that means for a character standing on the last one. Rank
