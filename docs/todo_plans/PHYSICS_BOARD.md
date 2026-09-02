@@ -1211,3 +1211,48 @@ measured 229 ms. G-67's chain has another link and it is not creation
 overlap. The next probe is the trace's own frame record (bodies / asleep /
 awake-quiet / dissatisfied) on the post-door world. OWNER RULING owed on
 whether that comes before or after the grass.
+
+### THE SWEEP'S OWN LIST (2026-09-02, after the door)
+
+Fifteen new reds on the first armed sweep; ten were defects and are fixed
+at the source, five are the two open fronts wearing different names.
+
+FIXED: three cascades that named the wrong defect one system downstream
+(the chunk activator bonding to a refused body, the rock generator's
+NaN force law from `particles[-1]`, its add-anyway placement path); the
+O(n^2) the door had at the queue; twenty-four humanoid scenes spawned
+0.5 against a 0.55 strata surface or 0.0 against a 0.10 slab;
+`test_gi_bounce` and `test_ssgi_visual`'s own scenery (a 2 m obelisk
+0.1 m inside its floor, a Cornell box whose four walls were born through
+each other at the corners and through the ceiling); the KG humanoid
+rig's ears, hair and arms; three instruments restaged as INV-30 writes
+(`test_baumgarte_ratchet`, `test_interaction_filtering`,
+`test_predator_hunt`); `at_cinematic`'s stand-in bike, which sat exactly
+where the cinematic pops the Program in.
+
+BOOKED, with numbers, in TEST_AUDIT: `test_ancient_oak`,
+`test_tree_bonds_born_at_rest`, `test_tree_shadow_wiggly`,
+`test_tree_repair_visual`, `test_foliage_stays_attached` (F-CROWN);
+`test_plants_are_rooted` (F-GRASS); `at_logotron_full_game_loop` (the
+motorcycle rig nests rider-in-canopy and wheels-in-body, the same class
+as the humanoid rig's arm-in-shoulder and the same kind of fix).
+
+**F-BIKE — the logotron motorcycle rig nests its own parts.** Rider
+inside canopy, wheels inside body. Offsets, not exemptions, exactly as
+the humanoid rig took. Three real defects around it are already fixed:
+the wheels rode 0.10 m inside the arena slab, the live light-trail was
+drawn to the cycle's own centre so its head was born inside the bike
+every frame, and the decorative floor grid could not exist as bodies at
+all (2551 refusals in one run; removed, and a grid belongs in the floor
+tiles' colour). NEEDS DESIGN.
+
+**OWNER RULING OWED — a body cannot be BORN inside a declared medium.**
+`test_interaction_volume_forces` puts a ball in a water column, and the
+door refuses it: the ball measured 10.15 m of penetration and was never
+created. The solver ALREADY refuses to build a contact row for a
+declared-passable pair (`interaction_->should_contact`), so none of the
+harm INV-37 names - a separating impulse, a repair that never completes,
+a sleep veto that never lifts - can occur for such a pair. Whether the
+door should read that same declaration is an amendment to the decree,
+not a class list, and it is the owner's call. The fixture places its
+ball by hand meanwhile, and says so in the file.

@@ -922,18 +922,38 @@ public:
     }
 
     // Create a Motorcycle entity and pin default shape params. The
+    // How far behind the cycle's own position its trail may start.
+    //
+    // Two terms, both measured rather than chosen. The rig's furthest
+    // rearward point is the tail fin: local_y = -0.40 * body_len with a
+    // chord of 0.28 * body_len, so it reaches 0.54 * body_len = 0.972 m
+    // behind the assembly's origin. And the assembly is written from the
+    // cycle's position one frame LATE, so the trail must also clear a
+    // frame of travel: kCycleSpeed (5 m/s) at 1/30 s is 0.167 m.
+    //
+    // Below this the trail's leading end is born INSIDE the bike, which
+    // the creation door refuses (INV-37) - and with no live trail there is
+    // no sealed trail either, which is what "crashed AI should have sealed
+    // at least one trail particle" was failing on.
+    static constexpr float kBikeBodyLen       = 1.80f;
+    static constexpr float kBikeTailClearance =
+        kBikeBodyLen * 0.54f + logotron::kCycleSpeed / 30.0f;
+
     // Build a motorcycle RigidAssembly. Shape parameters are hard-coded
     // here (game policy); the engine primitive owns the transform math.
     logosphere::assembly::RigidAssembly make_motorcycle(kg::EntityID entity,
                                                         bool is_player) {
         namespace la = logosphere::assembly;
-        const float body_len   = 1.80f;
+        const float body_len   = kBikeBodyLen;
         const float body_w     = 0.55f;
         const float body_h     = 0.32f;
         const float wheel_r    = 0.26f;
         const float wheel_t    = 0.14f;
         const float wheel_offs = 0.70f;
-        const float body_z     = wheel_r + body_h * 0.5f;
+        // The wheels rest on the ARENA's surface, not on the turtle: the rig
+        // used to be built with its wheel bottoms at z = 0, which is 0.10 m
+        // inside the arena slab - a birth INV-37 refuses.
+        const float body_z     = kArenaFloorTop + wheel_r + body_h * 0.5f;
 
         la::RigidAssembly a;
         a.entity = entity;
@@ -953,7 +973,7 @@ public:
         wheel_front.name = "wheel_front";
         wheel_front.shape = ParticleShape::ELLIPSOID;
         wheel_front.local_y = +wheel_offs;  // forward end
-        wheel_front.local_z = wheel_r;
+        wheel_front.local_z = kArenaFloorTop + wheel_r;
         wheel_front.width     = wheel_t;        // axle along X
         wheel_front.height    = 2.0f * wheel_r; // diameter along Y
         wheel_front.thickness = 2.0f * wheel_r; // diameter along Z
@@ -1160,45 +1180,23 @@ public:
             edge_light( half_w, ys);
         }
 
-        // Subtle floor grid: thin faint lines every 5 m in both
-        // axes. Dim enough to read as "grid painted on floor" under
-        // the brighter trails and wall glow.
-        const float grid_step = 5.0f;
-        const float grid_thickness = 0.05f;
-        // Grid lines are 0.05 thick, so a centre at 0.02 leaves them 5 mm under
-    // the floor. Half their own thickness sits them exactly on it.
-    const float grid_z = 0.025f;
-        for (float ax = -half_w; ax <= half_w + 0.01f; ax += grid_step) {
-            auto e = kg.createEntity("ArenaWall");
-            kg.setProperty(e, "grid_x", "-999");
-            kg.setProperty(e, "grid_y", "-999");
-            Particle p = {};
-            p.shape = ParticleShape::BOX;
-            p.x = ax; p.y = 0.0f; p.z = grid_z;
-            p.width = grid_thickness; p.height = kArenaH; p.thickness = 0.05f;
-            p.r = 0.10f; p.g = 0.25f; p.b = 0.45f; p.a = 1.0f;
-            p.SetMaterial(Materials::Type::STONE);
-            p.owner = ParticleOwner::STATIC;
-            p.is_at_rest = true;
-            ps.add_particle_to_entity(p, &kg, e);
-            boundary_entities_.push_back(e);
-        }
-        for (float ay = -half_h; ay <= half_h + 0.01f; ay += grid_step) {
-            auto e = kg.createEntity("ArenaWall");
-            kg.setProperty(e, "grid_x", "-999");
-            kg.setProperty(e, "grid_y", "-999");
-            Particle p = {};
-            p.shape = ParticleShape::BOX;
-            p.x = 0.0f; p.y = ay; p.z = grid_z;
-            p.width = kArenaW; p.height = grid_thickness; p.thickness = 0.05f;
-            p.r = 0.10f; p.g = 0.25f; p.b = 0.45f; p.a = 1.0f;
-            p.SetMaterial(Materials::Type::STONE);
-            p.owner = ParticleOwner::STATIC;
-            p.is_at_rest = true;
-            ps.add_particle_to_entity(p, &kg, e);
-            boundary_entities_.push_back(e);
-        }
+        // THE DECORATIVE FLOOR GRID IS GONE (INV-37).
+        //
+        // It was two families of thin boxes laid every 5 m, and under the
+        // creation door not one of them could exist: at their old height
+        // they were born entirely INSIDE the arena slab; lifted onto its
+        // top face they were born through each other at every intersection
+        // and, worse, stood in the wheels' way - the bikes ride on that
+        // surface. In this engine a particle is a body and a body on the
+        // floor is an obstacle; there is no such thing as a line PAINTED on
+        // the ground. The arena's own tiles already carry colour, and that
+        // is where a grid belongs. 2551 refusals on one run of
+        // at_logotron_full_game_loop, all of them this.
     }
+
+    // The arena slab is 0.1 m thick with its bottom on the turtle, so
+    // everything that stands on the arena starts here.
+    static constexpr float kArenaFloorTop = 0.10f;
 
     kg::EntityID spawn_floor(kg::KGModule& kg) {
         auto& ps = engine_->get_particle_system();
@@ -1367,9 +1365,28 @@ public:
             if (c.state != logotron::CycleState::RIDING) return kg::INVALID_ENTITY;
             kg::EntityID head = kg.createEntity("Cycle");
             Particle p = {};
+            // THE TRAIL LEAVES THE BACK OF THE BIKE, NOT ITS MIDDLE.
+            // The live run used to be drawn all the way to the cycle's own
+            // position, so its leading end was born inside the bike's body
+            // ellipsoid every frame - a creation in overlap, refused by the
+            // door (INV-37), which meant no live trail at all and, further
+            // down, no sealed trail for the crash test to find. The head now
+            // stops at the bike's tail. kBikeTailClearance is half the body's
+            // long axis plus its rear wheel's reach, which is the geometry
+            // make_motorcycle builds.
+            const float run_dx = c.x - c.run_start_x;
+            const float run_dy = c.y - c.run_start_y;
+            const float run_len = std::sqrt(run_dx * run_dx + run_dy * run_dy);
+            float head_x = c.x, head_y = c.y;
+            if (run_len > kBikeTailClearance) {
+                head_x -= run_dx / run_len * kBikeTailClearance;
+                head_y -= run_dy / run_len * kBikeTailClearance;
+            } else {
+                return kg::INVALID_ENTITY;   // not clear of the bike yet
+            }
             set_wall_geometry(p,
                 arena_to_world_x(c.run_start_x), arena_to_world_y(c.run_start_y),
-                arena_to_world_x(c.x),           arena_to_world_y(c.y));
+                arena_to_world_x(head_x),        arena_to_world_y(head_y));
             // Active-run head: per-frame churn — see
             // walls.h::style_active_run_head for why this can NOT
             // be a light source.

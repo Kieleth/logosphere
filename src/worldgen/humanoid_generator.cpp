@@ -777,8 +777,11 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     float hair_r = 0.3f, hair_g = 0.2f, hair_b = 0.1f;  // Brown
 
     // UPPER HAIR - Flat on top of head
-    float upper_hair_width = head_size * 1.1f;   // Wider than head
-    float upper_hair_depth = head_size * 1.1f;   // Deep as head
+    // The cap's footprint is the HEAD's. At 1.1x it overhung the head at the
+    // back, which is exactly where the back hair's front face sits: 9 mm of
+    // one hair inside the other, a birth INV-37 refuses.
+    float upper_hair_width = head_size;
+    float upper_hair_depth = head_size;
     float upper_hair_thickness = 0.05f;          // Thicker flat layer
     float upper_hair_z = head_z + head_size / 2.0f + upper_hair_thickness / 2.0f;  // On top
 
@@ -812,7 +815,10 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
 
     // EARS - Small cubes on sides of head, centered vertically
     float ear_size = 0.04f;  // Small ears
-    float ear_offset = head_size / 2.0f;  // At head edges
+    // The ear's INNER face on the head's side face. At head_size/2 the ear's
+    // centre was on that face and half of it was inside the head (20 mm each,
+    // INV-37).
+    float ear_offset = head_size / 2.0f + ear_size / 2.0f;
 
     // LEFT EAR
     std::cout << "[TEST] Creating LEFT EAR at (" << (world_x - ear_offset) << ", " << world_y << ", " << head_z << ")" << std::endl;
@@ -841,7 +847,11 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     // ARMS - UPPER ARM (BICEPS) BOX PARTICLES
     float arm_width = 0.05f;   // Upper arm thickness
     float arm_height = 0.30f;  // Upper arm length
-    float arm_z = shoulder_z - arm_height / 2.0f;  // Hangs down from shoulder
+    // FROM THE SHOULDER'S UNDERSIDE. shoulder_z is the shoulder cube's CENTRE,
+    // so hanging the arm half its own length below that put its top half
+    // inside the cube (30 mm, INV-37). The arm's top face is on the
+    // shoulder's bottom face.
+    float arm_z = shoulder_z - shoulder_size / 2.0f - arm_height / 2.0f;
 
     // LEFT UPPER ARM
     std::cout << "[TEST] Creating LEFT UPPER ARM at (" << (world_x - shoulder_offset) << ", " << world_y << ", " << arm_z << ")" << std::endl;
@@ -870,7 +880,8 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     // FOREARMS - Slightly thinner, hanging from upper arms
     float forearm_width = arm_width * 0.8f;  // 0.032m - thinner than upper arm
     float forearm_height = 0.25f;  // Forearm length
-    float forearm_z = shoulder_z - arm_height - forearm_height / 2.0f;  // Hangs from upper arm
+    float forearm_z = shoulder_z - shoulder_size / 2.0f - arm_height
+                    - forearm_height / 2.0f;  // Hangs from the upper arm
 
     // LEFT FOREARM
     std::cout << "[TEST] Creating LEFT FOREARM at (" << (world_x - shoulder_offset) << ", " << world_y << ", " << forearm_z << ")" << std::endl;
@@ -900,7 +911,8 @@ kg::EntityID HumanoidGenerator::generate_humanoid(
     float hand_thickness = 0.03f;  // Palm thickness (X - thin, left-right)
     float hand_width = 0.10f;      // Palm width (Y - wide, facing body)
     float hand_length = 0.12f;     // Palm + fingers (Z - vertical)
-    float hand_z = shoulder_z - arm_height - forearm_height - hand_length / 2.0f;  // Hangs from forearm
+    float hand_z = shoulder_z - shoulder_size / 2.0f - arm_height - forearm_height
+                 - hand_length / 2.0f;  // Hangs from the forearm
 
     // LEFT HAND
     std::cout << "[TEST] Creating LEFT HAND at (" << (world_x - shoulder_offset) << ", " << world_y << ", " << hand_z << ")" << std::endl;
