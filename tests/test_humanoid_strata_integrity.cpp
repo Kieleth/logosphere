@@ -56,6 +56,10 @@
 #include <vector>
 #include <algorithm>
 
+// The three strata layers this scene builds are 0.30 + 0.15 + 0.10 thick
+// on the turtle, so the walking surface is 0.55 m.
+static constexpr float STRATA_TOP = 0.55f;
+
 bool test_humanoid_strata_integrity() {
     printf("\n=== Humanoid Strata Walk ===\n");
 
@@ -280,8 +284,11 @@ bool test_humanoid_strata_integrity() {
     // HUMANOID — spawn at origin.
     // -------------------------------------------------------------------------
     auto& hgen = engine.get_worldgen_system().get_humanoid_generator();
+    // The strata's walking surface is 0.55 (0.30 + 0.15 + 0.10), and world_z
+    // is the feet's BOTTOM: 0.5 put every foot 50 mm inside the organic
+    // layer, which the creation door refuses (INV-37).
     auto eva = hgen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.5f, -1, HumanoidSpec::eva(), false);
+        0.0f, 0.0f, STRATA_TOP, -1, HumanoidSpec::eva(), false);
     auto& kg = engine.get_kg();
     eva.create_kg_entities(kg, "Human", 180.0f, 800.0f);
     engine.get_humanoid_locomotion().register_humanoid_direct(
@@ -347,7 +354,7 @@ bool test_humanoid_strata_integrity() {
     auto spawn_npc = [&](const std::string& label, float x, float y) {
         NPC n;
         n.body = hgen.generate_humanoid_physics(
-            x, y, 0.5f, -1, HumanoidSpec::eva(), false);
+            x, y, STRATA_TOP, -1, HumanoidSpec::eva(), false);
         n.body.create_kg_entities(kg, "Human", 180.0f, 800.0f);
         engine.get_humanoid_locomotion().register_humanoid_direct(
             n.body.hips_id,

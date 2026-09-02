@@ -118,7 +118,7 @@ bool test_humanoid_ground_multitile(TestContext& /* ctx */) {
     gen.initialize(&engine, nullptr);
 
     PhysicsHumanoidResult humanoid = gen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.0f,      // Start at origin (center of grid)
+        0.0f, 0.0f, TILE_THICKNESS,  // Standing ON the tiles (INV-37: world_z is the feet's bottom)
         center_tile_id,         // Use center tile as platform reference
         HumanoidSpec::eva(),    // Use Eva spec
         false                   // No KG support needed

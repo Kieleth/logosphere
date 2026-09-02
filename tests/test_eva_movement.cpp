@@ -407,8 +407,11 @@ bool test_eva_movement(TestContext& /* ctx */) {
     HumanoidGenerator gen;
     gen.initialize(&engine, nullptr);
 
+    // world_z is the feet's BOTTOM, and this floor's top is 0.10: spawning at
+    // zero buried every foot 80 mm inside the slab, which INV-37 refuses.
+    const float floor_top = world_floor.z + world_floor.thickness * 0.5f;
     PhysicsHumanoidResult eva = gen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.0f,  // Start at origin
+        0.0f, 0.0f, floor_top,  // Standing ON the floor
         -1,                 // Create Eva's platform
         HumanoidSpec::eva(),
         false               // kg_support=false (animations require separate integration)

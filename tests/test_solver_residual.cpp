@@ -120,20 +120,41 @@ Reading run(int stack, float overlap, int settle_frames) {
             v[id].is_at_rest = true;
         }
 
-    // The stack. At overlap 0 each box sits exactly on the one below it, so
-    // the scene starts at rest and there is no impact to confuse the reading.
+    // The stack. Every box is BORN exactly touching the one below it, so the
+    // scene starts legal and at rest and there is no impact to confuse the
+    // reading.
     std::vector<int> ids;
     for (int i = 0; i < stack; ++i) {
         Particle p = {};
         p.shape = ParticleShape::BOX;
         p.x = 0.0f; p.y = 0.0f;
-        p.z = 0.10f + SIZE * 0.5f + i * SIZE * (1.0f - overlap);
+        p.z = 0.10f + SIZE * 0.5f + i * SIZE;
         p.width = p.height = p.thickness = SIZE; p.size = SIZE;
         p.r = 0.8f; p.g = 0.4f; p.b = 0.3f; p.a = 1.0f;
         p.SetMaterial(Materials::Type::STONE);
         ids.push_back(engine.add_particle(p));
     }
     ps.flush_pending_particles();
+
+    // THE INTERLOCK IS DRIVEN IN, NOT BORN (INV-37, owner decree 2026-09-01).
+    //
+    // This instrument needs a violation big enough that a blind measurement
+    // cannot miss it, and it used to get one by SPAWNING the boxes 40% inside
+    // each other. Under INV-37 that birth is refused at the door and the
+    // instrument would have had one box to measure instead of two.
+    //
+    // The overlap is now written in AFTER the bodies exist, which is a
+    // different law and the right one: an external writer handing the solver
+    // a state it would never have produced is exactly INV-30's case, and this
+    // fixture is doing it deliberately, the way scene_jammed_sleep's rearm
+    // does. Nothing about the numbers below changes - the same two boxes are
+    // the same 0.4 m inside each other on the first frame the solver sees.
+    if (overlap > 0.0f && stack > 1) {
+        auto v = ps.lock_particles_for_write();
+        for (int i = 1; i < stack; ++i)
+            v[ids[i]].z -= SIZE * overlap * static_cast<float>(i);
+        ps.mark_bvh_dirty();
+    }
     // SAMPLE EVERY FRAME, not just the last one.
     //
     // The first version of this test read the residual once, at the end, and
