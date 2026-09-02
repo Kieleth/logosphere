@@ -1129,3 +1129,12 @@ fix, not exemptions. CLEAN NOW: port the door into this tree, strict;
 witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
 scatter (rock.z = 0.15 inside the tile) gets refused on first run and
 is fixed at its source.
+
+## IN FLIGHT (2026-09-02): the creation door + the audit's fixes, one agent
+
+Owner rulings 1 and 2 (LEDGER 2026-09-02). feat/creation-door, stacked
+on #166: test_creation_door born red; the refusal inside add_particle
+with an incremental BVH; the headless bench before/after; Eden's first-
+run refusal census as the red list; every audit-found birth fixed at
+its source; sweep alone; PR for the owner's merge. Windows after the
+report, launched by the dispatcher.

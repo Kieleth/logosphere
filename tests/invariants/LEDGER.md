@@ -2361,3 +2361,21 @@ would be born through a body the game already placed is refused, and
 the refusal is the loud signal that the game placed or ordered wrongly.
 test_jammed_sleep A and D now assert the refusal (the offending body
 absent from the stage), red until the door lands.
+
+## 2026-09-02 — OWNER RULINGS on the creation door and the audit's fixes
+
+1. The door: "fresh at the choke point, with the incremental BVH cost
+   measured on the headless bench before it ships, in TDD please" -
+   built inside ParticleSystem::add_particle, refusal by construction,
+   the cost measured on Eden's headless bench before it ships, asserts
+   first (test_creation_door born red). Dispatched to an Opus 5 agent
+   with the audit as its map, on feat/creation-door stacked on #166.
+2. The source fixes the audit found (Eden's literal heights, chunk
+   reloads around leftover bodies, the rig's arm/hair/eye overlaps, the
+   fourteen tests at world_z 0, the crown, grass seams and foliage, the
+   rock generator's add-anyway path, the predator examples,
+   test_solver_residual and the rooted grass): "all of them need fixing,
+   I'd just bundle it up with [the door] and that agent". Bundled.
+Still open, explained to the owner the same day: the door-law branch
+push (G-65; parked behind the creation door so its cost can be
+measured on a healed Eden) and the R5/R6 rungs' setup (G-66).
