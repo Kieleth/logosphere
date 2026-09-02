@@ -383,6 +383,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         // contact build marks first, the gluon build marks later, the
         // sleep gate reads the union at frame end.
         constraint_dissatisfied_.assign(particles.size(), 0);
+        if (::logosphere::phystrace::level() >= 2) { dissat_line_.assign(particles.size(), 0); dissat_depth_.assign(particles.size(), 0.0f); dissat_partner_.assign(particles.size(), -1); }
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
@@ -497,6 +498,43 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     {
         ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsRestState);
         update_rest_state(particles);
+    }
+    // WHO holds whom awake (G-67's census, level >= 2): per body, which
+    // setter marked it dissatisfied (by source line) this frame.
+    if (::logosphere::phystrace::level() >= 2 && dissat_line_.size() == particles.size()) {
+        std::vector<std::pair<int,int>> held;   // (line, count)
+        std::map<int,int> by_line;
+        int quiet_held = 0;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest || dissat_line_[i] == 0) continue;
+            if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+            ++quiet_held; by_line[dissat_line_[i]]++;
+        }
+        for (auto& kv : by_line)
+            PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_by_line", kv.first, kv.second,
+                       "setter_line_count", (double)quiet_held, 0.0);
+        // the ten deepest quiet-held bodies, by their recorded depth
+        std::vector<std::pair<float,int>> deep;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest || dissat_line_[i] == 0) continue;
+            if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+            deep.push_back({dissat_depth_[i], (int)i});
+        }
+        std::sort(deep.begin(), deep.end(), [](auto& x, auto& y){ return x.first > y.first; });
+        for (size_t k = 0; k < deep.size() && k < 10; ++k) {
+            const Particle& p = particles[deep[k].second];
+            char why[200];
+            std::snprintf(why, sizeof why,
+                "P%d %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) z=%.3g bonds=%zu line=%d partner=P%d",
+                deep[k].second, p.shape == ParticleShape::BOX ? "BOX" : "SPH", (int)p.material_type,
+                p.GetMass(), p.width, p.height, p.thickness, p.z,
+                get_gluons_for_particle(deep[k].second).size(), dissat_line_[deep[k].second],
+                dissat_partner_[deep[k].second]);
+            PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_who", (int)k, 0, why,
+                       (double)deep[k].first, 0.0);
+        }
     }
     // Level 1 FRAME record, as the trace header promises: bodies, how many
     // sleep, how many are awake yet under the rest speed, and how many of
@@ -1212,8 +1250,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // beyond the tolerance marks the body dissatisfied, so sleep
             // cannot freeze it mid-repair. Speculative gaps do not mark.
             if (penetration > SLEEP_PEN_TOLERANCE &&
-                i < constraint_dissatisfied_.size())
+                i < constraint_dissatisfied_.size()) {
                 constraint_dissatisfied_[i] = 1;
+                dissat_note(i, __LINE__, penetration, -1);
+            }
 
             // Turtle contacts provide equilibrium for BFS distance calculation
             active_contacts_.push_back(std::make_pair(i, i));
@@ -1817,10 +1857,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // Speculative rows (bias < 0, gap open) do not mark.
                     if (c.bias >= 0.0f &&
                         c.penetration > SLEEP_PEN_TOLERANCE) {
-                        if (c.body_a < constraint_dissatisfied_.size())
+                        if (c.body_a < constraint_dissatisfied_.size()) {
                             constraint_dissatisfied_[c.body_a] = 1;
-                        if (c.body_b < constraint_dissatisfied_.size())
+                            dissat_note(c.body_a, __LINE__, c.penetration, (int)c.body_b);
+                        }
+                        if (c.body_b < constraint_dissatisfied_.size()) {
                             constraint_dissatisfied_[c.body_b] = 1;
+                            dissat_note(c.body_b, __LINE__, c.penetration, (int)c.body_a);
+                        }
                     }
 
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
@@ -2279,9 +2323,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // anchor (kinematic rotation, teleport, mass change).
                 if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
                     if (body_a < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_a] = 1;
+                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
                     if (body_b < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_b] = 1;
+                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
                     // Clearing is_at_rest alone is the hysteresis trap: the
                     // rest counter stays high, the damper crushes the first
                     // small correction, and sleep re-latches within the
@@ -2737,9 +2781,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
                 if (e_mag > 0.1f) {
                     if (body_a < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_a] = 1;
+                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
                     if (body_b < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_b] = 1;
+                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;
                         particles[body_a].low_velocity_frames = 0;

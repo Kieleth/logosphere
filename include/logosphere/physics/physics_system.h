@@ -634,6 +634,16 @@ private:
     // limit cycle: woken mid-build every frame, re-captured by frame end,
     // recovering at ~0.1 mm/frame while probes read rest=1, v=0.)
     std::vector<uint8_t> constraint_dissatisfied_;
+    // G-67 census (trace level >= 2 only): which setter (source line) marked
+    // a body dissatisfied, how deep, against whom. Never read by physics.
+    std::vector<int>   dissat_line_;
+    std::vector<float> dissat_depth_;
+    std::vector<int>   dissat_partner_;
+    void dissat_note(size_t body, int line, float depth, int partner) {
+        if (body >= dissat_line_.size()) return;
+        if (dissat_line_[body] == 0) dissat_line_[body] = line;
+        if (depth > dissat_depth_[body]) { dissat_depth_[body] = depth; dissat_partner_[body] = partner; }
+    }
     SolveStats last_solve_;
     size_t next_gluon_id_;  // For gluon ID assignment
     std::vector<size_t> gluons_to_remove_;  // Deferred removal (can't modify during iteration)
