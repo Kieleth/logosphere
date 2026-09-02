@@ -88,7 +88,10 @@ int main() {
     auto* l_world = add_line(engine, "world", PANEL_X, 84, 120, 230, 140);
     l_world->set_text("WORLD: DEFAULT (INV-36). Red lines are the frame-collapse "
                       "chain, born red on purpose (TDD)");
-    constexpr int PANEL_ROWS = 10;
+    // Every verdict gets a row: the longest case (C) carries seventeen.
+    // Ten rows hid seven of them while the count still said n/17 (owner,
+    // 2026-09-02: "the asserts counts are wrong").
+    constexpr int PANEL_ROWS = 18;
     std::vector<ui::Label*> rows;
     for (int i = 0; i < PANEL_ROWS; ++i)
         rows.push_back(add_line(engine, "assert" + std::to_string(i),
@@ -164,8 +167,8 @@ int main() {
             if (vs[i].ok) rows[i]->set_color(120, 230, 140);
             else          rows[i]->set_color(255, 120, 120);
         }
-        std::snprintf(buf, sizeof buf, "ASSERTS %d/%zu passing (sleep lines go "
-                      "green late)", passing, vs.size());
+        std::snprintf(buf, sizeof buf, "ASSERTS %d/%zu passing, all %zu shown "
+                      "(sleep lines go green late)", passing, vs.size(), vs.size());
         l_verdict->set_text(buf);
         l_verdict->set_color(passing == (int)vs.size() ? 120 : 255,
                              passing == (int)vs.size() ? 230 : 120, 120);
