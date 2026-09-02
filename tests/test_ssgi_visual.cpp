@@ -184,6 +184,10 @@ static void add_floor_tile(Engine& engine, float wx, float wy, float r, float g,
     tile.thickness = 0.15f;
     tile.size = 0.5f;
     tile.r = r; tile.g = g; tile.b = b; tile.a = 1.0f;
+    // Scenery the test owns: the same helper builds the ceiling at 6.15 m and
+    // a sleep flag is not immobility (G-72 wakes a sleeper with nothing under
+    // it). KINEMATIC is the engine's mechanism for a position owned outside.
+    tile.solver_mode = ParticleSolverMode::KINEMATIC;
     tile.is_at_rest = true;
     engine.add_particle(tile);
 }
@@ -206,6 +210,9 @@ static void add_wall(Engine& engine, float wx, float wy, float wz,
     wall.thickness = wall_thick;
     wall.size = std::max({wall_w, wall_h, wall_thick});
     wall.r = r; wall.g = g; wall.b = b; wall.a = 1.0f;
+    // Scenery: the walls at x = +-2.5 stand over the gaps of the 1 m-pitch
+    // checkerboard of 0.5 m tiles, held by nothing; KINEMATIC, as above.
+    wall.solver_mode = ParticleSolverMode::KINEMATIC;
     wall.is_at_rest = true;
     engine.add_particle(wall);
 }
@@ -242,6 +249,7 @@ static void add_glass(Engine& engine, float wx, float wy, float wz,
     glass.width = gw; glass.height = gh; glass.thickness = gt;
     glass.size = std::max({gw, gh, gt});
     glass.r = r; glass.g = g; glass.b = b; glass.a = alpha;
+    glass.solver_mode = ParticleSolverMode::KINEMATIC;   // scenery (G-72: a sleep flag is not immobility)
     glass.is_at_rest = true;
     engine.add_particle(glass);
 }
@@ -393,6 +401,7 @@ bool test_ssgi_visual() {
             floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.15f;
             floor.size = 50.0f;
             floor.r = 0.8f; floor.g = 0.8f; floor.b = 0.8f; floor.a = 1.0f;
+            floor.solver_mode = ParticleSolverMode::KINEMATIC;   // scenery (G-72: a sleep flag is not immobility)
             floor.is_at_rest = true;
             engine.add_particle(floor);
 
@@ -474,6 +483,7 @@ bool test_ssgi_visual() {
                     ceil.width = 0.5f; ceil.height = 0.5f; ceil.thickness = 0.15f;
                     ceil.size = 0.5f;
                     ceil.r = 0.8f; ceil.g = 0.8f; ceil.b = 0.8f; ceil.a = 1.0f;
+                    ceil.solver_mode = ParticleSolverMode::KINEMATIC;   // scenery (G-72: a sleep flag is not immobility)
                     ceil.is_at_rest = true;
                     engine.add_particle(ceil);
                 }
@@ -519,6 +529,7 @@ bool test_ssgi_visual() {
             floor.width = 50.0f; floor.height = 50.0f; floor.thickness = 0.15f;
             floor.size = 50.0f;
             floor.r = 0.8f; floor.g = 0.8f; floor.b = 0.8f; floor.a = 1.0f;
+            floor.solver_mode = ParticleSolverMode::KINEMATIC;   // scenery (G-72: a sleep flag is not immobility)
             floor.is_at_rest = true;
             engine.add_particle(floor);
 

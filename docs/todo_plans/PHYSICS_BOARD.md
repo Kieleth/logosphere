@@ -1264,3 +1264,31 @@ with an incremental BVH; the headless bench before/after; Eden's first-
 run refusal census as the red list; every audit-found birth fixed at
 its source; sweep alone; PR for the owner's merge. Windows after the
 report, launched by the dispatcher.
+
+## LANDED 2026-09-02 — G-72: A SLEEPER RESTS ON ITS SUPPORT (fix/sleeper-support, stacked on #168)
+
+The first of G-69's three fixes, in the owner's recommended order.
+One choke point in the law: `PhysicsSystem::admit_declared_sleepers`
+judges, once, every body asleep without the law's own count and keeps
+its sleep only if a bond, the turtle or a live body holds it within
+SLOP along the solver's gravity (measured through the creation door's
+index: `ParticleSystem::overlap_depth`). Unsupported is woken with a
+`[PHYSICS WOKEN]` line. Case G 19 red -> 0 (18 woken at f0, asserted by
+the judge's own count on every case); Eden woke 478 bodies at start
+(459 unbonded grass blades, 13 zero-height bodies, five floating ruin
+blocks, the sun light's anchor cube at 40 m) and ends quieter than it
+starts. Bench A/B in the ledger.
+
+**OWNER RULING (game layer, four items):** the light anchor (KINEMATIC
+or a light source, not a stone at 40 m over Eva's spawn); the ruin
+stagger (`+ (i%2)*0.1` is a fall, not a stagger); the blades' bonds
+(grass is never rooted — the grass front); the 13 bodies of
+29x0x53 mm (a zero dimension, INV-12).
+
+**NEXT (G-69, second fix):** the surface-continuity merge's missing
+precondition — `physics_system_v4.cpp:1701-1727` widens a sleeping
+tile's box by its coplanar aligned sleeping neighbours without testing
+that the awake body rests ON the tile; a corner-touching sibling reads
+a 95 mm z-penetration (Eden's 94 mm canary). TDD by case H's five red
+(restaged legal on this branch: the awake centre tile lifted 20.7 mm at
+zero velocity, four diagonal sleepers sunk 5 mm).

@@ -184,6 +184,32 @@ void ParticleSystem::sync_creation_index() {
     creation_indexed_count_ = particles.size();
 }
 
+float ParticleSystem::deepest_against_world(const Particle& p, int exclude, int& blocker,
+                                            float& nx, float& ny, float& nz) {
+    sync_creation_index();
+    const AABB6 box = logosphere::creation_bounds(p);
+    std::vector<int> candidates;
+    creation_index_.query(box, candidates);
+    door_stats_.candidates += candidates.size();
+    float depth = 0.0f;
+    blocker = -1; nx = ny = nz = 0.0f;
+    for (int ci : candidates) {
+        if (ci < 0 || ci == exclude || static_cast<size_t>(ci) >= particles.size()) continue;
+        const Particle& b = particles[ci];
+        if (b.is_light_source) continue;
+        door_stats_.exact_tests++;
+        float tx, ty, tz;
+        const float d = logosphere::creation_penetration(p, b, tx, ty, tz);
+        if (d > depth) { depth = d; nx = tx; ny = ty; nz = tz; blocker = ci; }
+    }
+    return depth;
+}
+
+float ParticleSystem::overlap_depth(const Particle& probe, int exclude) {
+    int blocker; float nx, ny, nz;
+    return deepest_against_world(probe, exclude, blocker, nx, ny, nz);
+}
+
 bool ParticleSystem::creation_door_refuses(const Particle& p, int would_be_index,
                                            const char* door_name,
                                            bool against_pending) {
@@ -195,27 +221,13 @@ bool ParticleSystem::creation_door_refuses(const Particle& p, int would_be_index
     const auto t0 = clock::now();
     door_stats_.births++;
 
-    sync_creation_index();
-
+    // Against the world.
+    float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+    int blocker = -1;
+    float depth = deepest_against_world(p, /*exclude=*/-1, blocker, nx, ny, nz);
+    const Particle* blocker_body = blocker >= 0 ? &particles[blocker] : nullptr;
     const AABB6 box = logosphere::creation_bounds(p);
     std::vector<int> candidates;
-    float depth = 0.0f, nx = 0.0f, ny = 0.0f, nz = 0.0f;
-    int blocker = -1;
-    const Particle* blocker_body = nullptr;
-
-    // Against the world.
-    creation_index_.query(box, candidates);
-    door_stats_.candidates += candidates.size();
-    for (int ci : candidates) {
-        if (ci < 0 || static_cast<size_t>(ci) >= particles.size()) continue;
-        const Particle& b = particles[ci];
-        if (b.is_light_source) continue;
-        door_stats_.exact_tests++;
-        float tx, ty, tz;
-        const float d = logosphere::creation_penetration(p, b, tx, ty, tz);
-        if (d > depth) { depth = d; nx = tx; ny = ty; nz = tz;
-                         blocker = ci; blocker_body = &b; }
-    }
 
     // Against the batch already queued. Two bodies queued into the same place
     // are still two bodies in the same place, and the second one must not be

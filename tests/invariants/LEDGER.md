@@ -2558,3 +2558,88 @@ G). Owner rulings owed: the order of the three fixes (recommended: the
 birth-asleep check, then the merge's containment case, then the tree
 bonds), the merge order of #166 / #168 / #169, the door agent's three
 decided-alone items.
+
+## 2026-09-02 — G-72: a sleeper rests on its support (fix/sleeper-support)
+
+Mechanism (b) from the G-69 round, landed as one choke point in the
+law rather than at the three restore sites: `admit_declared_sleepers`
+at the top of every physics update judges each body asleep without
+the law's own count (`frames_at_rest < REST_FRAMES_REQUIRED`), once.
+Supported means a bond, or the turtle or a live body within SLOP along
+the solver's gravity, measured through the creation door's own index
+(`ParticleSystem::overlap_depth`). Unsupported is woken, loudly.
+
+Evidence. Case G: 19 red -> 0 of 86, eighteen woken at frame 0 and
+asserted by the judge's own count, which every case now carries (0
+elsewhere). Case H restaged legal - the door refused my first staging
+(a 2 mm birth overlap) - and judged at the 2 mm bar: five red, the
+awake centre tile lifted 20.7 mm at zero velocity and the four
+diagonal sleeping siblings sunk 5 mm. The merge's mechanism is now
+read and named in G-69 (the widened box is applied without testing
+that the body rests on the tile; a corner-touching sibling reads a
+95 mm z-penetration, Eden's 94 mm canary). Next branch.
+
+Eden headless, 300 frames, trace level 1 on both sides: the judge
+woke 478 bodies in the first updates - 459 unbonded grass blades
+restored asleep at 0.66-0.76 m, 13 bodies with a zero dimension,
+five ruin blocks born 10-15 cm up by their stagger, and the sun
+light's 300 mm anchor cube parked 40 m over Eva's spawn. The world
+ends quieter than it starts (9139 of 9301 asleep, 37 dissatisfied at
+the end; 9114 of 10050 and 183 at f0). The frame-0 '183 held' from
+the G-69 round was the dissatisfied count, not the born-asleep
+population; it did not move and was never going to.
+
+Bench A/B, both alone, same trace level, 300 frames. feat/creation-door:
+all-frames avg 1120.3 ms (median 873, p90 2389, p99 2968), steady tail
+avg 751.3 (median 720, p90 1042, p99 1226), end state 9027 of 9301
+asleep, 66 dissatisfied. fix/sleeper-support: all-frames avg 1362.7 ms
+(median 1108, p90 2833, p99 3505), steady tail avg 748.6 (median 770,
+p90 1236, p99 1482), end state 9139 asleep, 37 dissatisfied. The bill
+is +242 ms per frame averaged over the first 300 frames, all of it the
+478 woken bodies settling in the first hundred; the steady tail is
+equal on average and the world ends with 112 more bodies asleep. The
+judge's own scan (two fields per body per frame, one door query per
+declared sleeper, once) is not separable from that population's cost
+at this scale.
+
+Owner rulings owed: the four Eden findings above are the game
+layer's (light anchor as KINEMATIC or light source; the stagger is a
+fall; the blades' bonds; the zero-height bodies). The window for this
+round: test_jammed_sleep_visual on fix/sleeper-support.
+
+### 2026-09-02 — the sweep on fix/sleeper-support: four moles, each named
+
+`SWEEP_VERDICT: MOLES 47 (new-red 4, gone-green 0, unaudited 43)`
+against feat/creation-door's baseline. Each new red, run and read:
+
+1. `test_inv29_constants_gate` — my [PHYSICS WOKEN] line converted
+   metres to millimetres with 1000.0f / 2000.0f. Fixed: the line
+   speaks metres. Green.
+2. `test_ssgi_visual` — the judge woke the sun light's body (a light
+   is not a body: the judge now skips `is_light_source`, the door's own
+   rule), then two walls standing at x = +-2.5 over the GAPS of a 1 m-
+   pitch checkerboard of 0.5 m tiles, then a ceiling of loose tiles at
+   6.15 m. All correct verdicts on scenery parked in space. The test's
+   scenery is now KINEMATIC (the engine's mechanism for a position owned
+   outside; a sleep flag is not immobility). 40/40 green.
+3. `test_leg_geometry_choreography` — the judge woke the test's 'Eden
+   table', written at z 1.0 against a strata top of 0.55 (floating
+   10 cm, top at 1.35 m). Staged honestly on the floor (top 1.25 m) the
+   SE march collapses Eva's hips 0.549 m toward her feet; 0.123 m with
+   the table floating, on either branch, judge on or off
+   (SLEEPER_JUDGE=0, the new kill switch). NOT the judge: a 0.7 m block
+   standing in the lane is what the choreography cannot cross, and the
+   floating table hid it. Booked expect-fail with the finding; the
+   table stays on the floor. OWNER RULING: the humanoid front, or the
+   table's place in the lane.
+4. `test_walk_through_grass` — the judge wakes eight unbonded grass
+   leaf boxes asleep in the air (447 grass bodies, 274 gluons); they
+   fall on the path and Eva kicks one 2.32 m ('GRASS FLEW'). Green on
+   the door branch only because they never moved. Booked expect-fail;
+   the grass front (blades' bonds, birth on the ground) owns it. OWNER
+   RULING on the order.
+
+Kill switch added: `SLEEPER_JUDGE=0` takes a declared sleeper at its
+word (A/B only). Re-swept alone after these:
+`SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43)` -
+the standing 43 non-physics binaries and nothing else.
