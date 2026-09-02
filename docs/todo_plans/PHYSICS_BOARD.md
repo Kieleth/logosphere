@@ -1130,7 +1130,7 @@ witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
 scatter (rock.z = 0.15 inside the tile) gets refused on first run and
 is fixed at its source.
 
-## CLEAN NOW — THE CREATION DOOR AT THE CHOKE POINT (INV-37), IN PROGRESS
+## LANDED 2026-09-02 — THE CREATION DOOR AT THE CHOKE POINT (INV-37)
 
 Owner ruling 2026-09-02, choosing the design: "fresh at the choke point,
 with the incremental BVH cost measured on the headless bench before it
@@ -1171,3 +1171,43 @@ OPEN QUESTIONS, registered before the code: GEDANKEN-69 (can a per-birth
 door be afforded, and what does a caller do with a refusal),
 GEDANKEN-70 (the crown placement law), GEDANKEN-71 (what Eden owes its
 ad-hoc bodies when their chunk comes back).
+
+### WHAT LANDED, AND WHAT IT COST
+
+The door is in `ParticleSystem::add_particle` before the `push_back`, and
+at `queue_particle_addition` so a refused body is never counted in a
+predicted index. INV-37 is `active`. Cost on Eden's world: 11,932 births
+judged, 45,538 exact narrow-phase tests, **9.81 ms total, 0.82 us per
+birth**, one index rebuild and two refits — against the batch design's
+20.4 ms for 12,440 bodies with a full BVH rebuild.
+
+Headless Eden bench, fixed instrument, 140 frames at 320x180:
+`[BENCH_STEADY] avg 2740.9 ms -> 899.7 ms` (median 2584.5 -> 911.8).
+3.05x. `test_jammed_sleep` went from 10 red to 0; `test_creation_door` is
+new and green at 31 of 31.
+
+### STILL OPEN, WITH NUMBERS
+
+**F-GRASS — the patch has no placement law (1670 refusals, the largest
+class).** leaf-into-stem 565, leaf-into-tiny 365, stem-into-leaf 266,
+stem-into-stem 262, leaf-into-tile 128, leaf-leaf 28. The within-blade
+retry landed and found almost nothing, which is the finding: these are
+CROSS-BLADE. A patch's blades are independent `generate()` calls that
+store into the KG, and the chunk activator materialises them by replaying
+the stored position verbatim, so no placement query stands anywhere in
+that path. Two candidate mechanisms, neither guessed at yet: derive blade
+spacing at the patch from blade girth + foliage radius, or query at
+activation and drop what cannot be placed. NEEDS DESIGN.
+
+**F-CROWN residual — 53 refusals (36 branch-branch, 17 branch-trunk,
+worst 141 mm).** The supporting-plane push and the sibling slide fixed
+the class; these are the tail where 8 slides do not clear a crowded fork.
+Whether the answer is more slides, a real junction body, or accepting the
+dropped subtree is GEDANKEN-70's remaining question. NEEDS DESIGN.
+
+**F-FRAME — the frame collapse is NOT closed.** With nothing born in
+overlap, Eden's steady frame is 900 ms where the commit before the squash
+measured 229 ms. G-67's chain has another link and it is not creation
+overlap. The next probe is the trace's own frame record (bodies / asleep /
+awake-quiet / dissatisfied) on the post-door world. OWNER RULING owed on
+whether that comes before or after the grass.

@@ -42,6 +42,7 @@
 #include "../src/core/particle_system.h"
 #include "../src/particle.h"
 #include "logosphere/worldgen/physics_tree_generator.h"
+#include "logosphere/physics/creation_door.h"   // the engine's own overlap verdict
 #include "logosphere/worldgen/tree_generator.h"
 #include <algorithm>
 #include <cmath>
@@ -57,14 +58,15 @@ constexpr float SLOP_M = 0.001f;
 constexpr float COINCIDENT_M = 0.001f;
 
 struct Body {
-    int   id;
-    float x, y, z;
-    float hw, hh, ht;   // half extents
+    int      id;
+    float    x, y, z;
+    float    hw, hh, ht;   // half extents (reporting only)
     const char* kind;
+    Particle p;            // the body itself, for the exact verdict
 };
 
 Body make_body(int id, const Particle& p, const char* kind) {
-    Body b{id, p.x, p.y, p.z, 0, 0, 0, kind};
+    Body b{id, p.x, p.y, p.z, 0, 0, 0, kind, p};
     if (p.shape == ParticleShape::BOX) {
         b.hw = p.width * 0.5f; b.hh = p.height * 0.5f; b.ht = p.thickness * 0.5f;
     } else {
@@ -73,16 +75,22 @@ Body make_body(int id, const Particle& p, const char* kind) {
     return b;
 }
 
-// Axis-aligned overlap depth: how far the two boxes interpenetrate along the
-// axis where they overlap LEAST. Zero or negative means they are apart. This
-// mirrors what the contact solver will compute, so the number here is the
-// number that will be turned into an impulse on frame one.
+// THE ENGINE'S OWN VERDICT, not a second one (INV-12).
+//
+// This used to compare world-axis half-extents, which for a tree is the wrong
+// solid on almost every body: a branch tilted 45 degrees bounds to a box far
+// larger than the branch, so this measure reported overlaps that are not
+// there. Measured the day the creation door landed: the door refused 7 of the
+// tree's 97 births and this axis-aligned reading still claimed 4 overlapping
+// pairs among the survivors, worst 0.1726 m, on bodies the exact test says
+// are clear. A test whose predicate disagrees with the engine's cannot judge
+// the engine.
+//
+// creation_penetration is the same call the door makes: oriented box-box SAT
+// when either side is rotated, the shape-aware dispatcher otherwise.
 float overlap_depth(const Body& a, const Body& b) {
-    const float ox = (a.hw + b.hw) - std::fabs(a.x - b.x);
-    const float oy = (a.hh + b.hh) - std::fabs(a.y - b.y);
-    const float oz = (a.ht + b.ht) - std::fabs(a.z - b.z);
-    if (ox <= 0.0f || oy <= 0.0f || oz <= 0.0f) return 0.0f;   // separated on some axis
-    return std::min({ox, oy, oz});
+    float nx, ny, nz;
+    return logosphere::creation_penetration(a.p, b.p, nx, ny, nz);
 }
 
 float centre_distance(const Body& a, const Body& b) {

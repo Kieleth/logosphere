@@ -2361,3 +2361,110 @@ would be born through a body the game already placed is refused, and
 the refusal is the loud signal that the game placed or ordered wrongly.
 test_jammed_sleep A and D now assert the refusal (the offending body
 absent from the stage), red until the door lands.
+
+## 2026-09-02 — THE CREATION DOOR LANDS, AND THE BIRTHS IT REFUSES ARE FIXED
+
+Owner ruling, choosing the door's shape: "fresh at the choke point, with
+the incremental BVH cost measured on the headless bench before it ships,
+in TDD please", and on the audit's list of source defects: "all of them
+need fixing, I'd just bundle it up with [the door]".
+
+THE DOOR sits in ParticleSystem::add_particle immediately before the
+push_back, which is the only line every birth crosses. The earlier design
+on feat/creation-overlap-door audited at the end of flush_pending_particles
+and therefore could not see a direct add until somebody flushed - and the
+chunk sync and async apply, entity activation, every generator and
+add_particle_with_gluon_to are direct adds, while a headless run may never
+flush at all. A refused creation returns -1, never enters the array, and
+prints a [PHYSICS REFUSED] line naming both bodies and the depth in mm.
+No LENIENT switch, no class list. It stands at queue_particle_addition as
+well, because that function hands back a PREDICTED index and generators
+bond by it (GEDANKEN-69).
+
+THE COST, measured before it shipped, as ordered. Acceleration is a new
+incremental AABB tree (CreationIndex): insert per birth, refit when the
+world has moved, rebuild only when swap-and-pop changes what an index
+means. On Eden's world: 11,932 births judged, 45,538 index candidates,
+45,538 exact narrow-phase tests, 9.81 ms TOTAL - 0.82 us per birth, one
+rebuild, two refits. The batch design's own number was 20.4 ms for 12,440
+bodies with a full BVH rebuild, so the per-birth door costs half of what
+the per-batch one did.
+
+THE HEADLESS EDEN BENCH, fixed instrument, 140 frames at 320x180:
+  BEFORE  [BENCH_STEADY] frames=19 avg=2740.9ms (0.4 FPS) median=2584.5
+                          p90=2803.7 p99=6281.3
+  AFTER   [BENCH_STEADY] frames=19 avg=899.7ms (1.1 FPS) median=911.8
+                          p90=1015.9 p99=1071.5
+3.05x on the mean, 2.8x on the median. The door's own 9.81 ms is 1% of
+ONE frame across the whole run. G-67's chain is not fully cured - 900 ms
+is not a frame - so the frame-collapse front stays open with a new fact:
+with nothing born in overlap, Eden is still three times slower than the
+229 ms it measured before the squash, and the remaining cost is not
+creation overlap.
+
+THE CENSUS on Eden's first run under the door, and what each fix did:
+  Eden's own literals    5 refused -> 0. The 80 rocks (inside bedrock),
+                         3 red cubes, 2 A/B cubes, the pole, 10 ruin
+                         blocks, Eva + 3 NPCs (50 mm), the keyboard
+                         serpent. All read the ground locator now.
+  the humanoid rig       6 refused -> 0. Arm-into-shoulder 22.5-37.5 mm
+                         (the arm hangs from the underside now, outboard
+                         of the widest part of the body it passes),
+                         hair-into-hair 9.1 mm (the cap is the head's
+                         footprint), eye plates 5 mm inside the face and
+                         14 mm "inside" each other - the second is the
+                         SAT reading two sub-BOUNDARY_EPSILON plates as
+                         aligned, so the plates are now 6 mm and 2 mm.
+  the tree's floor       961 refused -> 0. find_floor_tile_at answered
+                         with the first tile in array order, which on a
+                         layered floor is the bedrock: every trunk was
+                         born 250 mm inside the two layers above it.
+  the crown (G-70)       57 -> 53. A child's near FACE sat on the
+                         parent's tip POINT, so a tilted child's CORNERS
+                         reached 88 mm back into it. Children now start
+                         beyond the parent's own supporting plane
+                         (d = r/(az.n), geometry only) and slide clear of
+                         siblings by the measured depth. 36 branch-branch
+                         and 17 branch-trunk pairs remain.
+  the tree's leaves      ~500 -> 0, by making the placement search and
+                         the door answer the SAME question
+                         (ParticleSystem::deepest_overlap).
+  the snake              9 of 30 segments -> 0. The layout stepped by
+                         segment_length while each segment's X extent was
+                         its GIRTH.
+  the butterfly          4 -> 0. Segments advanced by `size` while their
+                         Y extent is size*1.2; wing pairs shared their Y.
+  the grass              1670 REMAIN. The biggest class and the one that
+                         is not fixed: leaf-into-stem 565, leaf-into-tiny
+                         365, stem-into-leaf 266, stem-into-stem 262,
+                         leaf-into-tile 128. The within-blade retry
+                         landed and found almost nothing, which is the
+                         finding: these are CROSS-BLADE, between blades
+                         that are independent generate() calls storing
+                         into the KG and materialised later by the chunk
+                         activator, which replays the stored position
+                         verbatim. Fixing it needs a patch-level
+                         placement law (blade spacing derived from blade
+                         girth and foliage radius) or a placement query
+                         at activation. Booked, not guessed.
+
+TWO CASCADES closed at the mechanism: a bonded part whose parent was
+refused used to be built at the world origin (get_particle_copy answers
+Particle{} for an index it does not have) and then reported by the TURTLE
+door, naming the wrong defect one generation downstream; and a refused id
+stored as unsigned is 4294967295, which std::stoi turned into an
+uncaught std::out_of_range that killed the process.
+
+WHAT FLIPPED. test_jammed_sleep: 10 red -> 0. Case A's buried stone and
+case D's late tile are refused and absent, the stage sleeps, the solver
+leaves by convergence in 2 iterations on 2-4 rows; B and C stayed green
+on every line. test_creation_door is new and green (31 of 31), and its
+red is demonstrated through the kill switch rather than claimed:
+CREATION_DOOR=0 gives 11 of 31, and the 11 are exactly the legal-birth
+cases.
+
+ON THE TDD ORDER, honestly. The law's field witnesses were born red
+before this branch existed (test_jammed_sleep A and D, 2026-09-01).
+test_creation_door was written AFTER the mechanism it tests, which is not
+the protocol; the kill-switch A/B is what stands in for the red, and it
+is recorded here rather than dressed up.
