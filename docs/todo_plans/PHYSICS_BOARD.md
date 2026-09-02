@@ -1107,3 +1107,12 @@ clock; the trace emits its frame record, a row census by kind, no
 per-body probe at level 2, and flushes at exit. NOTHING IS FIXED YET:
 Eden's rock placement, G-67's progress law and G-68's door contract
 each wait on their red and on the owner's order.
+
+## PARKED — at_logotron_full_game_loop segfaults intermittently (2026-09-01)
+
+Sweep on tdd/jammed-sleep: rc -11 at 0.2 s, once; three direct reruns
+and the previous sweep pass. A segfault is a real latent bug, not a
+phantom; it is not this slice's (the only default-path change here is
+a member assignment in the solver). Booked for its own hunt: run it
+under ASan (the heap-corruption chain in memory) when a physics round
+has room.
