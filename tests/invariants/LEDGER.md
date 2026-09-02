@@ -2468,3 +2468,41 @@ before this branch existed (test_jammed_sleep A and D, 2026-09-01).
 test_creation_door was written AFTER the mechanism it tests, which is not
 the protocol; the kill-switch A/B is what stands in for the red, and it
 is recorded here rather than dressed up.
+
+## 2026-09-02 (later) — THE SWEEP, TWICE, AND WHAT IT COST
+
+FIRST ARMED SWEEP: `SWEEP_VERDICT: MOLES 58 (new-red 15, gone-green 0,
+unaudited 43)`. FINAL: `SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0,
+unaudited 43)`. The 43 unaudited are the known non-physics binaries.
+
+Ten of the fifteen were defects the door exposed and they are fixed at
+the source; five are the two open fronts under other names and are
+BOOKED with numbers (F-CROWN: test_ancient_oak,
+test_tree_bonds_born_at_rest, test_tree_shadow_wiggly,
+test_tree_repair_visual, test_foliage_stays_attached; F-GRASS:
+test_plants_are_rooted; F-BIKE: at_logotron_full_game_loop).
+
+ONE FAILED EXPERIMENT, kept with its numbers rather than quietly
+dropped. GEDANKEN-70's sibling slide separated crown branches by sliding
+each along its own axis until the engine's own predicate read clear. It
+worked geometrically and broke the tree, because the separation it buys
+is a GAP between the parent's tip and the child's near face, and that gap
+is the joint's rest length. Measured with the door OFF so geometry was
+the only variable: no push, mean canopy drift 0.0056 m (PASS); parent
+push only, 0.5943 m with peak leaf 0.51 m/s; push + slide, 1.2389 m with
+peak leaf 4.54 m/s. An earlier version of the push was worse still
+(1.7305 / 3.5574 m) because it reached the child's anchor BACK to the
+parent's tip, outside the branch - a lever arm longer than the body it
+holds. Both anchors now sit on their own bodies and the clearance is
+carried as the joint's rest LENGTH. The slide is removed; G-70 carries
+the proof that siblings sharing ONE attachment point cannot be separated
+by sliding at all, and names the whorl as the mechanism that works.
+
+ONE OWNER RULING OWED: a body cannot be BORN inside a declared medium.
+test_interaction_volume_forces puts a ball in a water column and the door
+refuses it (10.15 m of penetration, never created). The solver already
+refuses to build a contact row for a declared-passable pair
+(interaction_->should_contact), so none of the harm INV-37 names can
+occur for one. Whether the door should read that same declaration is an
+amendment to the decree - not a class list - and it is not mine to make.
+The fixture places its ball by hand meanwhile and says so in the file.
