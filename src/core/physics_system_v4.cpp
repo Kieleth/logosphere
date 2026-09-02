@@ -396,7 +396,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                 return;
             for (size_t qi = 0; qi < particles.size(); ++qi) {
                 if (!::logosphere::phystrace::focused((int)qi, (int)qi)) continue;
-                PHYS_TRACE_F(::logosphere::phystrace::Solve, "omega_probe",
+                PHYS_TRACE_F(::logosphere::phystrace::Constraint, "omega_probe",  // per body per substep: level 5, not 2
                              (int)qi, (int)qi, site,
                              particles[qi].omega_x, particles[qi].omega_y,
                              particles[qi].omega_z);
@@ -497,6 +497,24 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     {
         ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsRestState);
         update_rest_state(particles);
+    }
+    // Level 1 FRAME record, as the trace header promises: bodies, how many
+    // sleep, how many are awake yet under the rest speed, and how many of
+    // those the dissatisfaction gate holds (G-67's census).
+    if (::logosphere::phystrace::level() >= 1) {
+        int asleep = 0, awake_quiet = 0, awake_dissatisfied = 0;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest) { ++asleep; continue; }
+            if (p.GetMass() == 0.0f) continue;
+            if (p.rest_quiet_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD)
+                ++awake_quiet;
+            if (i < constraint_dissatisfied_.size() && constraint_dissatisfied_[i])
+                ++awake_dissatisfied;
+        }
+        PHYS_TRACE(::logosphere::phystrace::Frame, "frame", (int)particles.size(),
+                   asleep, "asleep_quiet_dissatisfied", (double)awake_quiet,
+                   (double)awake_dissatisfied);
     }
 
     // Cleanup broken gluons (and wake what they freed)
@@ -3712,6 +3730,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         return worst;
     };
 
+    // Level 2 ROW CENSUS: what the budget is spent on. a=turtle rows,
+    // b=body-body contact rows, v=(gluon linear rows, angular rows).
+    if (::logosphere::phystrace::level() >= 2) {
+        int n_turtle = 0, n_contact = 0, n_gluon = 0, n_ang = 0;
+        for (const Constraint& c : constraints) {
+            if (c.is_angular) ++n_ang;
+            else if (c.is_turtle_contact) ++n_turtle;
+            else if (c.is_contact) ++n_contact;
+            else ++n_gluon;
+        }
+        PHYS_TRACE(::logosphere::phystrace::Solve, "rows", n_turtle, n_contact,
+                   "gluon_angular", (double)n_gluon, (double)n_ang);
+    }
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
         ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
@@ -4694,6 +4725,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
              max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
+            last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "impulse_under_absolute_threshold"};
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                        actual_iterations, "impulse_under_absolute_threshold",
                        max_impulse_this_iter, ABSOLUTE_THRESHOLD);
@@ -4743,6 +4775,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // exit. S20: low improvement at a steady state is what a
                     // CONVERGED solve looks like, so the number is the whole
                     // story and the label is misleading on its own.
+                    last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "improvement_below_min_rate"};
                     PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                                actual_iterations, "improvement_below_min_rate",
                                improvement, MIN_IMPROVEMENT_RATE, max_impulse_this_iter);
@@ -4775,6 +4808,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // Neither door taken: the full budget ran without converging or plateauing.
     if (!solve_exit_recorded) {
         LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveExhausted);
+        last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "iteration_budget_exhausted"};
         PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                    actual_iterations, "iteration_budget_exhausted",
                    (double)SOLVER_ITERATIONS);

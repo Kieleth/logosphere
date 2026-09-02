@@ -72,12 +72,31 @@ constexpr float DIV_MAX_FOLD     = 0.015f;
 // so nothing is immovable by declaration (INV-1).
 constexpr float FLOOR_TOP        = 0.2f;   // slab thickness; its top surface
 
+// The rung KIND decides the staging and the law it answers (2026-09-02:
+// the drivers stopped reading rung indices; a table that grows must not
+// shift its own asserts).
+enum RungKind { BASIC = 0, BIGTOP, WHEEL_SLIP, WHEEL_EDGE, CORNER, CORNER_TURTLE };
 struct RungSpec {
     const char* name;
     float tilt_rad;
     float spin_x, spin_y, spin_z;
     float drop;
+    int kind = BASIC;
 };
+constexpr float G_ACC = 9.81f;   // m/s^2, the derivations' gravity
+// G-66, THE FACE-SLIP WALK: a cube spinning about an in-plane axis on a
+// face slides its whole face at the hub speed omega*L/2; friction mu*m*g
+// stops the slip at t = omega*L/(5*mu*g) and the body has walked
+// d = mu*g*t^2/2 = omega^2 L^2 / (50 mu g). No rung tumbles below
+// omega ~ 11 rad/s (G-66 record); the walk IS the slip distance.
+inline float slip_walk(float omega, float L, float mu) {
+    return omega * omega * L * L / (50.0f * mu * G_ACC);
+}
+constexpr float WALK_BAND_LO = 0.5f, WALK_BAND_HI = 1.5f;   // of the derived d
+constexpr float WALK_CROSS_MAX = 0.02f;   // m, the other axis stays put
+constexpr float EDGE_L_BAND = 1.05f;      // |L_after| <= |L_before| x this (INV-17)
+constexpr float EDGE_L_MIN = 0.05f;       // kg m^2/s: below this the sense is noise
+constexpr int   EDGE_AFTER_FRAMES = 6;    // frames after touchdown to read L_after
 constexpr float SPIN_FAST  = 6.0f;    // rad/s, just under MAX_OMEGA 6.28
 // DROP_SHORT was 0.05 m: an ANGULAR_DRAG-era workaround ("drag steals
 // ~26%, not 95%"). D7's derived law killed that constraint; the spin
@@ -117,27 +136,50 @@ constexpr float CORNER_NUDGE          = 0.02f;  // rad off the diagonal
 constexpr float CORNER_TOPPLE_SPIN_MIN = 0.5f;  // rad/s: falling IS rotating
 // fallen = resting on a FACE (with slack); standing = half diagonal up
 constexpr float CORNER_FALLEN_Z_MAX   = 0.2f /*FLOOR_TOP*/ + HERO * 0.5f + 0.05f;
-constexpr int   RUNG_COUNT = 8;
+// THE WALKING WHEEL, rebuilt on the owner's ruling 2026-09-02 ("1 + 2 + 3
+// indeed, and variable rotational speeds for each"): two stagings, two
+// axes, three speeds. WHEEL_SLIP rungs are BORN RESTING on the slab and
+// spun (the face-slip law, G-66, walk = omega^2 L^2 / (50 mu g)).
+// WHEEL_EDGE rungs are DROPPED 0.6 m and land on an edge; their law is
+// angular momentum about the contact edge through the impact (never
+// more after than before; the post-impact sense is the sign of the
+// pre-impact L_edge), derived per rung from the measured touchdown.
+constexpr int   RUNG_COUNT = 18;
 inline const RungSpec RUNGS[RUNG_COUNT] = {
-    { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP },
+    { "R0 control: flat, no spin",      0.0f, 0.0f, 0.0f, 0.0f,  DROP, BASIC },
     { "R1 tilted 20 deg, no spin",      TILT_DEG * 3.14159265f/180.f,
-                                              0.0f, 0.0f, 0.0f,  DROP },
-    { "R2/R3 flat, spinning 3 rad/s",   0.0f, 0.0f, 0.0f, SPIN0, DROP },
+                                              0.0f, 0.0f, 0.0f,  DROP, BASIC },
+    { "R2/R3 flat, spinning 3 rad/s",   0.0f, 0.0f, 0.0f, SPIN0, DROP, BASIC },
     { "R4 THE BIG TOP: hero spins Z at 6, twin still (G-41)",
-                                        0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT },
-    { "R5 THE WALKING WHEEL: hero spins X, falls, drives along Y",
-                                        0.0f, SPIN_FAST, 0.0f, 0.0f, DROP },
-    { "R6 THE WALKING WHEEL: hero spins Y, falls, drives along X",
-                                        0.0f, 0.0f, SPIN_FAST, 0.0f, DROP },
+                                        0.0f, 0.0f, 0.0f, SPIN_FAST, DROP_SHORT, BIGTOP },
+    { "R5a FACE SLIP: resting, spins X at 2 -> walks Y (G-66)", 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R5b FACE SLIP: resting, spins X at 4 -> walks Y (G-66)", 0.0f, 4.0f, 0.0f, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R5c FACE SLIP: resting, spins X at 6 -> walks Y (G-66)", 0.0f, SPIN_FAST, 0.0f, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R5d EDGE LANDING: spins X at 2, dropped 0.6 m (G-66)",   0.0f, 2.0f, 0.0f, 0.0f, DROP, WHEEL_EDGE },
+    { "R5e EDGE LANDING: spins X at 4, dropped 0.6 m (G-66)",   0.0f, 4.0f, 0.0f, 0.0f, DROP, WHEEL_EDGE },
+    { "R5f EDGE LANDING: spins X at 6, dropped 0.6 m (G-66)",   0.0f, SPIN_FAST, 0.0f, 0.0f, DROP, WHEEL_EDGE },
+    { "R6a FACE SLIP: resting, spins Y at 2 -> walks X (G-66)", 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R6b FACE SLIP: resting, spins Y at 4 -> walks X (G-66)", 0.0f, 0.0f, 4.0f, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R6c FACE SLIP: resting, spins Y at 6 -> walks X (G-66)", 0.0f, 0.0f, SPIN_FAST, 0.0f, 0.0f, WHEEL_SLIP },
+    { "R6d EDGE LANDING: spins Y at 2, dropped 0.6 m (G-66)",   0.0f, 0.0f, 2.0f, 0.0f, DROP, WHEEL_EDGE },
+    { "R6e EDGE LANDING: spins Y at 4, dropped 0.6 m (G-66)",   0.0f, 0.0f, 4.0f, 0.0f, DROP, WHEEL_EDGE },
+    { "R6f EDGE LANDING: spins Y at 6, dropped 0.6 m (G-66)",   0.0f, 0.0f, SPIN_FAST, 0.0f, DROP, WHEEL_EDGE },
     { "R7 THE CORNER STAND: corner-down, a hair off balance, it MUST fall (G-43)",
-                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
+                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f, CORNER },
     // R8: the SAME corner stand, on the BARE TURTLE. R7 topples through
     // box-box manifold rows (slab); the ramp's cube parks corner-down on
     // the turtle. One pose, two contact paths: whichever refuses to
     // topple names the residual stabilizer (G-43 discriminator).
     { "R8 THE CORNER STAND ON THE TURTLE: same pose, turtle rows (G-43)",
-                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f },
+                                        0.0f, 0.0f, 0.0f, 0.0f, 0.002f, CORNER_TURTLE },
 };
+inline int  rung_kind(int r) { return RUNGS[r].kind; }
+inline bool spin_rung(int r) { return RUNGS[r].kind != BASIC; }
+inline bool corner_rung(int r) { return RUNGS[r].kind == CORNER || RUNGS[r].kind == CORNER_TURTLE; }
+// The slip axis of a wheel rung: an X-spin slides the face along Y (1),
+// a Y-spin along X (0).
+inline int  walk_axis(const RungSpec& r) { return r.spin_x != 0.0f ? 1 : 0; }
+inline float rung_spin(const RungSpec& r) { return r.spin_x != 0.0f ? r.spin_x : r.spin_y; }
 
 // Resting centre height ABOVE THE SLAB TOP of a cube tilted t about Y
 // (edge contact), t in [0,45deg].
@@ -205,7 +247,14 @@ struct Scene {
     }
 
     // Which body a rung performs on.
-    int actor(int r) const { return r >= 3 ? hero : cube; }
+    int actor(int r) const { return spin_rung(r) ? hero : cube; }
+    // THE EDGE LAW's latches (WHEEL_EDGE rungs): angular momentum about the
+    // touchdown contact point, before and after the impact, on the spin axis.
+    int   rung_kind_armed = BASIC;
+    int   edge_axis = 0;                 // 0: x-spin, 1: y-spin
+    float edge_px = 0, edge_py = 0, edge_pz = 0;
+    float edge_L_before = 0.0f, edge_L_after = 0.0f, edge_omega_after = 0.0f;
+    bool  edge_after_done = false;
 
     // A teleported body carries NO history (QA 2026-08-20: cases in the
     // window's continuous world inherited the previous case's sleep
@@ -239,7 +288,7 @@ struct Scene {
 
     void arm(ParticleSystem& ps, PhysicsSystem& physics,
              const RungSpec& r, int rung_index = 0) {
-        const bool spin_case = rung_index >= 3;
+        const bool spin_case = spin_rung(rung_index);
         // Stage the non-performers out of the experiment.
         park(ps, physics, spin_case ? cube : hero, 30.0f);
         if (spin_case) {
@@ -266,8 +315,8 @@ struct Scene {
         } else {
             park(ps, physics, twin, 33.0f);
         }
-        const bool corner = (rung_index >= 6);
-        const bool on_turtle = (rung_index == 7);   // off the 4x4 slab
+        const bool corner = corner_rung(rung_index);
+        const bool on_turtle = (rung_kind(rung_index) == CORNER_TURTLE);   // off the 4x4 slab
         const float half = spin_case ? HERO * 0.5f : CUBE * 0.5f;
         rest_z = (on_turtle ? 0.0f : FLOOR_TOP) + (corner
                      ? HERO * 0.5f * 1.7320508f      // half space diagonal
@@ -306,6 +355,20 @@ struct Scene {
         peak_omega_y = 0.0f; min_frame_keep = 1.0f;
         keep_at_touchdown = -1.0f; touchdown_frame = -1;
         prev_omega_z = r.spin_z;
+        rung_kind_armed = r.kind;
+        edge_axis = (r.spin_x != 0.0f) ? 0 : 1;
+        edge_L_before = edge_L_after = edge_omega_after = 0.0f;
+        edge_after_done = false;
+    }
+    // Angular momentum of the body about the world point P on axis `axis`
+    // (0 x, 1 y): L = I*omega + m * ((c - P) x v), from an Argus state
+    // (the witness, not the live array).
+    float L_about(const logosphere::Argus::State& st, float mass, float I,
+                  int axis) const {
+        const float rx = st.x - edge_px, ry = st.y - edge_py, rz = st.z - edge_pz;
+        const float cx = ry * st.vz - rz * st.vy;
+        const float cy = rz * st.vx - rx * st.vz;
+        return axis == 0 ? I * st.ox + mass * cx : I * st.oy + mass * cy;
     }
 
     void step(ParticleSystem& ps, PhysicsSystem& physics, int frame, float spin0) {
@@ -341,6 +404,16 @@ struct Scene {
                 if (a == me || b == me) {
                     if (ps.lock_particles_for_read()[me].z > 0.0f) {
                         touchdown_frame = frame;
+                        if (rung_kind_armed == WHEEL_EDGE) {
+                            edge_px = ev.contact_x; edge_py = ev.contact_y;
+                            edge_pz = ev.contact_z;
+                            const Particle& q = ps.lock_particles_for_read()[me];
+                            const logosphere::Argus::State* pre = argus.previous(me);
+                            if (pre)
+                                edge_L_before = L_about(*pre, q.GetMass(),
+                                                        q.GetMomentOfInertia(),
+                                                        edge_axis);
+                        }
                         if (spin0 > 0.0f) {
                             const Particle& q =
                                 ps.lock_particles_for_read()[me];
@@ -352,6 +425,16 @@ struct Scene {
                     }
                 }
             }
+        }
+        if (rung_kind_armed == WHEEL_EDGE && touchdown_frame >= 0 && !edge_after_done &&
+            frame >= touchdown_frame + EDGE_AFTER_FRAMES) {
+            const Particle& q = v[touch_actor];
+            const logosphere::Argus::State* now = argus.latest(touch_actor);
+            if (now) {
+                edge_L_after = L_about(*now, q.GetMass(), q.GetMomentOfInertia(), edge_axis);
+                edge_omega_after = edge_axis == 0 ? now->ox : now->oy;
+            }
+            edge_after_done = true;
         }
         prev_omega_z = p.omega_z;
     }

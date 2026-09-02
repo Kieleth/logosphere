@@ -76,7 +76,7 @@ int main() {
                 std::printf("  [fresh r2 f%-3d] z %.3f vz %.3f omega_z %.4f\n",
                             f, pc.z, pc.vz, pc.omega_z);
             }
-            if (r >= 3) {
+            if (spin_rung(r)) {
                 // The experiment NARRATES itself (owner order): the story
                 // in the log, milestones the frame they happen, so dead
                 // air is visible as dead air. The TWIN narrates too
@@ -140,7 +140,7 @@ int main() {
                 check(scene.argus.divergence(scene.cube) < 0.01f,
                       "R1 lever: the righting is COHERENT, one orientation "
                       "through the whole tip (Argus)");
-        } else if (r == 6 || r == 7) {
+        } else if (corner_rung(r)) {
             // R7 THE CORNER STAND — G-43's instrument. Full state named:
             // z must END at a face; spin must PEAK (falling is rotating);
             // orientation stays coherent; the face-resting twin is the
@@ -150,11 +150,11 @@ int main() {
             std::printf("  [measure] R7 hero: z %.4f (standing %.4f, "
                         "fallen-face %.4f), peak spin %.4f rad/s\n",
                         scene.settled_z(ps, H), scene.rest_z,
-                        (r == 7 ? 0.0f : FLOOR_TOP) + HERO * 0.5f,
+                        (rung_kind(r) == CORNER_TURTLE ? 0.0f : FLOOR_TOP) + HERO * 0.5f,
                         scene.argus.peak_spin(H));
             static const bool lever7 = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
             // R8 runs on the bare turtle: fallen-face height has no slab
-            const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+            const float fallen_max = (rung_kind(r) == CORNER_TURTLE) ? HERO * 0.5f + 0.05f
                                               : CORNER_FALLEN_Z_MAX;
             if (lever7) {
                 check(scene.settled_z(ps, H) < fallen_max,
@@ -173,7 +173,7 @@ int main() {
                             "by default, a corner stand is trivially "
                             "eternal; the claim is the lever's\n");
             }
-        } else if (r >= 3) {
+        } else if (spin_rung(r)) {
             // G-41 as a LECTURE (skill standard): the hero performs, the
             // still twin is the on-stage control, and both are asserted.
             const int H = scene.hero;
@@ -203,17 +203,57 @@ int main() {
                   "G-41 control: the still twin STAYS still (whatever moved "
                   "the hero, it was the spin)");
             static const bool lever2 = []{ const char* e = std::getenv("CONTACT_TORQUE"); return !(e && e[0] == '0' && e[1] == '\0'); }()  /* INV-32: torque is default physics; =0 is the kill switch */;
-            if (lever2 && r == 3)
+            if (lever2 && rung_kind(r) == BIGTOP)
                 check(std::fabs(dx) < 0.05f && std::fabs(dy) < 0.05f &&
                       scene.settled_spin(ps, H) < 0.1f,
                       "R4 lever: the big top brakes IN PLACE");
-            if (lever2 && r == 4)
-                check(std::fabs(dy) > 0.05f && std::fabs(dx) < std::fabs(dy),
-                      "R5 lever: the X-spin wheel WALKS along Y "
-                      "(spin bought translation, on the right axis)");
-            if (lever2 && r == 5)
-                check(std::fabs(dx) > 0.05f && std::fabs(dy) < std::fabs(dx),
-                      "R6 lever: the Y-spin wheel WALKS along X");
+            if (lever2 && rung_kind(r) == WHEEL_SLIP) {
+                // G-66 THE FACE SLIP: the walk is the slip distance.
+                const RungSpec& rs = RUNGS[r];
+                const float mu = ps.lock_particles_for_read()[H].friction;
+                const float d = slip_walk(std::fabs(rung_spin(rs)), HERO, mu);
+                const float along = walk_axis(rs) == 1 ? dy : dx;
+                const float cross = walk_axis(rs) == 1 ? dx : dy;
+                char msg[200];
+                std::printf("  [measure] G-66 face slip: omega %.1f, mu %.2f, "
+                            "derived walk %.4f m, walked %.4f along %s, %.4f "
+                            "across\n", rung_spin(rs), mu, d, std::fabs(along),
+                            walk_axis(rs) == 1 ? "Y" : "X", std::fabs(cross));
+                std::snprintf(msg, sizeof msg, "G-66: the face slip WALKS its "
+                              "derived distance (%.4f in [%.4f, %.4f])",
+                              std::fabs(along), WALK_BAND_LO * d, WALK_BAND_HI * d);
+                check(std::fabs(along) >= WALK_BAND_LO * d &&
+                      std::fabs(along) <= WALK_BAND_HI * d, msg);
+                check(std::fabs(cross) < WALK_CROSS_MAX,
+                      "G-66: and only along the slip axis (the other axis stays put)");
+                check(scene.settled_spin(ps, H) < SETTLED_SPIN_MAX,
+                      "G-66/INV-34: the spin dies at the face (no tumble below 11 rad/s)");
+            }
+            if (lever2 && rung_kind(r) == WHEEL_EDGE) {
+                // G-66 THE EDGE LAW: angular momentum about the landing edge.
+                char msg[220];
+                std::printf("  [measure] G-66 edge law: touchdown f%d at (%.3f, %.3f, "
+                            "%.3f); L_edge before %+.4f, after %+.4f; omega after "
+                            "%+.3f rad/s; displaced (%.4f, %.4f)\n",
+                            scene.touchdown_frame, scene.edge_px, scene.edge_py,
+                            scene.edge_pz, scene.edge_L_before, scene.edge_L_after,
+                            scene.edge_omega_after, dx, dy);
+                check(scene.touchdown_frame >= 0 && scene.edge_after_done,
+                      "hygiene: the wheel LANDED and the edge law was read");
+                std::snprintf(msg, sizeof msg, "G-66/INV-17: the impact never adds "
+                              "angular momentum about the edge (|%.4f| <= |%.4f| x %.2f)",
+                              scene.edge_L_after, scene.edge_L_before, EDGE_L_BAND);
+                check(std::fabs(scene.edge_L_after) <=
+                      std::fabs(scene.edge_L_before) * EDGE_L_BAND + 1e-6f, msg);
+                if (std::fabs(scene.edge_L_before) > EDGE_L_MIN)
+                    check((scene.edge_omega_after > 0.0f) == (scene.edge_L_before > 0.0f) ||
+                          std::fabs(scene.edge_omega_after) < 0.05f,
+                          "G-66: the post-impact sense follows the pre-impact L_edge "
+                          "(rock-back or forward tumble is not the solver's choice)");
+                else
+                    std::printf("  [waive] G-66 sense: L_edge before under %.2f, the "
+                                "sense is noise\n", EDGE_L_MIN);
+            }
         } else {
             std::printf("  [measure] argus: peak spin %.4f, peak speed %.4f\n",
                         scene.argus.peak_spin(scene.cube),
@@ -282,8 +322,8 @@ int main() {
             if (lever_seq && r == 1)
                 check(std::fabs(az - (FLOOR_TOP + CUBE * 0.5f)) < 0.02f,
                       "seq R1: tilted cube ends FLAT in the continuous world");
-            if (lever_seq && (r == 6 || r == 7)) {
-                const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+            if (lever_seq && corner_rung(r)) {
+                const float fallen_max = (rung_kind(r) == CORNER_TURTLE) ? HERO * 0.5f + 0.05f
                                                   : CORNER_FALLEN_Z_MAX;
                 check(az < fallen_max,
                       "seq R7/R8: the corner stand FALLS in the continuous "
