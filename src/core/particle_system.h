@@ -216,7 +216,17 @@ public:
     // Check if placing a particle at given position would overlap existing particles.
     // Used by generators to ensure no overlapping particles are created.
     // gap: minimum separation between particle surfaces (default 2cm for physics stability)
-    bool can_place_at(float x, float y, float z, float w, float h, float t, float gap = 0.02f) const;
+    // THE ONE OVERLAP PREDICATE (INV-12, INV-37). How deep this body would
+    // be inside the deepest thing it touches, through the engine's own narrow
+    // phase - the same verdict the creation door will reach, so a generator
+    // that asks this and acts on the answer is never refused for a placement
+    // it was told was legal. Returns 0 when clear or merely touching.
+    // `ignore_index` is the body this one is about to be BONDED to (-1 for
+    // none); `out_blocker` receives the live index it hit.
+    float deepest_overlap(const Particle& probe, int ignore_index = -1,
+                          int* out_blocker = nullptr);
+
+    bool can_place_at(float x, float y, float z, float w, float h, float t, float gap = 0.02f);
 
     // Same question, but ignoring one body: the thing this one is about to be
     // BONDED to. A child branch is meant to touch its parent end to end, so
@@ -231,7 +241,7 @@ public:
     // particle is not measured as if it were axis-aligned. Existing bodies are
     // widened by their own facing_angle automatically.
     bool can_place_at_ignoring(float x, float y, float z, float w, float h, float t,
-                               float gap, int ignore_id, float facing_angle = 0.0f) const;
+                               float gap, int ignore_id, float facing_angle = 0.0f);
 
     // Try to place a particle with retry. Jitters position if overlap detected.
     // Returns true if placement succeeded, false if all attempts failed.

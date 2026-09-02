@@ -1353,74 +1353,64 @@ ParticleSystem::ParticleSnapshot ParticleSystem::get_particle_snapshot(int parti
 // COLLISION CHECK FOR GENERATORS
 // ============================================================================
 
+// THE ONE OVERLAP PREDICATE (INV-12, INV-37). The exact narrow phase, over
+// the door's own index, so a generator gets the SAME verdict the creation
+// door will reach a moment later. Before this there were two answers to one
+// question: this file compared world-axis boxes widened by facing_angle,
+// which is not the solid a body rotated in three axes has, and the leaf
+// placement search "succeeded" on positions the exact test then refused.
+float ParticleSystem::deepest_overlap(const Particle& probe, int ignore_index,
+                                      int* out_blocker) {
+    if (out_blocker) *out_blocker = -1;
+    if (probe.is_light_source) return 0.0f;
+
+    std::shared_lock<std::shared_mutex> lock(particles_mutex_);
+    sync_creation_index();
+
+    std::vector<int> candidates;
+    creation_index_.query(logosphere::creation_bounds(probe), candidates);
+
+    float worst = 0.0f;
+    for (int ci : candidates) {
+        if (ci < 0 || static_cast<size_t>(ci) >= particles.size()) continue;
+        if (ci == ignore_index) continue;
+        const Particle& b = particles[ci];
+        if (b.is_light_source) continue;
+        float nx, ny, nz;
+        const float d = logosphere::creation_penetration(probe, b, nx, ny, nz);
+        if (d > worst) { worst = d; if (out_blocker) *out_blocker = ci; }
+    }
+    return worst;
+}
+
 bool ParticleSystem::can_place_at(float x, float y, float z,
                                    float w, float h, float t,
-                                   float gap) const {
+                                   float gap) {
     return can_place_at_ignoring(x, y, z, w, h, t, gap, -1, 0.0f);
 }
 
+// A placement query, answered by the predicate above. `gap` is the minimum
+// SEPARATION the caller wants, so the probe is grown by it on every side; a
+// gap of zero asks the door's own question.
+//
+// `facing_angle` is not read by the narrow phase (that reads rotation_x/y/z
+// or the quaternion — see narrow_phase.h), so it cannot be applied to the
+// probe's orientation. It is applied the only honest way left, by widening
+// the probe's world extents to the rotated bound: conservative, never loose,
+// which costs a retry and never a miss.
 bool ParticleSystem::can_place_at_ignoring(float x, float y, float z,
                                    float w, float h, float t,
-                                   float gap, int ignore_id, float facing_angle) const {
-    // Lock for thread-safe read access
-    auto particles_view = lock_particles_for_read();
-
-    // Proposed box half-extents, WIDENED FOR ROTATION.
-    //
-    // This used to take width/height as-is, which silently under-measures any
-    // particle that is turned. A leaf is a thin plate 0.35 x 0.245 m with a
-    // random facing_angle: rotate it a quarter turn and its true reach along Y
-    // is 0.35, not the 0.245 this was comparing. Overlaps were therefore missed
-    // at creation and found later by the solver, which resolves them the only
-    // way it can, by pushing (issue #38, leaf pairs 73-80 and 74-81 at 6 cm).
-    //
-    // The standard conservative bound for a box turned by theta about Z:
-    //   ex = hx|cos| + hy|sin|,  ey = hx|sin| + hy|cos|
-    // It never under-estimates, so a pass here is a real pass. It can
-    // over-estimate for a rotated box, which costs a retry, never a miss.
+                                   float gap, int ignore_id, float facing_angle) {
     const float ca = std::fabs(std::cos(facing_angle));
     const float sa = std::fabs(std::sin(facing_angle));
-    float half_w = (w * 0.5f) * ca + (h * 0.5f) * sa;
-    float half_h = (w * 0.5f) * sa + (h * 0.5f) * ca;
-    float half_t = t * 0.5f;
-
-    // Check against all existing particles (skip lights - they don't collide)
-    for (size_t i = 0; i < particles_view.size(); ++i) {
-        const Particle& p = particles_view[i];
-        if (p.is_light_source) continue;
-        if (ignore_id >= 0 && i == (size_t)ignore_id) continue;   // the body we bond to
-
-        // Get existing particle's half-extents
-        float p_half_w, p_half_h, p_half_t;
-        if (p.shape == ParticleShape::BOX) {
-            // Same rotation widening for the body already in the world.
-            const float pca = std::fabs(std::cos(p.facing_angle));
-            const float psa = std::fabs(std::sin(p.facing_angle));
-            p_half_w = (p.width * 0.5f) * pca + (p.height * 0.5f) * psa;
-            p_half_h = (p.width * 0.5f) * psa + (p.height * 0.5f) * pca;
-            p_half_t = p.thickness * 0.5f;
-        } else {
-            // Cube/sphere: use size for all dimensions
-            p_half_w = p_half_h = p_half_t = p.size * 0.5f;
-        }
-
-        // AABB overlap check with gap
-        // Two boxes overlap if their extents overlap on ALL three axes
-        // With gap: extend each box by gap/2 on each side
-        float gap_half = gap * 0.5f;
-
-        // Separation on each axis (positive = separated, negative = overlapping)
-        float sep_x = std::abs(x - p.x) - (half_w + p_half_w + gap);
-        float sep_y = std::abs(y - p.y) - (half_h + p_half_h + gap);
-        float sep_z = std::abs(z - p.z) - (half_t + p_half_t + gap);
-
-        // Overlap exists if separated on NONE of the axes (all separations negative)
-        if (sep_x < 0.0f && sep_y < 0.0f && sep_z < 0.0f) {
-            return false;  // Collision detected
-        }
-    }
-
-    return true;  // No collision
+    Particle probe{};
+    probe.shape = ParticleShape::BOX;
+    probe.x = x; probe.y = y; probe.z = z;
+    probe.width     = (w * ca + h * sa) + 2.0f * gap;
+    probe.height    = (w * sa + h * ca) + 2.0f * gap;
+    probe.thickness = t + 2.0f * gap;
+    probe.size = std::fmax(probe.width, std::fmax(probe.height, probe.thickness));
+    return deepest_overlap(probe, ignore_id, nullptr) <= PhysicsV4::SLOP;
 }
 
 bool ParticleSystem::try_place_with_retry(Particle& particle, int max_attempts, float jitter_range, float gap) {

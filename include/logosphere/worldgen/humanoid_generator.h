@@ -59,7 +59,11 @@ struct HumanoidSpec {
     bool has_eyes = false;                              // Set true to enable eyes
     float eye_size = 0.02f;                             // Eye socket size (m)
     float eye_spacing = 0.10f;                          // Distance between eyes (m)
-    float eye_forward_offset = -0.005f;                 // Slightly embedded in face (flush)
+    // The eye plate's BACK face on the head's front face: on the face, not
+    // in it. This was -0.005 ("slightly embedded... flush"), which buried a
+    // 2 mm plate 5 mm inside the head - a birth INV-37 refuses. Zero puts the
+    // 2 mm plate entirely outside, touching, which is what flush means.
+    float eye_forward_offset = 0.0f;                    // m, front of the face plane
     float eye_height_offset = 0.02f;                    // Height above head center
     // Outer eye (socket/sclera)
     float eye_outer_r = 0.0f, eye_outer_g = 0.0f, eye_outer_b = 0.0f;  // Black socket

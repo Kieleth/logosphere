@@ -185,7 +185,16 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
     std::cout << "[SnakeGenerator] Created head at (" << head_x << ", " << head_y << ", " << head_z << ")" << std::endl;
 
     // BODY SEGMENTS - Along X-axis
-    float current_x = head_x + segment_length;  // Start after head
+    //
+    // A SEGMENT'S LENGTH LIES ALONG THE BODY, AND THE SEGMENTS ABUT.
+    // The layout stepped by segment_length in X while each segment's X
+    // extent was its GIRTH (0.118 m on a 0.1 m step), so every consecutive
+    // pair was born 18 mm inside the one before it, and the first segment
+    // 35 mm inside the head. Under INV-37 those are refused births, and the
+    // snake lost 9 of its 30 segments. The girth now lies across the body
+    // (Y) where it belongs and the length along it (X), so the step and the
+    // extent are the same number and consecutive segments touch.
+    float current_x = head_x + (spec.head_size * 0.5f) + segment_length * 0.5f;
 
     for (int i = 0; i < spec.num_segments; i++) {
         // Taper from body thickness to tail thickness
@@ -193,13 +202,13 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
         float current_thickness = spec.body_thickness +
                                   (spec.body_thickness * spec.taper_factor - spec.body_thickness) * taper_progress;
 
-        float seg_width = current_thickness;
+        float seg_girth = current_thickness;
         float seg_height = current_thickness * 0.7f;
         float seg_z = world_z + seg_height / 2.0f;
 
         unsigned int segment = create_segment(
             current_x, world_y, seg_z,
-            seg_width, segment_length, seg_height,
+            segment_length, seg_girth, seg_height,
             spec.scale_r, spec.scale_g, spec.scale_b,
             snake_entity
         );
@@ -214,12 +223,14 @@ kg::EntityID SnakeGenerator::generate_snake(float world_x, float world_y, float 
 
     // TAIL - Small tapered end
     float tail_size = spec.body_thickness * spec.taper_factor * 0.5f;  // Half of final taper
-    float tail_x = current_x;
+    // current_x is the centre of the slot AFTER the last body segment; the
+    // tail is half as long, so its own centre sits a quarter-length in.
+    float tail_x = current_x - segment_length * 0.25f;
     float tail_z = world_z + tail_size / 2.0f;
 
     unsigned int tail_particle = create_segment(
         tail_x, world_y, tail_z,
-        tail_size, segment_length * 0.5f, tail_size,
+        segment_length * 0.5f, tail_size, tail_size,
         spec.scale_r * 0.8f, spec.scale_g * 0.8f, spec.scale_b * 0.8f,  // Slightly darker
         snake_entity
     );

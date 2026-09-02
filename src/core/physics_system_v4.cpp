@@ -6588,6 +6588,23 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
         return static_cast<size_t>(-1);
     }
 
+    // A CHILD OF A BODY THAT WAS NEVER BORN IS NOT PLACED AT THE ORIGIN.
+    // The placement law is pb = pa + offset_a - offset_b, and
+    // get_particle_copy answers Particle{} for an index it does not have —
+    // so a part whose parent the creation door refused used to be built at
+    // (0,0,0) and then reported by the TURTLE door, which named the wrong
+    // defect and aborted the world one generation downstream of the real
+    // one. Refuse here, name the parent, and let the generator's own
+    // `id < 0` guards unwind the limb.
+    if (particle_a_id >= particle_system_->count()) {
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_particle_with_gluon_to(P%zu, ...): there is "
+            "no such body to bond to (%zu live) — its own creation was refused "
+            "or removed. The part is NOT created; fix the parent's placement.\n",
+            particle_a_id, particle_system_->count());
+        return static_cast<size_t>(-1);
+    }
+
     // Get particle A's position (thread-safe copy)
     Particle pa = particle_system_->get_particle_copy(particle_a_id);
 

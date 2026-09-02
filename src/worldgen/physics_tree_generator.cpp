@@ -1,4 +1,5 @@
 #include "logosphere/worldgen/physics_tree_generator.h"
+#include "logosphere/physics/narrow_phase.h"   // OBB: the branch clears its parent by the parent's own supporting plane
 #include "core/engine.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
@@ -505,6 +506,69 @@ int PhysicsTreeGenerator::generate_branch(
         direction_angle, elevation_angle,
         spec, depth);
 
+    // A BRANCH STARTS OUTSIDE ITS PARENT (INV-37, GEDANKEN-70).
+    //
+    // The centre above puts the child's near FACE exactly on the parent's tip
+    // POINT, which is right for a face and wrong for a body: a tilted child's
+    // near-end CORNERS reach back past that face, and they reach back into
+    // the parent. Measured on Eden's oaks under the creation door: 57 of the
+    // crown's branches refused, the worst 88 mm inside the trunk, which is
+    // the 2026-08-02 "minimal overlap is accepted" policy stated as a number.
+    //
+    // The law, and it is exact rather than a margin: the parent's tip plane
+    // (normal n = the parent's own +Z axis) is a SUPPORTING plane of the
+    // parent's box, so a child entirely on its far side cannot touch the
+    // parent at all. The child's cross-section reaches back along -n by
+    //     r = hx |ax.n| + hy |ay.n|
+    // and travelling d along its own axis buys d (az.n) of that, so
+    //     d = r / (az.n).
+    // Geometry only: no gap constant, no size ratio, nothing to tune
+    // (INV-29). The bond's attachment on the child moves back with it, so
+    // the branch is still born at strain 1.0 against the parent's tip
+    // (INV-4). A child growing back down its parent (az.n <= 0) cannot be
+    // fixed by sliding along its own axis; it is left where it is and the
+    // door says so.
+    float branch_push = 0.0f;
+    {
+        auto pv = particles_->lock_particles_for_read();
+        const Particle &parent = pv[parent_id];
+        const OBB pob = obb_of_box_particle(parent, parent.z);
+        const OBB cob = obb_of_box_particle(branch, branch.z);
+        const float nx = pob.axis[2][0], ny = pob.axis[2][1], nz = pob.axis[2][2];
+        auto dot_n = [&](const float a[3]) { return a[0]*nx + a[1]*ny + a[2]*nz; };
+        const float along = dot_n(cob.axis[2]);
+        if (along > 1e-3f)
+        {
+            const float back_reach = cob.half[0] * std::fabs(dot_n(cob.axis[0]))
+                                   + cob.half[1] * std::fabs(dot_n(cob.axis[1]));
+            branch_push = back_reach / along;
+        }
+    }
+    branch.x += dir_x * branch_push;
+    branch.y += dir_y * branch_push;
+    branch.z += dir_z * branch_push;
+
+    // AND CLEAR OF ITS SIBLINGS. Two branches leaving the same fork start in
+    // the same small ball of space, and the parent's plane says nothing about
+    // each other. There is no closed form for "how far along my own axis
+    // until I am out of that box", so the branch asks the engine's own
+    // predicate how deep it is and slides by exactly that, which is the
+    // measured quantity and not a margin: each step removes at least the
+    // component of the depth along the travel, so it converges, and the loop
+    // is bounded because a branch that cannot get clear is a placement the
+    // door must refuse rather than a placement to keep nudging.
+    for (int slide = 0; slide < 8; ++slide)
+    {
+        int blocker = -1;
+        const float depth = particles_->deepest_overlap(branch, parent_id, &blocker);
+        if (depth <= PhysicsV4::SLOP) break;
+        const float step = depth + PhysicsV4::SLOP;
+        branch.x += dir_x * step;
+        branch.y += dir_y * step;
+        branch.z += dir_z * step;
+        branch_push += step;
+    }
+
     // Create OrganicGluon to attach branch to parent
     auto gluon = std::make_unique<OrganicGluon>();
 
@@ -542,7 +606,9 @@ int PhysicsTreeGenerator::generate_branch(
     // direction_to_euler establishes and the solver's rotate_full relies on —
     // so the end nearest the parent is simply -length/2 along local Z. The
     // rotation carries the direction; the offset must not carry it too.
-    gluon->offset_b = Vec3(0.0f, 0.0f, -length * 0.5f);
+    // The attachment point stays ON the parent's tip: the branch slid out by
+    // branch_push, so its own frame reaches back that much further.
+    gluon->offset_b = Vec3(0.0f, 0.0f, -(length * 0.5f + branch_push));
 
     gluon->target_distance = 0.0f;
     gluon->contact_area = calculate_contact_area(thickness);
@@ -1228,12 +1294,23 @@ int PhysicsTreeGenerator::generate_root_system(
 
 int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y)
 {
-    // Search for a floor tile that contains (world_x, world_y)
-    // Returns particle ID if found, -1 otherwise
-    // NOTE: Floor tiles identified by position (z<1m) and shape (flat box)
-
+    // The TOP-most floor tile that contains (world_x, world_y), or -1.
+    // Floor tiles are identified by position (z<1m) and shape (flat box).
+    //
+    // THE HIGHEST ONE, NOT THE FIRST ONE. This used to return the first
+    // match in array order, which on a layered floor is the layer created
+    // first: on Eden's three-layer strata that is the BEDROCK, top 0.30,
+    // with sediment and organic stacked to 0.55 above it. Every tree then
+    // planted its trunk at 0.30 and was born straight through both upper
+    // layers - 250 mm of solid tile inside a 116 kg trunk, which INV-37
+    // refuses and which the solver, before the door, would have had to
+    // eject. A tree stands on the SURFACE, so the search answers with the
+    // surface.
     auto particles = particles_->lock_particles_for_read();
     const size_t count = particles.size();
+
+    int   best_id  = -1;
+    float best_top = 0.0f;
 
     for (size_t i = 0; i < count; ++i)
     {
@@ -1254,11 +1331,16 @@ int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y)
         if (world_x >= p.x - half_w && world_x <= p.x + half_w &&
             world_y >= p.y - half_h && world_y <= p.y + half_h)
         {
-            return static_cast<int>(i);
+            const float top = p.z + p.thickness * 0.5f;
+            if (best_id < 0 || top > best_top)
+            {
+                best_id  = static_cast<int>(i);
+                best_top = top;
+            }
         }
     }
 
-    return -1; // No floor tile found
+    return best_id; // No floor tile found -> -1
 }
 
 // ============================================================================

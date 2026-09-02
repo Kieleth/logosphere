@@ -1,4 +1,6 @@
 #include "logosphere/worldgen/organic_generator.h"
+#include "logosphere/physics/creation_door.h"   // the one overlap predicate (INV-12/INV-37)
+#include "logosphere/physics/physics_solver.h"   // PhysicsV4::SLOP
 #include "core/engine.h"
 #include "core/particle_system.h"
 
@@ -542,6 +544,24 @@ std::vector<Particle> OrganicGenerator::create_foliage(const Vec3& position,
     int leaf_count_range = spec.foliage_count_max - spec.foliage_count_min + 1;
     int num_foliage = spec.foliage_count_min + (rng_state_ % leaf_count_range);
 
+    // ONE LEAF PER PLACE (INV-37). These leaves used to be scattered around
+    // the segment end with no check of any kind, and on Eden's grass that is
+    // 1329 of them born inside each other - the largest single class the
+    // creation door refuses. Each one now takes the first of a few draws that
+    // is clear of the leaves already accepted on this segment, measured by
+    // the engine's own narrow phase (INV-12), and a leaf that cannot find a
+    // place is not drawn. Cross-blade overlaps are not visible from here;
+    // they are the patch's own question.
+    auto clear_of_accepted = [&](const Particle& candidate) {
+        for (const Particle& placed : foliage) {
+            float nx, ny, nz;
+            if (logosphere::creation_penetration(candidate, placed, nx, ny, nz)
+                    > PhysicsV4::SLOP)
+                return false;
+        }
+        return true;
+    };
+
     for (int j = 0; j < num_foliage; ++j) {
         // Distribute foliage around position in sphere
         float theta = random_variance(0.0f, 180.0f);
@@ -594,6 +614,23 @@ std::vector<Particle> OrganicGenerator::create_foliage(const Vec3& position,
             );
             leaf.rotation_x = tilt_degrees * M_PI / 180.0f;
         }
+
+        // Re-draw until this leaf stands clear of the ones already on this
+        // segment. The draws are the same distribution, so a crowded segment
+        // simply ends up with fewer leaves rather than with leaves inside
+        // each other.
+        bool placed = clear_of_accepted(leaf);
+        for (int retry = 0; !placed && retry < 12; ++retry) {
+            const float t2 = random_variance(0.0f, 180.0f) * M_PI / 180.0f;
+            const float p2 = random_variance(0.0f, 90.0f) * M_PI / 180.0f;
+            const float r2 = random_variance(spec.foliage_offset_radius,
+                                             spec.foliage_offset_variance);
+            leaf.x = position.x + r2 * std::sin(p2) * std::cos(t2);
+            leaf.y = position.y + r2 * std::sin(p2) * std::sin(t2);
+            leaf.z = position.z + r2 * std::cos(p2);
+            placed = clear_of_accepted(leaf);
+        }
+        if (!placed) continue;   // no room on this segment; not drawn
 
         foliage.push_back(leaf);
     }

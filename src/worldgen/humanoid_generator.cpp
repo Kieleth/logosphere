@@ -8,6 +8,7 @@
 #include "entity_manager.h"
 #include "particle.h"
 #include "logosphere/kg/kg_module.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <ctime>
@@ -1314,9 +1315,26 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     const float hand_width = spec.arm_thickness;
     const float hand_depth = spec.arm_thickness * 0.50f;
     const float hand_thickness = spec.arm_thickness * 1.25f;
+    // HOW FAR OUTBOARD OF ITS SHOULDER THE ARM HANGS. The shoulder joint sits
+    // ARM_SPREAD from the body's centre line, which for every spec in the
+    // engine is INSIDE the body's own half-span plus half an arm: hang the
+    // arm at the joint and it is born through whatever it passes - the chest
+    // (17.5 mm on Eva) and then, once cleared of that, the thigh (2 mm).
+    // Derived, not tuned: the widest thing the arm hangs beside decides it,
+    // the arm's inner face lands exactly on that face, and the term is zero
+    // for any spec whose shoulders are already outboard of its body.
+    const float body_half_span = 0.5f * std::max(
+        std::max(chest_width, abdomen_width),
+        std::max(hips_width, 2.0f * (LEG_SPREAD + thigh_width * 0.5f)));
+    const float arm_half_span = 0.5f * std::max(upper_arm_width, hand_width);
+    const float arm_lateral_clearance =
+        std::max(0.0f, (body_half_span + arm_half_span) - ARM_SPREAD);
 
     // --- HAIR DIMENSIONS (relative to head) ---
-    const float upper_hair_width = head_width * 1.1f;
+    // The cap's footprint is the HEAD's. At 1.1x it overhung the head by
+    // 9 mm at the back, and the back hair - whose front face sits on the
+    // head's back face - was born 9.1 mm inside that overhang (INV-37).
+    const float upper_hair_width = head_width;
     const float upper_hair_thickness = 0.05f;              // Thin cap
     const float back_hair_width = head_width * 0.8f;
     const float back_hair_length = head_thickness * 1.1f;
@@ -1731,6 +1749,17 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     if (spec.has_eyes) {
         const float eye_outer_size = spec.eye_size;
         const float eye_inner_size = spec.eye_size * spec.eye_pupil_scale;
+        // THE PLATES ARE THICKER THAN THE ENGINE'S OWN BOUNDARY EPSILON.
+        // The socket was 2 mm and the pupil 1 mm, both at or under
+        // BOUNDARY_EPSILON (0.002 m), which is the scale below which the
+        // box-box SAT reads two stacked plates as "aligned" and answers with
+        // the LATERAL overlap instead of the zero it has in depth: a pupil
+        // resting exactly on its socket was refused at 14 mm (INV-37 through
+        // INV-12's narrow phase). A body thinner than the epsilon that
+        // resolves it cannot be placed unambiguously, so the socket is 6 mm
+        // deep and the pupil 2 mm - still plates, now representable.
+        const float eye_outer_depth = PhysicsV4::BOUNDARY_EPSILON * 3.0f;   // 6 mm
+        const float eye_inner_depth = PhysicsV4::BOUNDARY_EPSILON;          // 2 mm
         const float eye_half_spacing = spec.eye_spacing / 2.0f;
         const float eye_forward = head_depth / 2.0f + spec.eye_forward_offset;  // Front of head
         const float eye_height = spec.eye_height_offset;
@@ -1738,13 +1767,13 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
         // LEFT EYE - OUTER (socket) - very flat plate on face
         Particle l_eye_outer = {};
         l_eye_outer.shape = ParticleShape::BOX;
-        l_eye_outer.width = eye_outer_size; l_eye_outer.height = 0.002f; l_eye_outer.thickness = eye_outer_size;
+        l_eye_outer.width = eye_outer_size; l_eye_outer.height = eye_outer_depth; l_eye_outer.thickness = eye_outer_size;
         l_eye_outer.r = spec.eye_outer_r; l_eye_outer.g = spec.eye_outer_g; l_eye_outer.b = spec.eye_outer_b; l_eye_outer.a = 1.0f;
         l_eye_outer.material_strength = 50e6f;
 
         auto l_eye_outer_gluon = std::make_unique<NailGluon>();
         l_eye_outer_gluon->offset_a = Vec3(-eye_half_spacing, eye_forward, eye_height);  // On face
-        l_eye_outer_gluon->offset_b = Vec3(0.0f, -0.001f, 0.0f);                         // Back of very thin plate
+        l_eye_outer_gluon->offset_b = Vec3(0.0f, -eye_outer_depth * 0.5f, 0.0f);         // Back of the socket plate
         l_eye_outer_gluon->target_distance = 0.0f;
         l_eye_outer_gluon->breaking_force = 50000.0f;  // Match other body parts
         l_eye_outer_gluon->enable_angular_constraint = false;
@@ -1756,13 +1785,13 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
         // LEFT EYE - INNER (pupil) - very flat, on outer eye
         Particle l_eye_inner = {};
         l_eye_inner.shape = ParticleShape::BOX;
-        l_eye_inner.width = eye_inner_size; l_eye_inner.height = 0.001f; l_eye_inner.thickness = eye_inner_size;
+        l_eye_inner.width = eye_inner_size; l_eye_inner.height = eye_inner_depth; l_eye_inner.thickness = eye_inner_size;
         l_eye_inner.r = spec.eye_inner_r; l_eye_inner.g = spec.eye_inner_g; l_eye_inner.b = spec.eye_inner_b; l_eye_inner.a = 1.0f;
         l_eye_inner.material_strength = 50e6f;
 
         auto l_eye_inner_gluon = std::make_unique<NailGluon>();
-        l_eye_inner_gluon->offset_a = Vec3(0.0f, 0.001f, 0.0f);    // Front of outer plate
-        l_eye_inner_gluon->offset_b = Vec3(0.0f, -0.0005f, 0.0f);  // Back of inner plate
+        l_eye_inner_gluon->offset_a = Vec3(0.0f, eye_outer_depth * 0.5f, 0.0f);   // Front of the socket
+        l_eye_inner_gluon->offset_b = Vec3(0.0f, -eye_inner_depth * 0.5f, 0.0f);  // Back of the pupil
         l_eye_inner_gluon->target_distance = 0.0f;
         l_eye_inner_gluon->breaking_force = 50000.0f;  // Match other body parts
         l_eye_inner_gluon->enable_angular_constraint = false;
@@ -1774,13 +1803,13 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
         // RIGHT EYE - OUTER (socket) - very flat plate on face
         Particle r_eye_outer = {};
         r_eye_outer.shape = ParticleShape::BOX;
-        r_eye_outer.width = eye_outer_size; r_eye_outer.height = 0.002f; r_eye_outer.thickness = eye_outer_size;
+        r_eye_outer.width = eye_outer_size; r_eye_outer.height = eye_outer_depth; r_eye_outer.thickness = eye_outer_size;
         r_eye_outer.r = spec.eye_outer_r; r_eye_outer.g = spec.eye_outer_g; r_eye_outer.b = spec.eye_outer_b; r_eye_outer.a = 1.0f;
         r_eye_outer.material_strength = 50e6f;
 
         auto r_eye_outer_gluon = std::make_unique<NailGluon>();
         r_eye_outer_gluon->offset_a = Vec3(eye_half_spacing, eye_forward, eye_height);   // On face
-        r_eye_outer_gluon->offset_b = Vec3(0.0f, -0.001f, 0.0f);                         // Back of very thin plate
+        r_eye_outer_gluon->offset_b = Vec3(0.0f, -eye_outer_depth * 0.5f, 0.0f);         // Back of the socket plate
         r_eye_outer_gluon->target_distance = 0.0f;
         r_eye_outer_gluon->breaking_force = 50000.0f;  // Match other body parts
         r_eye_outer_gluon->enable_angular_constraint = false;
@@ -1792,13 +1821,13 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
         // RIGHT EYE - INNER (pupil) - very flat, on outer eye
         Particle r_eye_inner = {};
         r_eye_inner.shape = ParticleShape::BOX;
-        r_eye_inner.width = eye_inner_size; r_eye_inner.height = 0.001f; r_eye_inner.thickness = eye_inner_size;
+        r_eye_inner.width = eye_inner_size; r_eye_inner.height = eye_inner_depth; r_eye_inner.thickness = eye_inner_size;
         r_eye_inner.r = spec.eye_inner_r; r_eye_inner.g = spec.eye_inner_g; r_eye_inner.b = spec.eye_inner_b; r_eye_inner.a = 1.0f;
         r_eye_inner.material_strength = 50e6f;
 
         auto r_eye_inner_gluon = std::make_unique<NailGluon>();
-        r_eye_inner_gluon->offset_a = Vec3(0.0f, 0.001f, 0.0f);    // Front of outer plate
-        r_eye_inner_gluon->offset_b = Vec3(0.0f, -0.0005f, 0.0f);  // Back of inner plate
+        r_eye_inner_gluon->offset_a = Vec3(0.0f, eye_outer_depth * 0.5f, 0.0f);   // Front of the socket
+        r_eye_inner_gluon->offset_b = Vec3(0.0f, -eye_inner_depth * 0.5f, 0.0f);  // Back of the pupil
         r_eye_inner_gluon->target_distance = 0.0f;
         r_eye_inner_gluon->breaking_force = 50000.0f;  // Match other body parts
         r_eye_inner_gluon->enable_angular_constraint = false;
@@ -1881,7 +1910,15 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     l_upper_arm.material_strength = 50e6f;
 
     auto l_upper_gluon = std::make_unique<NailGluon>();
-    l_upper_gluon->offset_a = Vec3(-shoulder_size / 2.0f, 0.0f, 0.0f);      // Shoulder outer edge (mirrored)
+    // THE ARM HANGS FROM THE SHOULDER'S UNDERSIDE, NOT THROUGH ITS SIDE.
+    // The old pivot was the shoulder's lateral face at mid-height, which put
+    // the arm's top half INSIDE the shoulder cube: 22.5 mm for Eva, 30 for
+    // the default spec, 37.5 for the hunter, on every humanoid the engine has
+    // ever made. Under INV-37 that is a refused birth, not a modelling
+    // choice. The arm's top face now sits on the shoulder's bottom face and
+    // the joint pivots there, which is also where a shoulder joint is.
+    l_upper_gluon->offset_a = Vec3(-arm_lateral_clearance, 0.0f,
+                                   -shoulder_size / 2.0f);                  // Shoulder underside, outboard of the chest
     l_upper_gluon->offset_b = Vec3(0.0f, 0.0f, upper_arm_length / 2.0f);    // Upper arm top
     l_upper_gluon->target_distance = 0.0f;
     l_upper_gluon->breaking_force = 30000.0f;
@@ -1941,9 +1978,10 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     r_upper_arm.material_strength = 50e6f;
 
     auto r_upper_gluon = std::make_unique<NailGluon>();
-    // Joint pivot at OUTER (lateral) edge of shoulder, not top
-    // Right shoulder: +X points outward in local frame
-    r_upper_gluon->offset_a = Vec3(shoulder_size / 2.0f, 0.0f, 0.0f);       // Shoulder outer edge
+    // Mirror of the left: the arm's top face on the shoulder's underside.
+    // See the note on l_upper_gluon for what the lateral pivot cost (INV-37).
+    r_upper_gluon->offset_a = Vec3(arm_lateral_clearance, 0.0f,
+                                   -shoulder_size / 2.0f);                  // Shoulder underside, outboard of the chest
     r_upper_gluon->offset_b = Vec3(0.0f, 0.0f, upper_arm_length / 2.0f);    // Upper arm top
     std::cout << "[GLUON_CREATE] r_upper_gluon: shoulder_size=" << shoulder_size
               << " upper_arm_length=" << upper_arm_length
