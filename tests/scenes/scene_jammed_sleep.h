@@ -29,13 +29,16 @@
 //      penetration is the repair G-48 protects, and the pair may sleep
 //      only once separated again; a touching stack beside it sleeps
 //      at once.
-//   D  THE FLOOR ARRIVES AFTER THE STONE (G-68). Two stones sleep on
-//      the ground; at frame 60 a tile is created around one of them.
-//      OWNER DECREE 2026-09-01 (INV-37): "under no circumstances, any
-//      creation of particles should be allowed to overlap in space
-//      with another" - the door REFUSES the tile; both stones stay
-//      asleep on the ground, nothing moves. Likewise A's buried stone
-//      is refused, never born: the tile keeps its one dropped stone.
+//   D  THE FLOOR ARRIVES AFTER THE STONE (G-68). Two stones sleep on a
+//      REAL floor (a base tile on the turtle - no demo stands on the
+//      bare boundary, owner rule 2026-08-28); at frame 60 a second
+//      layer arrives: one tile THROUGH the stones, one tile BESIDE
+//      them. OWNER DECREE 2026-09-01 (INV-37): "under no circumstances,
+//      any creation of particles should be allowed to overlap in
+//      space with another" - the door REFUSES the tile through the
+//      stones and ADMITS the tile beside them; the stones stay asleep
+//      on the base, nothing moves. Likewise A's buried stone is
+//      refused, never born: the tile keeps its one dropped stone.
 //
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
@@ -111,6 +114,7 @@ struct Height { int body; float z; };
 struct Still  { int body; };                // Argus peak speed < STILL
 struct Tilt   { int body; float lo, hi; };  // |rotation_y| band, rad
 struct Sep    { int a, b; float lo, hi; };  // Argus separation band at the end
+struct VSep   { int a, b; float lo, hi; };  // vertical separation band (Argus z's): rests ON
 
 struct Case {
     const char* name;
@@ -123,12 +127,14 @@ struct Case {
     std::vector<Still>  stills;             // INV-7: not moved by a repair
     std::vector<Tilt>   tilts;
     std::vector<Sep>    seps;
+    std::vector<VSep>   vseps;
     std::vector<int>    ground_pinned;      // INV-1: min z >= birth z - tol
     std::vector<int>    sleep_by_event;     // INV-31: asleep within SLEEP_GRACE of last strike
     int repair_a = -1, repair_b = -1;       // G-48: first sleep only after separation >= repair_done
     float repair_done = 0.0f;
     int born_overlap_pair_a = -1, born_overlap_pair_b = -1;   // INV-37 (creation frame)
     int refused = -1;                       // INV-37: this creation must be REFUSED (absent)
+    std::vector<int> admitted;              // INV-37: these creations must be BORN (on stage)
     bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
     const char* waiver = nullptr;
@@ -339,6 +345,14 @@ struct Scene {
     float separation(int a, int b) const {
         return (ids[a] < 0 || ids[b] < 0) ? -1.0f : argus.separation(ids[a], ids[b]);
     }
+    // Vertical separation from Argus' latest states: "rests ON" for a
+    // body that is not above the other's centre.
+    float vseparation(int a, int b) const {
+        if (ids[a] < 0 || ids[b] < 0) return -1.0f;
+        const logosphere::Argus::State* pa = argus.latest(ids[a]);
+        const logosphere::Argus::State* pb = argus.latest(ids[b]);
+        return (pa && pb) ? std::fabs(pa->z - pb->z) : -1.0f;
+    }
     int   strike_frame(int a, int b) const {
         auto it = first_contact_frame.find({std::min(a, b), std::max(a, b)});
         return it == first_contact_frame.end() ? -1 : it->second;
@@ -482,25 +496,34 @@ inline std::vector<Case> cases() {
                   "to 1.00, first sleep frame, asleep 5/5";
         v.push_back(c);
     }
-    // D. Two stones asleep on the ground; the tile is created at frame 60
-    //    around the first (x 0, inside the 4 m footprint) and beside the
-    //    second (x 3.0, outside it).
+    // D. Two stones asleep on a base tile; at frame 60 a second layer
+    //    arrives: one tile THROUGH the stones (its z-range 0.30-0.60
+    //    against the stones' 0.30-0.56: 260 mm of overlap, refused) and
+    //    one tile BESIDE them (x 6, clear of everything: admitted).
     {
         Case c;
         c.name = "D THE FLOOR ARRIVES AFTER THE STONE";
         c.gid = "G-68";
-        c.bodies = {tile(0.0f, TILE_Z, "tile", /*late=*/true),
-                    rubble(0.0f, RUB_ON_GROUND, "under"),
-                    rubble(+3.0f, RUB_ON_GROUND, "beside")};
+        const float layer2_z = TILE_TOP + TILE_T * 0.5f;   // 0.45: a second layer
+        c.bodies = {tile(0.0f, TILE_Z, "base"),
+                    rubble(0.0f, RUB_ON_TILE, "under"),
+                    rubble(+0.9f, RUB_ON_TILE, "beside"),
+                    tile(0.0f, layer2_z, "through", /*late=*/true),
+                    tile(+6.0f, TILE_Z, "admitted", /*late=*/true)};
         c.late_frame = 60;
-        c.heights = {Height{1, RUB_ON_GROUND}, Height{2, RUB_ON_GROUND}};
-        c.stills = {Still{1}, Still{2}};
-        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 1;
-        c.refused = 0;
-        c.demo1 = "DEMONSTRATING: a tile created around a sleeping stone is REFUSED "
-                  "(INV-37/G-68): no tile on stage, both stones stay asleep on the ground";
-        c.demo2 = "WATCH: frame 60 - does the tile appear? 'under' z 0.13 must not "
-                  "change; nothing may move; asleep 2/2";
+        // Argus separations: the stones rest ON the base (0.15 + 0.13).
+        const float on_base = TILE_T * 0.5f + RUB_Z * 0.5f;
+        c.vseps = {VSep{0, 1, on_base - HEIGHT_TOL, on_base + HEIGHT_TOL},
+                   VSep{0, 2, on_base - HEIGHT_TOL, on_base + HEIGHT_TOL}};
+        c.heights = {Height{0, TILE_Z}, Height{4, TILE_Z}};
+        c.stills = {Still{0}, Still{1}, Still{2}};
+        c.born_overlap_pair_a = 3; c.born_overlap_pair_b = 1;
+        c.refused = 3;
+        c.admitted = {4};
+        c.demo1 = "DEMONSTRATING: a layer arriving THROUGH sleeping stones is REFUSED, "
+                  "a tile arriving BESIDE them is born (INV-37/G-68); nothing moves";
+        c.demo2 = "WATCH: frame 60 - one tile appears at x 6, none through the stones; "
+                  "stones stay on the base, asleep 4/4 on stage";
         v.push_back(c);
     }
     return v;
@@ -543,6 +566,12 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
         std::snprintf(t, sizeof t, "%s/INV-37: the door REFUSES %s (%s)", c.gid,
                       L(c.refused), on_stage ? "it is on stage" : "absent, as ruled");
         v.push_back({t, !on_stage});
+    }
+    for (int i : c.admitted) {
+        const bool on_stage = s.alive(ps, i);
+        std::snprintf(t, sizeof t, "%s/INV-37: the door ADMITS %s, born clear of everything "
+                      "(%s)", c.gid, L(i), on_stage ? "on stage" : "MISSING");
+        v.push_back({t, on_stage});
     }
     // INV-2: no standing interpenetration at the end.
     if (c.rest_overlap_asserted) {
@@ -590,6 +619,12 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
         const float d = s.separation(sp.a, sp.b);
         std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s separation in [%.3f, %.3f] "
                       "(Argus %.3f m)", c.gid, L(sp.a), L(sp.b), sp.lo, sp.hi, d);
+        v.push_back({t, d >= sp.lo && d <= sp.hi});
+    }
+    for (const VSep& sp : c.vseps) {
+        const float d = s.vseparation(sp.a, sp.b);
+        std::snprintf(t, sizeof t, "%s/INV-2: %s rests ON %s (vertical separation %.3f "
+                      "in [%.3f, %.3f], Argus)", c.gid, L(sp.b), L(sp.a), d, sp.lo, sp.hi);
         v.push_back({t, d >= sp.lo && d <= sp.hi});
     }
     // G-48: nobody sleeps mid-repair.
