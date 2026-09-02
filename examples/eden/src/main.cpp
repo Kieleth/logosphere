@@ -2085,13 +2085,19 @@ int main(int argc, char* argv[]) {
         auto current_frame = std::chrono::high_resolution_clock::now();
         double delta_time = std::chrono::duration<double>(current_frame - last_frame).count();
         last_frame = current_frame;
+        // THE BENCH RECORDS THE WALL CLOCK, never the clamped delta: a
+        // frame slower than the 100 ms cap read as exactly 100.0 ms
+        // (2026-09-01, every percentile identical at 100.0 while the run
+        // took 1.2 s per frame). An instrument that saturates at its own
+        // clamp measures nothing.
+        const double wall_ms = delta_time * 1000.0;
 
         // Cap delta to prevent huge jumps during debugging/pauses
         if (delta_time > 0.1) delta_time = 0.1;  // Max 100ms per frame
 
         if (bench_frames > 0) {
             eden_app.bench_drive(frame_count);
-            if (frame_count > 0) bench_frame_ms.push_back(delta_time * 1000.0);
+            if (frame_count > 0) bench_frame_ms.push_back(wall_ms);
         }
 
         // Update with real time (TimeSystem handles scaling internally)

@@ -1091,3 +1091,50 @@ D6 is cheap, independent of the router's election machinery, and
 useful before Kamaji exists: the counter can be built and left running
 to gather the distribution while the rest is designed. Its vocabulary
 limit is boarded as R6.
+
+## OWNER RULING — THE FRAME COLLAPSE, TDD FIRST (2026-09-01)
+
+Owner: "I'd like to TDD all this first of any change." Eden's 3.4 s
+frames (G-67's RCA) are one chain: stones born inside strata tiles
+(Eden's rock.z = 0.15, INV-4), G-48's sleep veto reading a permanent
+overlap as a repair in progress, 30,000 contact rows from ~900 quiet
+bodies that cannot sleep, the solver's budget exhausted every substep.
+`test_jammed_sleep` (+ `_visual`) carries the chain as four born-red
+cases on a real stage (G-67 A/B, G-48 C as the guard, G-68 D), reading
+the solver's own verdict through the new `PhysicsSystem::last_solve()`.
+Instruments repaired in the same slice: the bench records the wall
+clock; the trace emits its frame record, a row census by kind, no
+per-body probe at level 2, and flushes at exit. NOTHING IS FIXED YET:
+Eden's rock placement, G-67's progress law and G-68's door contract
+each wait on their red and on the owner's order.
+
+## PARKED — at_logotron_full_game_loop segfaults intermittently (2026-09-01)
+
+Sweep on tdd/jammed-sleep: rc -11 at 0.2 s, once; three direct reruns
+and the previous sweep pass. A segfault is a real latent bug, not a
+phantom; it is not this slice's (the only default-path change here is
+a member assignment in the solver). Booked for its own hunt: run it
+under ASan (the heap-corruption chain in memory) when a physics round
+has room.
+
+## OWNER DECREE (2026-09-01): CREATION NEVER OVERLAPS — INV-37
+
+"Under no circumstances, any creation of particles should be allowed to
+overlap in space with another." Supersedes the creation-door merge note
+above: the door lands STRICT and UNCONDITIONAL, refusing (dropping from
+the flush, with a [PHYSICS REFUSED] line naming the pair) any creation
+that overlaps an existing body beyond SLOP. No class list. The crown's
+structural band and the humanoid's boxes become generator defects to
+fix, not exemptions. CLEAN NOW: port the door into this tree, strict;
+witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
+scatter (rock.z = 0.15 inside the tile) gets refused on first run and
+is fixed at its source.
+
+## IN FLIGHT (2026-09-02): the creation door + the audit's fixes, one agent
+
+Owner rulings 1 and 2 (LEDGER 2026-09-02). feat/creation-door, stacked
+on #166: test_creation_door born red; the refusal inside add_particle
+with an incremental BVH; the headless bench before/after; Eden's first-
+run refusal census as the red list; every audit-found birth fixed at
+its source; sweep alone; PR for the owner's merge. Windows after the
+report, launched by the dispatcher.
