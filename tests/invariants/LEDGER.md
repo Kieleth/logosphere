@@ -2607,6 +2607,42 @@ layer's (light anchor as KINEMATIC or light source; the stagger is a
 fall; the blades' bonds; the zero-height bodies). The window for this
 round: test_jammed_sleep_visual on fix/sleeper-support.
 
+### 2026-09-02 — the sweep on fix/sleeper-support: four moles, each named
+
+`SWEEP_VERDICT: MOLES 47 (new-red 4, gone-green 0, unaudited 43)`
+against feat/creation-door's baseline. Each new red, run and read:
+
+1. `test_inv29_constants_gate` — my [PHYSICS WOKEN] line converted
+   metres to millimetres with 1000.0f / 2000.0f. Fixed: the line
+   speaks metres. Green.
+2. `test_ssgi_visual` — the judge woke the sun light's body (a light
+   is not a body: the judge now skips `is_light_source`, the door's own
+   rule), then two walls standing at x = +-2.5 over the GAPS of a 1 m-
+   pitch checkerboard of 0.5 m tiles, then a ceiling of loose tiles at
+   6.15 m. All correct verdicts on scenery parked in space. The test's
+   scenery is now KINEMATIC (the engine's mechanism for a position owned
+   outside; a sleep flag is not immobility). 40/40 green.
+3. `test_leg_geometry_choreography` — the judge woke the test's 'Eden
+   table', written at z 1.0 against a strata top of 0.55 (floating
+   10 cm, top at 1.35 m). Staged honestly on the floor (top 1.25 m) the
+   SE march collapses Eva's hips 0.549 m toward her feet; 0.123 m with
+   the table floating, on either branch, judge on or off
+   (SLEEPER_JUDGE=0, the new kill switch). NOT the judge: a 0.7 m block
+   standing in the lane is what the choreography cannot cross, and the
+   floating table hid it. Booked expect-fail with the finding; the
+   table stays on the floor. OWNER RULING: the humanoid front, or the
+   table's place in the lane.
+4. `test_walk_through_grass` — the judge wakes eight unbonded grass
+   leaf boxes asleep in the air (447 grass bodies, 274 gluons); they
+   fall on the path and Eva kicks one 2.32 m ('GRASS FLEW'). Green on
+   the door branch only because they never moved. Booked expect-fail;
+   the grass front (blades' bonds, birth on the ground) owns it. OWNER
+   RULING on the order.
+
+Kill switch added: `SLEEPER_JUDGE=0` takes a declared sleeper at its
+word (A/B only). Re-swept alone after these:
+`SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43)` -
+the standing 43 non-physics binaries and nothing else.
 ## 2026-09-02 — G-69 closed on its stage: the seam phantom's two mechanisms (fix/seam-phantom)
 
 Stacked on fix/sleeper-support (#170). TDD by case H (five red at the

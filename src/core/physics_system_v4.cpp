@@ -622,12 +622,20 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 // like any other body; a supported one is booked as earned and never
 // judged again.
 void PhysicsSystem::admit_declared_sleepers(ParticleSystem::WriteView& particles) {
+    // The kill switch (INV-36's pattern): SLEEPER_JUDGE=0 restores the old
+    // behaviour - a declared sleeper is taken at its word - for A/B only.
+    static const bool judge_off = [] {
+        const char* v = std::getenv("SLEEPER_JUDGE");
+        return v && v[0] == '0';
+    }();
+    if (judge_off) return;
     const size_t count = particles.size();
     std::vector<size_t> declared;
     for (size_t i = 0; i < count; ++i) {
         const Particle& p = particles[i];
         if (!p.is_at_rest || p.frames_at_rest >= REST_FRAMES_REQUIRED) continue;
         if (p.solver_mode == ParticleSolverMode::KINEMATIC || p.GetMass() == 0.0f) continue;
+        if (p.is_light_source) continue;   // a light is not a body (the door's rule)
         declared.push_back(i);
     }
     if (declared.empty()) return;
@@ -661,10 +669,9 @@ void PhysicsSystem::admit_declared_sleepers(ParticleSystem::WriteView& particles
         const logosphere::CreationBody b = logosphere::describe_creation_body(static_cast<int>(i), p);
         std::fprintf(stderr,
                      "[PHYSICS WOKEN] body %zu declared asleep with nothing under it within "
-                     "%.0f mm: %s %.0fx%.0fx%.0f mm at (%.3f, %.3f, %.3f), bottom z %.4f "
+                     "%.4f m: %s half %.4fx%.4fx%.4f m at (%.3f, %.3f, %.3f), bottom z %.4f "
                      "- a sleeper rests on its support (G-72, INV-31)\n",
-                     i, SLOP * 1000.0f, b.shape,
-                     b.half[0] * 2000.0f, b.half[1] * 2000.0f, b.half[2] * 2000.0f,
+                     i, SLOP, b.shape, b.half[0], b.half[1], b.half[2],
                      p.x, p.y, p.z, b.world_min_z);
         PHYS_TRACE_F(::logosphere::phystrace::Pair, "woken_at_birth", (int)i, -1,
                      "unsupported", b.world_min_z, 0.0f, 0.0f);
