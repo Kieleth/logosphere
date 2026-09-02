@@ -40,6 +40,21 @@
 //      on the base, nothing moves. Likewise A's buried stone is
 //      refused, never born: the tile keeps its one dropped stone.
 //
+//   E  THE STRATA STACK (G-69). Eden's own floor: bedrock (12 t), a 6 t
+//      layer on it, a 2.4 t dirt layer on that, born touching. Each
+//      pair must stand within 2 mm of each other (INV-2, the manifold's
+//      own reading) and sleep. Measured on the door branch: 6-13 mm of
+//      compaction at rest, and the sleep gate rightly refuses to sleep
+//      a penetrating stack - the census population behind Eden's frame.
+//
+//   F  THE TILED FLOOR (G-69). Eden's floor with its SEAMS: 2 x 2 tiles
+//      per layer, three layers, born touching edge to edge and face to
+//      face. Every contact the engine builds must read under 2 mm - the
+//      seams between coplanar neighbours included - and the floor must
+//      sleep. Measured in Eden: seam rows reading 4.0 m of "penetration"
+//      at frame 0, a dirt tile sinking 46 mm into the layer below within
+//      two frames, 85 bonds born strained past the wake strain.
+//
 // THE COST WITNESS on every case (G-67): once the stage is quiet the
 // solver leaves by convergence, never by exhausting its budget, read
 // from PhysicsSystem::last_solve().
@@ -68,6 +83,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -105,6 +121,20 @@ struct BodySpec {
     bool late = false;     // D: created at Case::late_frame, not at build
 };
 
+// A bond between two bodies: attachment offsets, rest length. rest 0 with
+// offsets at the shared face is the strata generator's edge-to-edge recipe
+// (strata_floor_generator.cpp bond_tiles), born at strain 1.0 (INV-4).
+struct Bond { int a, b; float ax, ay, az; float bx, by, bz; float rest; };
+inline Bond edge_bond(const std::vector<BodySpec>& bs, int a, int b) {
+    const BodySpec& A = bs[a]; const BodySpec& B = bs[b];
+    float dx = B.x - A.x, dy = B.y - A.y, dz = B.z - A.z;
+    const float d = std::sqrt(dx*dx + dy*dy + dz*dz);
+    dx /= d; dy /= d; dz /= d;
+    const float ha = std::fabs(dx) * A.sx * 0.5f + std::fabs(dy) * A.sy * 0.5f + std::fabs(dz) * A.sz * 0.5f;
+    const float hb = std::fabs(dx) * B.sx * 0.5f + std::fabs(dy) * B.sy * 0.5f + std::fabs(dz) * B.sz * 0.5f;
+    return Bond{a, b, dx * ha, dy * ha, dz * ha, -dx * hb, -dy * hb, -dz * hb, 0.0f};
+}
+
 struct Strike {             // an instrumented impact: who hits whom, how fast
     int a, b;
     int by_frame;           // must have happened by this frame
@@ -112,6 +142,7 @@ struct Strike {             // an instrumented impact: who hits whom, how fast
 };
 struct Height { int body; float z; };
 struct Still  { int body; };                // Argus peak speed < STILL
+struct Fall   { int body; float v_max; };   // Argus peak speed <= the fall it was born to make
 struct Tilt   { int body; float lo, hi; };  // |rotation_y| band, rad
 struct Sep    { int a, b; float lo, hi; };  // Argus separation band at the end
 struct VSep   { int a, b; float lo, hi; };  // vertical separation band (Argus z's): rests ON
@@ -123,8 +154,10 @@ struct Case {
     int run_frames = 600;
     int late_frame = -1;
     std::vector<Strike> strikes;
+    std::vector<Bond>   bonds;
     std::vector<Height> heights;            // INV-2: rests at
     std::vector<Still>  stills;             // INV-7: not moved by a repair
+    std::vector<Fall>   falls;              // INV-3: moved only by its own fall
     std::vector<Tilt>   tilts;
     std::vector<Sep>    seps;
     std::vector<VSep>   vseps;
@@ -138,6 +171,8 @@ struct Case {
     float refusal_depth = -1.0f;            // INV-37: the door's own reading of the refused depth (m)
     bool rest_overlap_asserted = true;      // INV-2 at the end (axis-aligned measure)
     int manifold_pair_a = -1, manifold_pair_b = -1;   // INV-2 through the engine's own contact (tilted bodies)
+    std::vector<std::pair<int,int>> manifold_pairs;   // more of the same (stacks)
+    bool all_contacts_asserted = false;               // INV-2 over EVERY contact the engine built
     const char* waiver = nullptr;
     const char* demo1 = "";
     const char* demo2 = "";
@@ -154,6 +189,7 @@ struct Scene {
     // THE DOOR'S OWN RECORD (feat/creation-door): what it refused and how deep.
     bool  door_refused = false;
     float door_depth = 0.0f;
+    float birth_bond_gap = 0.0f;         // worst |attachment gap - rest| at birth (INV-4)
     std::map<std::pair<int,int>, int>   first_contact_frame;
     std::map<std::pair<int,int>, float> first_contact_speed;
     std::map<std::pair<int,int>, float> last_penetration;   // the manifold's own, this frame
@@ -168,6 +204,7 @@ struct Scene {
         switch (m) {
             case Materials::Type::WOOD_SOFT: p.r = 0.72f; p.g = 0.55f; p.b = 0.35f; break;
             case Materials::Type::LEAVES:    p.r = 0.42f; p.g = 0.62f; p.b = 0.32f; break;
+            case Materials::Type::DIRT:      p.r = 0.45f; p.g = 0.33f; p.b = 0.22f; break;
             case Materials::Type::STONE:
             default:                         p.r = 0.55f; p.g = 0.55f; p.b = 0.58f; break;
         }
@@ -194,6 +231,18 @@ struct Scene {
         return ids[i];
     }
 
+    void bond(PhysicsSystem& physics, const Bond& bd) {
+        if (ids[bd.a] < 0 || ids[bd.b] < 0) return;
+        auto g = std::make_unique<OrganicGluon>();
+        g->offset_a = {bd.ax, bd.ay, bd.az};
+        g->offset_b = {bd.bx, bd.by, bd.bz};
+        g->target_distance = bd.rest;
+        const BodySpec& A = specs[bd.a];
+        // the strata recipe: the shared face is the contact area
+        g->contact_area = std::fabs(bd.ax) > 0.0f ? A.sy * A.sz
+                        : std::fabs(bd.ay) > 0.0f ? A.sx * A.sz : A.sx * A.sy;
+        physics.add_gluon_between(ids[bd.a], ids[bd.b], std::move(g));
+    }
     void reset_latches() {
         first_contact_frame.clear(); first_contact_speed.clear(); last_penetration.clear();
         first_sleep_frame.assign(specs.size(), -1);
@@ -205,16 +254,29 @@ struct Scene {
 
     int build(ParticleSystem& ps, PhysicsSystem& physics, const Case& c,
               float x_off = 0.0f) {
-        (void)physics;
         specs = c.bodies;
         ids.assign(specs.size(), -1);
         for (size_t i = 0; i < specs.size(); ++i)
             if (!specs[i].late) create(ps, (int)i, x_off);
         ps.flush_pending_particles();
+        for (const Bond& bd : c.bonds) bond(physics, bd);
         for (size_t i = 0; i < ids.size(); ++i)
             if (ids[i] >= 0) argus.watch(ids[i], specs[i].label);
         reset_latches();
         birth_overlap = worst_overlap(ps).pen;
+        birth_bond_gap = 0.0f;
+        {
+            auto v = ps.lock_particles_for_read();
+            for (const Bond& bd : c.bonds) {
+                if (ids[bd.a] < 0 || ids[bd.b] < 0) continue;
+                const Particle& A = v[ids[bd.a]]; const Particle& B = v[ids[bd.b]];
+                const float gx = (A.x + bd.ax) - (B.x + bd.bx);
+                const float gy = (A.y + bd.ay) - (B.y + bd.by);
+                const float gz = (A.z + bd.az) - (B.z + bd.bz);
+                birth_bond_gap = std::fmax(birth_bond_gap,
+                                           std::fabs(std::sqrt(gx*gx + gy*gy + gz*gz) - bd.rest));
+            }
+        }
         return (int)ids.size();
     }
 
@@ -366,6 +428,13 @@ struct Scene {
     int   strike_frame(int a, int b) const {
         auto it = first_contact_frame.find({std::min(a, b), std::max(a, b)});
         return it == first_contact_frame.end() ? -1 : it->second;
+    }
+    // The deepest contact the engine currently reports among the cast.
+    float worst_contact_penetration(int* pa = nullptr, int* pb = nullptr) const {
+        float w = 0.0f;
+        for (const auto& kv : last_penetration)
+            if (kv.second > w) { w = kv.second; if (pa) *pa = kv.first.first; if (pb) *pb = kv.first.second; }
+        return w;
     }
     float contact_penetration(int a, int b) const {
         auto it = last_penetration.find({std::min(a, b), std::max(a, b)});
@@ -538,6 +607,83 @@ inline std::vector<Case> cases() {
                   "stones stay on the base, asleep 4/4 on stage";
         v.push_back(c);
     }
+    // E. Eden's floor, three layers born touching on the turtle. The
+    //    stack must stand within INV-2's bar at every interface and sleep.
+    {
+        Case c;
+        c.name = "E THE STRATA STACK";
+        c.gid = "G-69";
+        const float l2_t = 0.15f, l3_t = 0.10f;
+        const float l2_z = TILE_TOP + l2_t * 0.5f;              // 0.375
+        const float l3_z = TILE_TOP + l2_t + l3_t * 0.5f;       // 0.50
+        c.bodies = {tile(0.0f, TILE_Z, "bedrock"),
+                    BodySpec{TILE_L, TILE_L, l2_t, 0.0f, 0.0f, l2_z, Materials::Type::STONE, "layer2"},
+                    BodySpec{TILE_L, TILE_L, l3_t, 0.0f, 0.0f, l3_z, Materials::Type::DIRT, "dirt"}};
+        c.rest_overlap_asserted = false;             // the manifold reads each interface
+        c.manifold_pairs = {{0, 1}, {1, 2}};
+        c.heights = {Height{0, TILE_Z}, Height{1, l2_z}, Height{2, l3_z}};
+        c.stills = {Still{0}, Still{1}, Still{2}};
+        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 1;    // born touching: 0 mm
+        c.demo1 = "DEMONSTRATING: three floor layers born touching must STAND within 2 mm "
+                  "of each other (INV-2) and sleep - Eden's floor sinks 6-13 mm and never sleeps";
+        c.demo2 = "WATCH: the two interface penetrations (the manifold's own reading), "
+                  "asleep 3/3, the solver's exit";
+        v.push_back(c);
+    }
+    // F. Eden's floor with its seams: 2 x 2 tiles per layer, three layers,
+    //    born touching. The grid is where Eden's compaction was measured.
+    {
+        Case c;
+        c.name = "F THE TILED FLOOR (seams, bonds, a staggered layer)";
+        c.gid = "G-69";
+        const float l2_t = 0.15f, l3_t = 0.10f;
+        // Born the way Eden births them (census f0): layer 2 two millimetres
+        // above rest, the dirt layer seven, so the layers FALL onto each
+        // other on frame 0 and the straddling dirt tiles strike four tiles at once.
+        const float born_gap[3] = {0.0f, 0.002f, 0.007f};
+        const float lz[3] = {TILE_Z, TILE_TOP + l2_t * 0.5f, TILE_TOP + l2_t + l3_t * 0.5f};
+        const float lt[3] = {TILE_T, l2_t, l3_t};
+        const Materials::Type lm[3] = {Materials::Type::STONE, Materials::Type::STONE,
+                                       Materials::Type::DIRT};
+        static const char* names[12] = {"b00","b10","b01","b11","l00","l10","l01","l11",
+                                        "d00","d10","d01","d11"};
+        int k = 0;
+        // Eden's dirt layer straddles the layer below (the census: one dirt
+        // tile in contact with four layer-2 tiles): the top grid is offset
+        // by half a tile in x and y.
+        for (int layer = 0; layer < 3; ++layer)
+            for (int iy = 0; iy < 2; ++iy)
+                for (int ix = 0; ix < 2; ++ix) {
+                    const float stagger = (layer == 2) ? TILE_L * 0.5f : 0.0f;
+                    c.bodies.push_back(BodySpec{TILE_L, TILE_L, lt[layer],
+                                                (ix - 0.5f) * TILE_L + stagger,
+                                                (iy - 0.5f) * TILE_L + stagger,
+                                                lz[layer] + born_gap[layer], lm[layer], names[k]});
+                    c.heights.push_back(Height{k, lz[layer]});
+                    // bedrock is born on the turtle and must not move; the
+                    // layers above fall their gap and no more (2x band for
+                    // the strike's rebound)
+                    if (layer == 0) c.stills.push_back(Still{k});
+                    else c.falls.push_back(Fall{k, 2.0f * fall_speed(born_gap[layer]) + STILL});
+                    ++k;
+                }
+        // The strata generator bonds every cardinal neighbour in a layer.
+        for (int layer = 0; layer < 3; ++layer) {
+            const int o = layer * 4;
+            c.bonds.push_back(edge_bond(c.bodies, o + 0, o + 1));
+            c.bonds.push_back(edge_bond(c.bodies, o + 2, o + 3));
+            c.bonds.push_back(edge_bond(c.bodies, o + 0, o + 2));
+            c.bonds.push_back(edge_bond(c.bodies, o + 1, o + 3));
+        }
+        c.rest_overlap_asserted = false;       // the AABB measure reads seams as 0 anyway
+        c.all_contacts_asserted = true;        // the engine's own rows, seams included
+        c.born_overlap_pair_a = 0; c.born_overlap_pair_b = 4;   // born clear: 0 mm
+        c.demo1 = "DEMONSTRATING: a tiled floor born a few mm apart settles within 2 mm at "
+                  "EVERY contact (INV-2), seams and straddles included, and sleeps";
+        c.demo2 = "WATCH: the worst contact the engine reports (seams included), every "
+                  "tile at its height, asleep 12/12, the exit";
+        v.push_back(c);
+    }
     return v;
 }
 
@@ -605,13 +751,25 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
     }
     // INV-2 through the engine's own manifold (a tilted pair the AABB measure
     // cannot judge): the contact's penetration at the end.
-    if (c.manifold_pair_a >= 0) {
-        const float pen = s.contact_penetration(c.manifold_pair_a, c.manifold_pair_b);
-        std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s contact penetration at rest "
-                      "%.1f mm < %.0f mm (the manifold's own reading)", c.gid,
-                      L(c.manifold_pair_a), L(c.manifold_pair_b), pen * 1000.0f,
-                      OVERLAP_TOL * 1000.0f);
-        v.push_back({t, pen < OVERLAP_TOL});
+    {
+        std::vector<std::pair<int,int>> mp = c.manifold_pairs;
+        if (c.manifold_pair_a >= 0) mp.insert(mp.begin(), {c.manifold_pair_a, c.manifold_pair_b});
+        for (const auto& pr : mp) {
+            const float pen = s.contact_penetration(pr.first, pr.second);
+            std::snprintf(t, sizeof t, "%s/INV-2: %s<->%s contact penetration at rest "
+                          "%.1f mm < %.0f mm (the manifold's own reading)", c.gid,
+                          L(pr.first), L(pr.second), pen * 1000.0f, OVERLAP_TOL * 1000.0f);
+            v.push_back({t, pen < OVERLAP_TOL});
+        }
+    }
+    if (c.all_contacts_asserted) {
+        int pa = -1, pb = -1;
+        const float w = s.worst_contact_penetration(&pa, &pb);
+        std::snprintf(t, sizeof t, "%s/INV-2: every contact the engine builds reads under "
+                      "%.0f mm, seams included (worst %.1f mm%s%s%s)", c.gid,
+                      OVERLAP_TOL * 1000.0f, w * 1000.0f, pa >= 0 ? ", " : "",
+                      pa >= 0 ? L(pa) : "", pa >= 0 ? (std::string("<->") + L(pb)).c_str() : "");
+        v.push_back({t, w < OVERLAP_TOL});
     }
     // INV-2: rests at the derived height.
     for (const Height& h : c.heights) {
@@ -626,6 +784,13 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
         std::snprintf(t, sizeof t, "%s/INV-7: %s is NOT moved by anyone's repair "
                       "(peak speed %.3f < %.2f m/s)", c.gid, L(st_.body), pk, STILL);
         v.push_back({t, pk < STILL});
+    }
+    // INV-3: a body born a few mm above rest falls that much and no more.
+    for (const Fall& fl : c.falls) {
+        const float pk = s.peak_speed(fl.body);
+        std::snprintf(t, sizeof t, "%s/INV-3: %s moves only by its own fall (peak speed "
+                      "%.3f <= %.3f m/s)", c.gid, L(fl.body), pk, fl.v_max);
+        v.push_back({t, pk <= fl.v_max});
     }
     // The derived tilt (B): rotation_y band.
     for (const Tilt& ti : c.tilts) {
@@ -670,6 +835,17 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
                       "last event (asleep at f%d, due f%d)", c.gid, L(i), SLEEP_GRACE,
                       f, due);
         v.push_back({t, f >= 0 && f <= due});
+    }
+    // INV-4's bond clause and INV-14: born at strain 1.0, and every bond survives.
+    if (!c.bonds.empty()) {
+        std::snprintf(t, sizeof t, "%s/INV-4: every bond is born at rest (worst attachment "
+                      "gap %.1f mm < %.0f mm)", c.gid, s.birth_bond_gap * 1000.0f,
+                      OVERLAP_TOL * 1000.0f);
+        v.push_back({t, s.birth_bond_gap < OVERLAP_TOL});
+        const size_t live = physics.get_total_gluon_count();
+        std::snprintf(t, sizeof t, "%s/INV-14: every bond survives (%zu of %zu)", c.gid,
+                      live, c.bonds.size());
+        v.push_back({t, live == c.bonds.size()});
     }
     // INV-34: nothing keeps spinning.
     {
