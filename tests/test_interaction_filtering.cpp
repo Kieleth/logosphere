@@ -67,8 +67,21 @@ struct FilterRig {
             p.SetMaterial(Materials::Type::STONE);
             return engine.add_particle(p);
         };
+        // THE OVERLAP IS DRIVEN IN, NOT BORN (INV-37, owner decree 2026-09-01).
+        // The pair used to be SPAWNED 0.2 m inside each other, which the
+        // creation door refuses: this rig would have had one box instead of
+        // two, and every reading below would have been of an empty pair. They
+        // are born clear and the second is written into the first before a
+        // step runs - the same INV-30 external write test_solver_residual and
+        // test_baumgarte_ratchet use. The solver sees the identical state on
+        // frame one.
         a = box(-0.05f);
-        b = box(+0.05f);
+        b = box(+0.85f);
+        {
+            auto v = engine.get_particle_system().lock_particles_for_write();
+            v[b].x = +0.05f;
+        }
+        engine.get_particle_system().mark_bvh_dirty();
     }
 
     float separation_x() {

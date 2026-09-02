@@ -67,8 +67,11 @@ bool test_gi_bounce(TestContext& ctx) {
     // Red obelisk (tall, bright red)
     Particle obelisk = {};
     obelisk.shape = ParticleShape::BOX;
-    obelisk.x = 0.0f; obelisk.y = 0.0f; obelisk.z = 1.0f;
+    // ON the floor, not 0.1 m into it: the slab's top is 0.10 and a 2 m
+    // obelisk centred at 1.0 spans 0..2 (INV-37).
+    obelisk.x = 0.0f; obelisk.y = 0.0f;
     obelisk.width = 0.4f; obelisk.height = 0.4f; obelisk.thickness = 2.0f;
+    obelisk.z = (floor_p.z + floor_p.thickness * 0.5f) + obelisk.thickness * 0.5f;
     obelisk.r = 1.0f; obelisk.g = 0.1f; obelisk.b = 0.1f; obelisk.a = 1.0f;
     obelisk.SetMaterial(Materials::Type::STONE);
     obelisk.owner = ParticleOwner::STATIC;

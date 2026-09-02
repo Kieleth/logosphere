@@ -548,26 +548,24 @@ int PhysicsTreeGenerator::generate_branch(
     branch.y += dir_y * branch_push;
     branch.z += dir_z * branch_push;
 
-    // AND CLEAR OF ITS SIBLINGS. Two branches leaving the same fork start in
-    // the same small ball of space, and the parent's plane says nothing about
-    // each other. There is no closed form for "how far along my own axis
-    // until I am out of that box", so the branch asks the engine's own
-    // predicate how deep it is and slides by exactly that, which is the
-    // measured quantity and not a margin: each step removes at least the
-    // component of the depth along the travel, so it converges, and the loop
-    // is bounded because a branch that cannot get clear is a placement the
-    // door must refuse rather than a placement to keep nudging.
-    for (int slide = 0; slide < 8; ++slide)
-    {
-        int blocker = -1;
-        const float depth = particles_->deepest_overlap(branch, parent_id, &blocker);
-        if (depth <= PhysicsV4::SLOP) break;
-        const float step = depth + PhysicsV4::SLOP;
-        branch.x += dir_x * step;
-        branch.y += dir_y * step;
-        branch.z += dir_z * step;
-        branch_push += step;
-    }
+    // AND ITS SIBLINGS? NOT YET, AND THE ATTEMPT IS ON THE RECORD.
+    //
+    // Two branches leaving the same fork start in the same small ball of
+    // space, and the parent's plane says nothing about each other. Sliding
+    // each one along its own axis by the measured depth until it was clear
+    // WORKED geometrically and broke the tree: the joint gap it opened is
+    // large, and OrganicGluon does not hold a crown across one. Measured on
+    // test_foliage_stays_attached with the door OFF, so the only variable was
+    // the geometry:
+    //     no push, no slide   mean canopy drift 0.0056 m, PASS
+    //     push only           1.7305 m, peak leaf 4.53 m/s
+    //     push + slide        3.5574 m, peak leaf 11.14 m/s
+    // The slide is removed. The sibling pairs it would have separated (36
+    // branch-branch and 17 branch-trunk on Eden, 6 on the standard tree) are
+    // refused by the door instead, which drops those subtrees - loudly, and
+    // booked as F-CROWN on the physics board. GEDANKEN-70 anticipated exactly
+    // this outcome and named the alternative: a real junction body the
+    // siblings each abut, which is a generator redesign with its own cost.
 
     // Create OrganicGluon to attach branch to parent
     auto gluon = std::make_unique<OrganicGluon>();
@@ -606,11 +604,21 @@ int PhysicsTreeGenerator::generate_branch(
     // direction_to_euler establishes and the solver's rotate_full relies on —
     // so the end nearest the parent is simply -length/2 along local Z. The
     // rotation carries the direction; the offset must not carry it too.
-    // The attachment point stays ON the parent's tip: the branch slid out by
-    // branch_push, so its own frame reaches back that much further.
-    gluon->offset_b = Vec3(0.0f, 0.0f, -(length * 0.5f + branch_push));
+    // BOTH ANCHORS STAY ON THEIR BODIES, AND THE JOINT CARRIES THE GAP.
+    //
+    // The first version of this reached the child's anchor BACK to the
+    // parent's tip (offset_b = -(L/2 + push)), which put the anchor in empty
+    // space outside the branch and gave every bond a lever arm longer than
+    // the body it holds. Measured on test_foliage_stays_attached with the
+    // door OFF, so the only variable was the geometry: mean canopy drift
+    // 0.0056 m before, 3.5574 m after, peak leaf speed 11.14 m/s against a
+    // 2.00 limit. A floating anchor is not a joint.
+    //
+    // The anchor is the branch's own near face, and the separation the
+    // clearance created is what it is: the joint's rest LENGTH.
+    gluon->offset_b = Vec3(0.0f, 0.0f, -length * 0.5f);
 
-    gluon->target_distance = 0.0f;
+    gluon->target_distance = branch_push;   // the gap the clearance opened
     gluon->contact_area = calculate_contact_area(thickness);
 
     // Add branch with gluon attachment
@@ -1208,10 +1216,43 @@ int PhysicsTreeGenerator::generate_root_system(
         // is precisely the gap the four root bonds were born with.
         float face_center_z = plate_center_z;
 
-        // Root center = face center + half root length outward
-        float root_center_x = face_center_x + dir_x * root_length * 0.5f;
-        float root_center_y = face_center_y + dir_y * root_length * 0.5f;
-        float root_center_z = face_center_z + dir_z * root_length * 0.5f;
+        // Root center = face center + half root length outward.
+        //
+        // OUTWARD IS THE FACE'S NORMAL, NOT THE RADIAL DIRECTION, on the axis
+        // the root's own box is long along. The root is an AXIS-ALIGNED box
+        // (no rotation, see above) whose length lies on the dominant axis,
+        // and displacing it along a DIAGONAL radial direction moves it less
+        // than half its length off the face: a root at 87 degrees ended up
+        // 3 mm inside the plate, which INV-37 refuses and which cost
+        // test_foliage_stays_attached a root. The off-axis component still
+        // rides on the radial direction, so the fan keeps its spread.
+        // The root leaves along the FACE'S NORMAL - the axis its own box is
+        // long along - and the radial direction decides WHERE ON THE FACE it
+        // leaves from, not which way it travels. Travelling along a diagonal
+        // radial moves an axis-aligned box less than half its length off the
+        // face, and a root at 87 degrees ended up 3 mm inside the plate,
+        // which INV-37 refuses and which cost test_foliage_stays_attached a
+        // root. The fan is kept, as a spread of anchor points across the
+        // face, clamped so every anchor is on the plate it holds.
+        const float half_len = root_length * 0.5f;
+        const bool  x_face = (face_offset_x != 0.0f);
+        const float out_n  = x_face ? ((radial_x > 0.0f) ? half_len : -half_len)
+                                    : ((radial_y > 0.0f) ? half_len : -half_len);
+        auto clamp_face = [&](float v) {
+            return std::max(-plate_half_w, std::min(plate_half_w, v));
+        };
+        const float lat_x = x_face ? 0.0f : clamp_face(dir_x * half_len);
+        const float lat_y = x_face ? clamp_face(dir_y * half_len) : 0.0f;
+
+        // The anchor: a point on the plate's side face.
+        const float anchor_x = face_center_x + lat_x;
+        const float anchor_y = face_center_y + lat_y;
+        const float anchor_z = face_center_z;
+
+        // The root's near face sits exactly on it.
+        float root_center_x = anchor_x + (x_face ? out_n : 0.0f);
+        float root_center_y = anchor_y + (x_face ? 0.0f : out_n);
+        float root_center_z = anchor_z;
 
         root.x = root_center_x;
         root.y = root_center_y;
@@ -1225,14 +1266,17 @@ int PhysicsTreeGenerator::generate_root_system(
         auto root_gluon = std::make_unique<OrganicGluon>();
         // Offset A: Attachment point on plate (side face center in plate's local coords)
         // Plate has no rotation, so local = world
-        root_gluon->offset_a = Vec3(face_offset_x, face_offset_y, 0.0f); // Side face at plate center Z
+        root_gluon->offset_a = Vec3(face_offset_x + lat_x, face_offset_y + lat_y,
+                                    0.0f);  // the anchor point on the side face
         // Offset B: Attachment point on root (inner end in WORLD coords)
         // Inner end is at root_center - half_length in the direction of the root
         // In world coords: inner_end = root_center - dir * root_length/2
         // So offset from root center to inner end = -dir * root_length/2
-        float inner_offset_x = -dir_x * root_length * 0.5f;
-        float inner_offset_y = -dir_y * root_length * 0.5f;
-        float inner_offset_z = -dir_z * root_length * 0.5f;
+        // The root's own near face, in its own frame (it carries no rotation),
+        // which is where the anchor is (INV-4, strain 1.0 at birth).
+        float inner_offset_x = x_face ? -out_n : 0.0f;
+        float inner_offset_y = x_face ? 0.0f : -out_n;
+        float inner_offset_z = 0.0f;
         root_gluon->offset_b = Vec3(inner_offset_x, inner_offset_y, inner_offset_z);
         root_gluon->target_distance = 0.0f;                         // Touch attachment
         root_gluon->contact_area = root_thickness * root_thickness; // Root cross-section

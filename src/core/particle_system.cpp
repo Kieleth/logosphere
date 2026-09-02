@@ -593,6 +593,15 @@ int ParticleSystem::queue_particle_addition(const Particle& particle) {
     // This ensures shadows work as soon as particles are flushed
     mark_bvh_dirty();
 
+    // ...but QUEUEING MOVES NOTHING. mark_bvh_dirty is also the creation
+    // index's "the world has moved" signal, and leaving it set here made
+    // every queued body pay a full O(n) refit for the previous one's sake:
+    // a floor generator queueing thousands of tiles turned a per-birth door
+    // into an O(n^2) one, and the sweep's layered-floor tests went from
+    // seconds to minutes. The live array is untouched by a queue, so the
+    // index is still exact.
+    if (logosphere::creation_door_enabled()) creation_index_stale_ = false;
+
     // Return what the future ID will be (current size + pending count)
     return static_cast<int>(particles.size() + pending_particles.size() - 1);
 }

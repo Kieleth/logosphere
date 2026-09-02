@@ -75,7 +75,10 @@ int main() {
 
     auto& hgen = engine.get_worldgen_system().get_humanoid_generator();
     auto eva = hgen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.5f, -1, HumanoidSpec::eva(), false);
+        // 0.55, not 0.5: world_z is the FEET'S BOTTOM and this scene's strata
+        // surface is 0.30 + 0.15 + 0.10 = 0.55. At 0.5 every foot was born
+        // 50 mm inside the organic layer, which INV-37 refuses.
+        0.0f, 0.0f, 0.55f, -1, HumanoidSpec::eva(), false);
     auto& kg = engine.get_kg();
     eva.create_kg_entities(kg, "Humanoid", 180.0f, 800.0f);
     auto& loco = engine.get_humanoid_locomotion();
