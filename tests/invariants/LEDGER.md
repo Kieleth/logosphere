@@ -2682,3 +2682,31 @@ sleeper branch it slingshots (peak stretch 2.289 m) and shears (139.6
 deg) where the seam branch carries the blade (2.6 vs 1.2 m/s), bends it
 by rotation (1.3 deg) and keeps it on the plant. The slingshot was
 manufactured rows. OWNER RULING: whether A+B are still owed.
+
+Sweep alone on the merged seam branch (sleeper head merged in):
+`SWEEP_VERDICT: MOLES 44 (new-red 0, gone-green 1, unaudited 43)`. The
+gone-green is `test_leg_geometry_choreography`, booked expect-fail on
+the sleeper branch with its table on the floor (hips collapse 0.549 m
+in the SE march across chunks): it passes here. The collapse was the
+floor's seam phantoms under Eva at the chunk seams, not the humanoid.
+Numbers and the Eden A/B below.
+
+Eden headless, 300 frames, every run alone, level-1 trace on all of
+them. Steady tail (the last 179 frames), average: feat/creation-door
+751 ms; fix/sleeper-support 749; seam with both mechanisms 891 and 872
+(two runs, 2 % apart); seam with the merge precondition only 621.
+All-frames average: 1120 / 1363 / 951 and 939 / 778. End state, seam
+both: 9104 of 9301 asleep, 66 dissatisfied; precondition only: 9037
+asleep, 69 dissatisfied. The precondition alone also gives the blade
+study its green and the leg choreography 0.044 m; the face rule adds
+only case G's four edge tiles, at 250 ms per steady frame, and what it
+removes is the symptom of a row carrying 15 N s with no approach - the
+reason is not found. SHIPPED: the merge's precondition on, the
+face-has-area rule opt-in (SEAM_FACE_AREA=1), case G red on its four
+edge tiles as G-73's born-red (registered 2026-09-02). OWNER RULING:
+the default of the face rule (G green at +250 ms steady, or G red and
+the 250 ms kept until G-73 is answered). Merge order owed:
+#166 -> #168 -> #169 -> #170 -> this branch; #167 parked.
+
+Final sweep, alone, on the shipped default:
+`SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43)`.

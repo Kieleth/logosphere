@@ -267,10 +267,19 @@ bool narrow_phase_aabb(const AABB6& a, const AABB6& b,
     // settled 126 um into its bedrock read a side row to the DIAGONAL bedrock
     // tile through that hair of z-overlap, and the row carried 15 N s.
     // SEAM_FACE_AREA=0 restores the old rows for A/B (INV-36's pattern).
+    //
+    // OPT-IN (SEAM_FACE_AREA=1), 2026-09-02: on Eden this rule costs 250 ms
+    // per steady frame (621 -> 872 ms, alone, twice) while the merge's
+    // precondition alone already gives case H, the blade study and the leg
+    // choreography their greens. What it fixes - case G's four edge tiles
+    // landing 3 mm deep - is a symptom of a row that carries load with no
+    // approach (G-73); this rule removes the row, not the reason. Kept as
+    // the experiment that proves the diagnosis, off until the reason is
+    // found or the owner rules the price worth it.
     {
         static const bool face_area_off = [] {
             const char* v = std::getenv("SEAM_FACE_AREA");
-            return v && v[0] == '0';
+            return !(v && v[0] == '1');
         }();
         const float o1 = (normal_axis == 0) ? overlap_y : overlap_x;
         const float o2 = (normal_axis == 2) ? overlap_y : overlap_z;

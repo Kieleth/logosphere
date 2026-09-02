@@ -1295,10 +1295,12 @@ zero velocity, four diagonal sleepers sunk 5 mm).
 
 ## LANDED 2026-09-02 — G-69 SECOND FIX: THE SEAM PHANTOM (fix/seam-phantom, stacked on #170)
 
-Two mechanisms, both TDD by test_jammed_sleep H then G: the merge's
-precondition (a body beside the surface is not on it) and the narrow
-phase's face-has-area rule at SLOP (a row along one axis needs overlap
-above SLOP on the other two; a gap must not beat a touch). All eight
-cases green at the 2 mm bar. Kill switches SEAM_MERGE_PRECONDITION=0 /
-SEAM_FACE_AREA=0. Eden canary and bench: ledger. Third fix still open:
-the tree generator's strained leaf bonds.
+Two mechanisms, both TDD by test_jammed_sleep H then G. SHIPPED ON: the
+merge's precondition (a body beside the surface is not on it) - H green,
+the blade study green, the leg choreography 0.044 m, Eden steady 621 ms
+(door 751, sleeper 749). OPT-IN (SEAM_FACE_AREA=1): the narrow phase's
+face-has-area rule at SLOP - it adds case G's four edge tiles at 250 ms
+per Eden steady frame and removes a symptom whose reason is open (G-73:
+a touching side row carrying 15 N s with no approach). **OWNER RULING:**
+the face rule's default. Third fix still open: the tree generator's
+strained leaf bonds.

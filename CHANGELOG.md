@@ -301,8 +301,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   a speculative z-row because a gap beats a touch in the axis metric, so
   every landing tile pressed on six tiles below it. Eden's floor
   compaction (a dirt tile traced 94 mm along z, then shoved 20 mm into
-  the layer below) is this. `SEAM_MERGE_PRECONDITION=0` and
-  `SEAM_FACE_AREA=0` restore the old rows for A/B.
+  the layer below) is this. The merge's precondition ships on
+  (`SEAM_MERGE_PRECONDITION=0` restores the old merge for A/B). The
+  face-has-area rule ships OPT-IN (`SEAM_FACE_AREA=1`): on Eden it costs
+  250 ms per steady frame and what it fixes is the symptom of a row that
+  carries load with no approach (G-73), still open.
 - **A sleeper rests on its support (G-72, INV-31).** A body declared asleep
   from outside the sleep law - a chunk restored from the store, a scene's
   born-at-rest tile, a game's `is_at_rest = true` - is judged once at its
