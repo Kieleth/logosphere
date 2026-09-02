@@ -2384,19 +2384,24 @@ bond by it (GEDANKEN-69).
 THE COST, measured before it shipped, as ordered. Acceleration is a new
 incremental AABB tree (CreationIndex): insert per birth, refit when the
 world has moved, rebuild only when swap-and-pop changes what an index
-means. On Eden's world: 11,932 births judged, 45,538 index candidates,
-45,538 exact narrow-phase tests, 9.81 ms TOTAL - 0.82 us per birth, one
-rebuild, two refits. The batch design's own number was 20.4 ms for 12,440
-bodies with a full BVH rebuild, so the per-birth door costs half of what
-the per-batch one did.
+means. FINAL, on Eden's world: 11,783 births judged, 45,523 index
+candidates, 45,523 exact narrow-phase tests, 9.01 ms TOTAL - 0.76 us per
+birth, one rebuild, two refits. The batch design's own number was 20.4 ms
+for 12,440 bodies with a full BVH rebuild, so the per-birth door costs
+half of what the per-batch one did. One defect was found on the way and
+it is the reason a per-birth door is affordable at all:
+queue_particle_addition calls mark_bvh_dirty, which is also the index's
+"the world has moved" signal, so every queued body paid a full O(n) refit
+for the previous one's sake - O(n^2) over a floor generator's batch, and
+test_layered_floor_v3 went from 95 s to minutes before it was found.
 
 THE HEADLESS EDEN BENCH, fixed instrument, 140 frames at 320x180:
   BEFORE  [BENCH_STEADY] frames=19 avg=2740.9ms (0.4 FPS) median=2584.5
                           p90=2803.7 p99=6281.3
-  AFTER   [BENCH_STEADY] frames=19 avg=899.7ms (1.1 FPS) median=911.8
-                          p90=1015.9 p99=1071.5
-3.05x on the mean, 2.8x on the median. The door's own 9.81 ms is 1% of
-ONE frame across the whole run. G-67's chain is not fully cured - 900 ms
+  AFTER   [BENCH_STEADY] frames=19 avg=822.4ms (1.2 FPS) median=759.7
+                          p90=1210.3 p99=1256.3
+3.33x on the mean, 3.40x on the median. The door's own 9.01 ms is 1% of
+ONE frame across the whole run. G-67's chain is NOT fully cured - 822 ms
 is not a frame - so the frame-collapse front stays open with a new fact:
 with nothing born in overlap, Eden is still three times slower than the
 229 ms it measured before the squash, and the remaining cost is not

@@ -1176,14 +1176,14 @@ ad-hoc bodies when their chunk comes back).
 
 The door is in `ParticleSystem::add_particle` before the `push_back`, and
 at `queue_particle_addition` so a refused body is never counted in a
-predicted index. INV-37 is `active`. Cost on Eden's world: 11,932 births
-judged, 45,538 exact narrow-phase tests, **9.81 ms total, 0.82 us per
+predicted index. INV-37 is `active`. Cost on Eden's world: 11,783 births
+judged, 45,523 exact narrow-phase tests, **9.01 ms total, 0.76 us per
 birth**, one index rebuild and two refits — against the batch design's
 20.4 ms for 12,440 bodies with a full BVH rebuild.
 
 Headless Eden bench, fixed instrument, 140 frames at 320x180:
-`[BENCH_STEADY] avg 2740.9 ms -> 899.7 ms` (median 2584.5 -> 911.8).
-3.05x. `test_jammed_sleep` went from 10 red to 0; `test_creation_door` is
+`[BENCH_STEADY] avg 2740.9 ms -> 822.4 ms` (median 2584.5 -> 759.7).
+3.33x. `test_jammed_sleep` went from 10 red to 0; `test_creation_door` is
 new and green at 31 of 31.
 
 ### STILL OPEN, WITH NUMBERS

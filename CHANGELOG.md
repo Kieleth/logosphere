@@ -20,8 +20,10 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   bond for a body that was refused. Touching is not overlapping, and there
   is no exempt class: a bonded structure's own parts are judged like
   everything else. `CREATION_DOOR=0` disables the door for A/B measurement
-  only. Cost on Eden's world: 0.84 us per birth, 10.0 ms for 11,932
-  bodies.
+  only. Cost on Eden's world: 0.76 us per birth, 9.0 ms for 11,783
+  bodies, against the 20.4 ms a single batch rebuild cost 12,440 on the
+  earlier design. Eden's headless steady frame goes from 2740.9 ms to
+  822.4 ms with the births that could never sleep refused.
 - **`ParticleSystem::deepest_overlap()`.** One overlap predicate for the
   whole engine: how deep a proposed body would be inside the deepest thing
   it touches, through the engine's own narrow phase. `can_place_at`,
