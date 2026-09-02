@@ -154,30 +154,59 @@ int main() {
                 [&]{ return scene.settled_spin(ps) < SETTLED_SPIN_MAX; }});
             panel.push_back({"G-37: per-frame retention (> 0.99)",
                 [&]{ return scene.min_frame_keep > FRAME_KEEP_MIN; }});
-        } else if (r <= 5) {
-            l_demo->set_text(r == 3
+        } else if (!corner_rung(r)) {
+            l_demo->set_text(rung_kind(r) == BIGTOP
                 ? "DEMONSTRATING: the fast top brakes IN PLACE."
-                : "DEMONSTRATING: wheel spin buys travel on ONE axis.");
+                : rung_kind(r) == WHEEL_SLIP
+                ? "DEMONSTRATING: a resting cube spun about an in-plane axis WALKS its slip distance (G-66)."
+                : "DEMONSTRATING: a dropped spinning cube lands on an EDGE; L about that edge decides (G-66).");
             panel.push_back({"G-21/23: one orientation (two-band)", coherent});
             panel.push_back({"INV-3: speeds bounded (< 10 m/s)",
                 [&, A]{ return scene.argus.peak_speed(A) < 10.0f; }});
             panel.push_back({"hygiene: the still twin STAYS still", still_twin});
-            if (lever_ui && r == 3)
+            if (lever_ui && rung_kind(r) == BIGTOP)
                 panel.push_back({"G-41: the big top brakes IN PLACE",
                     [&]{ return std::fabs(scene.displaced_x(ps, scene.hero)) < 0.05f &&
                                 std::fabs(scene.displaced_y(ps, scene.hero)) < 0.05f &&
                                 scene.settled_spin(ps, scene.hero) < 0.1f; }});
-            if (lever_ui && r == 4)
-                panel.push_back({"G-41 BORN RED: X-spin WALKS along Y",
-                    [&]{ return std::fabs(scene.displaced_y(ps, scene.hero)) > 0.05f; }});
-            if (lever_ui && r == 5)
-                panel.push_back({"G-41 BORN RED: Y-spin WALKS along X",
-                    [&]{ return std::fabs(scene.displaced_x(ps, scene.hero)) > 0.05f; }});
+            if (lever_ui && rung_kind(r) == WHEEL_SLIP) {
+                const RungSpec& rs = RUNGS[r];
+                const float mu = ps.lock_particles_for_read()[scene.hero].friction;
+                const float d = slip_walk(std::fabs(rung_spin(rs)), HERO, mu);
+                const int ax = walk_axis(rs);
+                char t[120];
+                std::snprintf(t, sizeof t, "G-66: walks its derived %.3f m along %s",
+                              d, ax == 1 ? "Y" : "X");
+                panel.push_back({t, [&, d, ax]{
+                    const float along = ax == 1 ? scene.displaced_y(ps, scene.hero)
+                                                : scene.displaced_x(ps, scene.hero);
+                    return std::fabs(along) >= WALK_BAND_LO * d &&
+                           std::fabs(along) <= WALK_BAND_HI * d; }});
+                panel.push_back({"G-66: only along the slip axis", [&, ax]{
+                    const float cross = ax == 1 ? scene.displaced_x(ps, scene.hero)
+                                                : scene.displaced_y(ps, scene.hero);
+                    return std::fabs(cross) < WALK_CROSS_MAX; }});
+                panel.push_back({"G-66/INV-34: the spin dies at the face",
+                    [&]{ return scene.settled_spin(ps, scene.hero) < SETTLED_SPIN_MAX; }});
+            }
+            if (lever_ui && rung_kind(r) == WHEEL_EDGE) {
+                panel.push_back({"hygiene: landed, edge law read",
+                    [&]{ return scene.touchdown_frame >= 0 && scene.edge_after_done; }});
+                panel.push_back({"G-66/INV-17: no L added about the edge",
+                    [&]{ return scene.edge_after_done &&
+                                std::fabs(scene.edge_L_after) <=
+                                std::fabs(scene.edge_L_before) * EDGE_L_BAND + 1e-6f; }});
+                panel.push_back({"G-66: post-impact sense = sign(L_edge before)",
+                    [&]{ if (!scene.edge_after_done) return false;
+                         if (std::fabs(scene.edge_L_before) <= EDGE_L_MIN) return true;
+                         return (scene.edge_omega_after > 0.0f) == (scene.edge_L_before > 0.0f) ||
+                                std::fabs(scene.edge_omega_after) < 0.05f; }});
+            }
         } else {
-            l_demo->set_text(r == 6
+            l_demo->set_text(rung_kind(r) == CORNER
                 ? "DEMONSTRATING: a corner stand MUST fall (slab rows)."
                 : "DEMONSTRATING: same corner stand, turtle rows.");
-            const float fallen_max = (r == 7) ? HERO * 0.5f + 0.05f
+            const float fallen_max = (rung_kind(r) == CORNER_TURTLE) ? HERO * 0.5f + 0.05f
                                               : CORNER_FALLEN_Z_MAX;
             panel.push_back({"G-43: the corner stand FALLS to a face",
                 [&, fallen_max]{ return scene.settled_z(ps, scene.hero) < fallen_max; }});

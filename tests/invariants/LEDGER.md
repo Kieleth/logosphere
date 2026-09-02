@@ -2379,3 +2379,22 @@ absent from the stage), red until the door lands.
 Still open, explained to the owner the same day: the door-law branch
 push (G-65; parked behind the creation door so its cost can be
 measured on a healed Eden) and the R5/R6 rungs' setup (G-66).
+
+## 2026-09-02 — R5/R6 rebuilt: two stagings, three speeds (owner: "1 + 2 + 3")
+
+Owner, on the walking-wheel explanation: "1 + 2 + 3 indeed, and
+variable rotational speeds for each to test behaviour." The drop
+ladder grows from 8 to 18 rungs, kind-based (BASIC, BIGTOP,
+WHEEL_SLIP, WHEEL_EDGE, CORNER, CORNER_TURTLE) so the table can grow
+without shifting its asserts. FACE SLIP rungs (born resting, spun
+about X/Y at 2/4/6): G-66's derived walk omega^2 L^2/(50 mu g) -
+0.0104 / 0.0418 / 0.0939 m - against the engine's 0.0000 / 0.0000 /
+0.0154: born red, the flag for the face-branch mechanism. EDGE
+LANDING rungs (dropped 0.6 m at 2/4/6): the edge law from Argus and
+the contact stream - angular momentum about the touchdown point never
+grows through the impact, and the post-impact sense follows the
+pre-impact sign - green at 4 and 6, RED at 2: the impact creates spin
+(L -221 -> -424, omega -3.0 after a 2.0 arrival, 0.67 m of travel),
+boarded as a new INV-17 front. The door-law branch is pushed with the
+owner's override ("bypass that lock") and parked on PR #167 until its
+cost can be measured on a healed Eden.

@@ -1138,3 +1138,17 @@ with an incremental BVH; the headless bench before/after; Eden's first-
 run refusal census as the red list; every audit-found birth fixed at
 its source; sweep alone; PR for the owner's merge. Windows after the
 report, launched by the dispatcher.
+
+## NEW FRONT (2026-09-02): the edge impact manufactures spin at low arrival spin
+
+From the 18-rung ladder (owner ruling: both stagings, three speeds):
+R5d/R6d, a cube arriving at 2 rad/s (40 deg tilted) on an edge, leaves
+the impact at -3.0 rad/s with angular momentum about the edge grown
+from -221 to -424 kg m^2/s and travels 0.67 m. About that edge
+I_edge = 546 kg m^2, so conservation allows -0.4 rad/s. The 4 and
+6 rad/s arrivals are dissipative and pass. INV-17 at an edge impact;
+the assert that caught it is the edge law in scene_cube_drop.h.
+NEEDS RCA (canary at the touchdown frame: which rows add the spin).
+Separately, the FACE-SLIP rungs are G-66's born-red flag (walks 0.0000
+against 0.0104 / 0.0418 / 0.0939 derived): the face-branch mechanism
+measured in the RCA worktree waits for its own PR.

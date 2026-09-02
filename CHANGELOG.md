@@ -8,6 +8,12 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Added
+- **The cube-drop ladder grows to eighteen rungs, kind-based.** The
+  walking-wheel rungs now come in two stagings, two axes and three spin
+  speeds: born resting and spun (the face-slip walk, derived per speed
+  from friction and size) and dropped onto an edge (angular momentum
+  about the landing edge, read from the contact stream and Argus).
+  Rungs carry a kind, so the drivers no longer read table indices.
 - **Physics: `PhysicsSystem::last_solve()`.** The solver's own verdict for
   the last substep, readable by a test without the trace: rows taken in,
   iterations run, and which exit it took (`impulse_under_absolute_threshold`,
