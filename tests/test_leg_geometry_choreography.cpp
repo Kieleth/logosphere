@@ -91,11 +91,15 @@ int main() {
     strata.set_enabled(true);
     strata.preload_chunks_around(0.0f, 0.0f, 2);
 
-    // The Eden table: an obstacle in the walking lane.
+    // The Eden table: an obstacle in the walking lane. It stands ON the
+    // strata (bedrock 0.30 + sediment 0.15 + organic 0.10 = top at 0.55):
+    // the literal z 1.0 put its bottom 10 cm in the air, asleep, and the
+    // sleeper judge (G-72) now wakes such a body and lets it fall.
+    const float floor_top = 0.30f + 0.15f + 0.10f;
     Particle table = {};
     table.shape = ParticleShape::BOX;
-    table.x = 0.0f; table.y = 6.0f; table.z = 1.0f;
     table.width = 0.8f; table.height = 0.8f; table.thickness = 0.7f;
+    table.x = 0.0f; table.y = 6.0f; table.z = floor_top + table.thickness * 0.5f;
     table.r = 0.9f; table.g = 0.9f; table.b = 0.85f; table.a = 1.0f;
     table.SetMaterial(Materials::Type::STONE);
     table.is_at_rest = true;
