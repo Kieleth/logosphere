@@ -1705,7 +1705,29 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // two particles. Merging removes the data-structure artifact
                 // that makes SAT pick the phantom boundary axis.
                 // Axis-aligned seam fix; the oriented path doesn't read aabb_j.
-                if (pj.is_at_rest && !oriented_pair) {
+                //
+                // THE MERGE'S OWN PREMISE (G-69, 2026-09-02): the widened box
+                // is the surface a body RESTS ON. It was applied to every
+                // awake body near a sleeping tile, including the tile's own
+                // coplanar siblings: a dirt tile touching a diagonal sibling
+                // at one corner lay inside that sibling's merged 12 x 12 m
+                // slab and read a 95 mm z-penetration (Eden's canary: 94 mm
+                // along z, then the shove into the layer below; case H: the
+                // awake centre tile lifted 20.7 mm at zero velocity, the
+                // diagonal sleepers sunk 5 mm). A body beside the surface is
+                // not on it: merge only when i's footprint overlaps j's OWN
+                // footprint by more than the adjacency epsilon on both
+                // tangent axes - the stone straddling a seam does, the
+                // sibling sharing an edge or a corner does not.
+                // SEAM_MERGE_PRECONDITION=0 restores the unconditional merge for A/B.
+                static const bool merge_precondition_off = [] {
+                    const char* v = std::getenv("SEAM_MERGE_PRECONDITION");
+                    return v && v[0] == '0';
+                }();
+                const bool rests_on_j = merge_precondition_off ||
+                    (std::fmin(max_xi, max_xj) - std::fmax(min_xi, min_xj) > ADJ_EPS &&
+                     std::fmin(max_yi, max_yj) - std::fmax(min_yi, min_yj) > ADJ_EPS);
+                if (pj.is_at_rest && !oriented_pair && rests_on_j) {
                     for (int cand_k : candidates) {
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
