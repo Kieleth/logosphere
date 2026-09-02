@@ -244,7 +244,14 @@ public:
                         float t = i / 7.0f;
                         float segment_x = world_x + std::sin(t * 3.14f) * 3.0f;
                         float segment_y = world_y + t * 5.0f;
-                        float segment_z = 1.0f + std::sin(t * 6.28f) * 0.5f;
+                        // On the ground under each segment, not at a literal
+                        // 0.5-1.5 m that puts a 0.5 m body 0.30 m inside the
+                        // strata (INV-37). Half a size up from the surface,
+                        // plus the same undulation.
+                        float ground_z = 0.0f;
+                        if (!ground_here(segment_x, segment_y, ground_z)) continue;
+                        float segment_z = ground_z + 0.25f
+                                        + std::fabs(std::sin(t * 6.28f)) * 0.25f;
 
                         kg::EntityID segment = kg.createEntity("SerpentSegment");
                         kg.setProperty(segment, "chunk_x", kg.getProperty(serpent_entity, "chunk_x"));
@@ -848,6 +855,35 @@ public:
         return true;
     }
 
+    // THE REAL SURFACE UNDER A POINT, for the bodies this scene places
+    // itself. Every one of them used to carry a LITERAL height written
+    // against a floor whose top is 0.55 m: the rocks at 0.15 (inside the
+    // bedrock), the cubes at 0.6, the pole at 2.5, the ruin blocks at half
+    // their own thickness, Eva and the NPCs at 0.5 with 8 cm feet. Under
+    // INV-37 every one of those is a refused birth, and before the door they
+    // were the frame collapse itself (GEDANKEN-67: ~900 bodies that could
+    // never sleep, 3.4 s of physics per frame). The deferred spawns have
+    // always asked the locator; these ask it now.
+    //
+    // No fallback. A guess is what put them in the floor.
+    float surface_here(float x, float y, float footprint, const char* what) const {
+        float z = 0.0f;
+        if (!engine_->get_ground_locator().surface_at(x, y, z, footprint)) {
+            std::fprintf(stderr,
+                "[EDEN] REFUSING TO GUESS: no surface under %s at (%.2f, %.2f). "
+                "Place it where there is ground, or defer it until its ground "
+                "streams in (see defer/place_pending below).\n", what, x, y);
+            std::abort();
+        }
+        return z;
+    }
+
+    // The locator reads the BVH, and the BVH is only rebuilt on demand, so a
+    // group of bodies placed during scene setup asks for the index once
+    // before it starts. Guarded by bvh_dirty_: a call that changes nothing
+    // costs nothing.
+    void refresh_ground_index() { engine_->get_particle_system().update_bvh(); }
+
     // Anything waiting for the ground it will stand on.
     //
     // Eden's strata streams in deferred, so at scene-setup time there
@@ -1248,16 +1284,19 @@ public:
         }
         if (add_particle) {
 
-            // 3 IDENTICAL cubes — same size, same z, same everything
+            // 3 IDENTICAL cubes — same size, same everything, each standing
+            // on the surface that is actually there (INV-37).
+            refresh_ground_index();
             for (int i = 0; i < 3; i++) {
                 Particle cube = {};
                 cube.shape = ParticleShape::BOX;
                 cube.x = eva_x + i * 4.0f;
                 cube.y = eva_y;
-                cube.z = 0.6f;
                 cube.width = 0.5f;
                 cube.height = 0.5f;
                 cube.thickness = 1.0f;
+                cube.z = surface_here(cube.x, cube.y, cube.width, "red cube")
+                       + cube.thickness * 0.5f;
                 cube.r = 1.0f; cube.g = 0.0f; cube.b = 0.0f; cube.a = 1.0f;
                 cube.SetMaterial(Materials::Type::STONE);
                 cube.reflectivity = 0.0f;
@@ -1268,10 +1307,12 @@ public:
         }
         // A/B TEST: Two 0.3m cubes. Blue=STATIC, Green=DYNAMICS.
         if (add_particle) {
+            refresh_ground_index();
             Particle a = {};
             a.shape = ParticleShape::BOX;
-            a.x = eva_x - 5.0f; a.y = eva_y - 3.0f; a.z = 0.6f;
+            a.x = eva_x - 5.0f; a.y = eva_y - 3.0f;
             a.width = 0.3f; a.height = 0.3f; a.thickness = 0.8f;
+            a.z = surface_here(a.x, a.y, a.width, "A/B cube") + a.thickness * 0.5f;
             a.r = 0.0f; a.g = 0.0f; a.b = 1.0f; a.a = 1.0f;
             a.SetMaterial(Materials::Type::STONE);
             a.owner = ParticleOwner::STATIC;
@@ -1281,6 +1322,7 @@ public:
 
             Particle b = a;
             b.x = eva_x - 5.0f; b.y = eva_y + 3.0f;
+            b.z = surface_here(b.x, b.y, b.width, "A/B cube") + b.thickness * 0.5f;
             b.r = 0.0f; b.g = 1.0f; b.b = 0.0f;
             b.owner = ParticleOwner::DYNAMICS;
             b.solver_mode = ParticleSolverMode::KINEMATIC;
@@ -1301,7 +1343,10 @@ public:
         // (the bug we just fixed) holds visually in play.
         if (add_particle) {
             const float cx = 15.0f, cy = -15.0f;
-            const float floor_top = 0.55f;
+            refresh_ground_index();
+            // Read, not assumed: this literal happened to be right and would
+            // stop being right the day a layer changes thickness (INV-37).
+            const float floor_top = surface_here(cx, cy, 0.8f, "cairn");
             const float stone_thickness = 0.20f;
             const int   stone_count = 5;
             for (int i = 0; i < stone_count; ++i) {
@@ -1330,7 +1375,8 @@ public:
         // floor, so the plateau's sides expose the layer structure.
         if (add_particle) {
             const float px = 45.0f, py = -40.0f;
-            const float floor_top = 0.55f;
+            refresh_ground_index();
+            const float floor_top = surface_here(px, py, 3.0f, "plateau");
             const float tile = 3.0f;
             const int   grid = 3;                // 3x3 tiles
             struct Layer { float th; float r, g, b; Materials::Type mat; };
@@ -1368,10 +1414,15 @@ public:
                    px, py, grid, grid, layer_z);
         }
 
-        // Add Eva
+        // Add Eva, standing ON the ground rather than 50 mm into it: her
+        // feet are 80 mm thick and world_z is their BOTTOM, so a literal 0.5
+        // against a 0.55 surface buried every one of them (INV-37).
         auto& humanoid_gen = engine_->get_worldgen_system().get_humanoid_generator();
+        refresh_ground_index();
         eva_physics_ = humanoid_gen.generate_humanoid_physics(
-            eva_x + 10.0f, eva_y, 0.5f, -1, HumanoidSpec::eva(), false);
+            eva_x + 10.0f, eva_y,
+            surface_here(eva_x + 10.0f, eva_y, 0.6f, "Eva"),
+            -1, HumanoidSpec::eva(), false);
         eva_hips_id_ = eva_physics_.hips_id;
 
         // Create KG body graph: typed body parts with health/strength/flexibility,
@@ -1665,10 +1716,15 @@ public:
             pole.shape = ParticleShape::BOX;
             pole.x = eva_x - 3.0f;
             pole.y = eva_y + 5.0f;
-            pole.z = 2.5f;  // Center of 5m pole
             pole.width = 0.1f;
             pole.height = 0.1f;
             pole.thickness = 5.0f;  // 5m tall
+            // Its foot on the ground, not 0.55 m of it inside the strata.
+            // A 0.1 m footprint cannot itself be stood on (MIN_SUPPORT_SIZE),
+            // so the column is asked at the scale of the ground.
+            refresh_ground_index();
+            pole.z = surface_here(pole.x, pole.y, 1.0f, "streetlight pole")
+                   + pole.thickness * 0.5f;
             pole.r = 0.3f; pole.g = 0.2f; pole.b = 0.1f; pole.a = 1.0f;
             pole.SetMaterial(Materials::Type::WOOD_HARD);
             pole.owner = ParticleOwner::STATIC;
@@ -1725,6 +1781,11 @@ public:
             }
 
             // --- 80 rocks scattered across the landscape ---
+            // Each on the surface under it. At a literal z = 0.15 every one
+            // of these was born fully inside the bedrock layer, 0.27-0.40 m
+            // below the ground it looked like it was sitting on — the
+            // population GEDANKEN-67 named as the frame collapse.
+            refresh_ground_index();
             for (int i = 0; i < 80; i++) {
                 float angle = i * 0.157f;
                 float dist = 3.0f + (i % 8) * 4.0f;
@@ -1733,10 +1794,12 @@ public:
                 if (add_particle) {
                     Particle rock = {};
                     rock.shape = ParticleShape::BOX;
-                    rock.x = rx; rock.y = ry; rock.z = 0.15f;
+                    rock.x = rx; rock.y = ry;
                     rock.width = 0.15f + (i % 5) * 0.08f;
                     rock.height = 0.15f + (i % 4) * 0.06f;
                     rock.thickness = 0.1f + (i % 3) * 0.08f;
+                    rock.z = surface_here(rx, ry, rock.width, "scattered rock")
+                           + rock.thickness * 0.5f;
                     rock.r = 0.45f + (i % 3) * 0.05f;
                     rock.g = 0.4f + (i % 2) * 0.05f;
                     rock.b = 0.35f + (i % 4) * 0.03f;
@@ -1751,6 +1814,7 @@ public:
             // --- Stone wall ruin (rectangular, 6m x 4m, open on one side) ---
             if (add_particle) {
                 float wall_cx = eva_x + 15.0f, wall_cy = eva_y - 10.0f;
+                refresh_ground_index();
                 // North wall
                 for (int i = 0; i < 6; i++) {
                     Particle block = {};
@@ -1762,8 +1826,12 @@ public:
                     // i=5 at -0.10. Sit each block on its own half-thickness
                     // and let the stagger ride on top of that.
                     block.thickness = 1.0f + (i % 3) * 0.2f;
-                    block.z = block.thickness * 0.5f + (i % 2) * 0.1f;
                     block.width = 0.4f; block.height = 0.3f;
+                    // The old arithmetic assumed a floor at z = 0 and put
+                    // every block 0.45-0.55 m inside the strata. The stagger
+                    // now rides on the real surface (INV-37).
+                    block.z = surface_here(block.x, block.y, 1.0f, "ruin block")
+                            + block.thickness * 0.5f + (i % 2) * 0.1f;
                     block.r = 0.55f; block.g = 0.5f; block.b = 0.45f; block.a = 1.0f;
                     block.SetMaterial(Materials::Type::STONE);
                     block.owner = ParticleOwner::STATIC;
@@ -1776,8 +1844,9 @@ public:
                     block.shape = ParticleShape::BOX;
                     block.x = wall_cx - 3.0f;
                     block.y = wall_cy - 2.0f + i * 1.0f;
-                    block.z = 0.5f + (i % 2) * 0.15f;
                     block.width = 0.3f; block.height = 0.4f; block.thickness = 0.8f + (i % 2) * 0.3f;
+                    block.z = surface_here(block.x, block.y, 1.0f, "ruin block")
+                            + block.thickness * 0.5f + (i % 2) * 0.15f;
                     block.r = 0.55f; block.g = 0.5f; block.b = 0.45f; block.a = 1.0f;
                     block.SetMaterial(Materials::Type::STONE);
                     block.owner = ParticleOwner::STATIC;
@@ -1811,12 +1880,15 @@ public:
                     {eva_x + 16.0f, eva_y - 8.0f},   // near the stone ruin
                     {eva_x - 10.0f, eva_y + 15.0f},   // by the trees
                 };
+                refresh_ground_index();
                 for (int n = 0; n < 3; n++) {
                     HumanoidSpec spec = (n == 0) ? HumanoidSpec::hunter() : HumanoidSpec::eva();
                     float reflexes = 180.0f + n * 30.0f;
                     float grit = 500.0f + n * 150.0f;
                     PhysicsHumanoidResult npc = humanoid_gen.generate_humanoid_physics(
-                        npc_spots[n][0], npc_spots[n][1], 0.5f, -1, spec, false);
+                        npc_spots[n][0], npc_spots[n][1],
+                        surface_here(npc_spots[n][0], npc_spots[n][1], 0.6f, "NPC"),
+                        -1, spec, false);
                     npc.create_kg_entities(kg, "Humanoid", reflexes, grit);
                     engine_->get_humanoid_locomotion().register_humanoid_direct(
                         npc.hips_id,
