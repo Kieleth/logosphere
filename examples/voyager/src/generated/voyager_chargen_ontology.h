@@ -1076,6 +1076,224 @@ inline bool from_string(const char* str, RulebookIngestionRelationType& out) {
     return false;
 }
 
+/// The closed set of kinds a moment can be, exactly as Chapter One of the Voyager book fixes it [01-the-shape-of-a-career.md "The kinds of moments"]. Closed on purpose: the list is the game's ethos, and an open string here would let a seed invent a sixth kind no chapter ever wrote. Lower case, case sensitive, because that is what the seeds say and folding case would accept the typo the enum exists to refuse.
+enum class MomentKindKey {
+    VIOLENCE,
+    JUDGMENT,
+    DISCOVERY,
+    STANDING,
+    LOSS
+};
+
+/// Convert MomentKindKey to its string representation.
+inline const char* to_string(MomentKindKey value) {
+    switch (value) {
+        case MomentKindKey::VIOLENCE: return "violence";
+        case MomentKindKey::JUDGMENT: return "judgment";
+        case MomentKindKey::DISCOVERY: return "discovery";
+        case MomentKindKey::STANDING: return "standing";
+        case MomentKindKey::LOSS: return "loss";
+    }
+    return "unknown";
+}
+
+/// Parse a string into MomentKindKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, MomentKindKey& out) {
+    if (std::strcmp(str, "violence") == 0) { out = MomentKindKey::VIOLENCE; return true; }
+    if (std::strcmp(str, "judgment") == 0) { out = MomentKindKey::JUDGMENT; return true; }
+    if (std::strcmp(str, "discovery") == 0) { out = MomentKindKey::DISCOVERY; return true; }
+    if (std::strcmp(str, "standing") == 0) { out = MomentKindKey::STANDING; return true; }
+    if (std::strcmp(str, "loss") == 0) { out = MomentKindKey::LOSS; return true; }
+    return false;
+}
+
+/// The three ways a season is spent [01-the-shape-of-a-career.md "Seasons"]. Closed for the same reason as MomentKindKey.
+enum class SeasonModeKey {
+    PREPARATION,
+    PURSUIT,
+    QUIET
+};
+
+/// Convert SeasonModeKey to its string representation.
+inline const char* to_string(SeasonModeKey value) {
+    switch (value) {
+        case SeasonModeKey::PREPARATION: return "preparation";
+        case SeasonModeKey::PURSUIT: return "pursuit";
+        case SeasonModeKey::QUIET: return "quiet";
+    }
+    return "unknown";
+}
+
+/// Parse a string into SeasonModeKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, SeasonModeKey& out) {
+    if (std::strcmp(str, "preparation") == 0) { out = SeasonModeKey::PREPARATION; return true; }
+    if (std::strcmp(str, "pursuit") == 0) { out = SeasonModeKey::PURSUIT; return true; }
+    if (std::strcmp(str, "quiet") == 0) { out = SeasonModeKey::QUIET; return true; }
+    return false;
+}
+
+/// Typed links from a character to what their life holds.
+enum class VoyagerLifeRelationType {
+    LIVED
+};
+
+/// Convert VoyagerLifeRelationType to its string representation.
+inline const char* to_string(VoyagerLifeRelationType value) {
+    switch (value) {
+        case VoyagerLifeRelationType::LIVED: return "LIVED";
+    }
+    return "unknown";
+}
+
+/// Parse a string into VoyagerLifeRelationType. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, VoyagerLifeRelationType& out) {
+    if (std::strcmp(str, "LIVED") == 0) { out = VoyagerLifeRelationType::LIVED; return true; }
+    return false;
+}
+
+/// What someone or somewhere is to a character [03-what-a-life-carries.md "Standings"]. Closed like the kinds.
+enum class StandingKey {
+    ALLY,
+    ENEMY,
+    DEBT,
+    OBLIGATION,
+    ACQUAINTANCE
+};
+
+/// Convert StandingKey to its string representation.
+inline const char* to_string(StandingKey value) {
+    switch (value) {
+        case StandingKey::ALLY: return "ally";
+        case StandingKey::ENEMY: return "enemy";
+        case StandingKey::DEBT: return "debt";
+        case StandingKey::OBLIGATION: return "obligation";
+        case StandingKey::ACQUAINTANCE: return "acquaintance";
+    }
+    return "unknown";
+}
+
+/// Parse a string into StandingKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, StandingKey& out) {
+    if (std::strcmp(str, "ally") == 0) { out = StandingKey::ALLY; return true; }
+    if (std::strcmp(str, "enemy") == 0) { out = StandingKey::ENEMY; return true; }
+    if (std::strcmp(str, "debt") == 0) { out = StandingKey::DEBT; return true; }
+    if (std::strcmp(str, "obligation") == 0) { out = StandingKey::OBLIGATION; return true; }
+    if (std::strcmp(str, "acquaintance") == 0) { out = StandingKey::ACQUAINTANCE; return true; }
+    return false;
+}
+
+/// The only things a moment may do [03-what-a-life-carries.md "What a moment may do"]. Closed: a telling that claims anything else is a telling and not a rule, and the engine refuses it.
+enum class EffectKey {
+    MOVE_CHARACTERISTIC,
+    BIND_STANDING,
+    LEAVE_MARK,
+    TURN_LIFE
+};
+
+/// Convert EffectKey to its string representation.
+inline const char* to_string(EffectKey value) {
+    switch (value) {
+        case EffectKey::MOVE_CHARACTERISTIC: return "move_characteristic";
+        case EffectKey::BIND_STANDING: return "bind_standing";
+        case EffectKey::LEAVE_MARK: return "leave_mark";
+        case EffectKey::TURN_LIFE: return "turn_life";
+    }
+    return "unknown";
+}
+
+/// Parse a string into EffectKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, EffectKey& out) {
+    if (std::strcmp(str, "move_characteristic") == 0) { out = EffectKey::MOVE_CHARACTERISTIC; return true; }
+    if (std::strcmp(str, "bind_standing") == 0) { out = EffectKey::BIND_STANDING; return true; }
+    if (std::strcmp(str, "leave_mark") == 0) { out = EffectKey::LEAVE_MARK; return true; }
+    if (std::strcmp(str, "turn_life") == 0) { out = EffectKey::TURN_LIFE; return true; }
+    return false;
+}
+
+/// The ways a life may turn [03-what-a-life-carries.md "What a moment may do"].
+enum class TurnKey {
+    CAREER_ENDS,
+    CAREER_CHANGES,
+    FORCED_LEAVING,
+    LIFE_ENDS
+};
+
+/// Convert TurnKey to its string representation.
+inline const char* to_string(TurnKey value) {
+    switch (value) {
+        case TurnKey::CAREER_ENDS: return "career_ends";
+        case TurnKey::CAREER_CHANGES: return "career_changes";
+        case TurnKey::FORCED_LEAVING: return "forced_leaving";
+        case TurnKey::LIFE_ENDS: return "life_ends";
+    }
+    return "unknown";
+}
+
+/// Parse a string into TurnKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, TurnKey& out) {
+    if (std::strcmp(str, "career_ends") == 0) { out = TurnKey::CAREER_ENDS; return true; }
+    if (std::strcmp(str, "career_changes") == 0) { out = TurnKey::CAREER_CHANGES; return true; }
+    if (std::strcmp(str, "forced_leaving") == 0) { out = TurnKey::FORCED_LEAVING; return true; }
+    if (std::strcmp(str, "life_ends") == 0) { out = TurnKey::LIFE_ENDS; return true; }
+    return false;
+}
+
+/// How hard a moment hits [03-what-a-life-carries.md "How hard a moment hits"]. The ladder caps what a resolution may do.
+enum class WeightKey {
+    NOTHING,
+    MARK,
+    TURN,
+    BRANCH
+};
+
+/// Convert WeightKey to its string representation.
+inline const char* to_string(WeightKey value) {
+    switch (value) {
+        case WeightKey::NOTHING: return "nothing";
+        case WeightKey::MARK: return "mark";
+        case WeightKey::TURN: return "turn";
+        case WeightKey::BRANCH: return "branch";
+    }
+    return "unknown";
+}
+
+/// Parse a string into WeightKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, WeightKey& out) {
+    if (std::strcmp(str, "nothing") == 0) { out = WeightKey::NOTHING; return true; }
+    if (std::strcmp(str, "mark") == 0) { out = WeightKey::MARK; return true; }
+    if (std::strcmp(str, "turn") == 0) { out = WeightKey::TURN; return true; }
+    if (std::strcmp(str, "branch") == 0) { out = WeightKey::BRANCH; return true; }
+    return false;
+}
+
+/// The four ways through an event [04-the-directors-playbook.md "The doors"]. The first three are the director's; the open one is the player's.
+enum class DoorKey {
+    DIRECT,
+    SIDEWAYS,
+    PASS,
+    OPEN
+};
+
+/// Convert DoorKey to its string representation.
+inline const char* to_string(DoorKey value) {
+    switch (value) {
+        case DoorKey::DIRECT: return "direct";
+        case DoorKey::SIDEWAYS: return "sideways";
+        case DoorKey::PASS: return "pass";
+        case DoorKey::OPEN: return "open";
+    }
+    return "unknown";
+}
+
+/// Parse a string into DoorKey. Returns false if the string is not a valid value.
+inline bool from_string(const char* str, DoorKey& out) {
+    if (std::strcmp(str, "direct") == 0) { out = DoorKey::DIRECT; return true; }
+    if (std::strcmp(str, "sideways") == 0) { out = DoorKey::SIDEWAYS; return true; }
+    if (std::strcmp(str, "pass") == 0) { out = DoorKey::PASS; return true; }
+    if (std::strcmp(str, "open") == 0) { out = DoorKey::OPEN; return true; }
+    return false;
+}
+
 /// Entity with a position and orientation in 3D space.
 struct Spatial {
     std::optional<float> position_x = std::nullopt;
@@ -2798,8 +3016,8 @@ struct OutcomeOption : public Entity, public Cited {
 
 /// A number the book fixes in prose: the age of majority is 18, each prior career is DM-2 on qualification, seven terms is the cap. Captured as data so a rule can point at it and the quote can prove it; code primitives read it, never re-hardcode it.
 struct RuleConstant : public Entity, public Cited {
-    /// The value the book fixes; signed.
-    std::optional<int32_t> constant_value = std::nullopt;
+    /// The value the book fixes; signed. Float rather than integer since 2026-08-30, because a book may fix a probability, and a probability written as the physicist writes it is not a whole number. Every integer the packs ever seeded still validates; readers that need a whole number keep parsing one and refuse a fraction where a fraction makes no sense.
+    std::optional<float> constant_value = std::nullopt;
 };
 
 
@@ -3089,6 +3307,193 @@ struct CharacteristicModifierEntry : public LookupEntry {
 struct Narration : public Entity {
     /// The prose, as the referee wrote it.
     std::string narration_text = {};
+};
+
+
+/// One kind of moment, as the Voyager book defines it [01-the-shape-of-a-career.md "The kinds of moments"]. The enum closes the vocabulary; this entity carries the book's own defining paragraph, cited to its bytes, because a referee will narrate kinds and must narrate from the book rather than from a model's private idea of the word.
+struct MomentKind : public Entity, public Cited {
+    /// Which kind this is. The membership check is the schema's, so a kind no chapter wrote cannot load.
+    MomentKindKey moment_kind_key = {};
+};
+
+
+/// One of the three ways a season is spent [01-the-shape-of-a-career.md "Seasons"], cited to the sentence that fixes all three.
+struct SeasonMode : public Entity, public Cited {
+    /// Which of the three ways of spending a season this is.
+    SeasonModeKey season_mode_key = {};
+};
+
+
+/// One season spent, as the character spent it: which of the three ways, and the year of the life it occupied. The record IS the choice's provenance; the sheet's age is derived through the season_standard_years constant, never written as a literal [02-seasons-and-moments-in-play.md "What a season costs"].
+struct SeasonLived : public Event {
+    /// Which of the three ways this season was spent. An entity reference, so a way the book never wrote cannot be recorded.
+    SeasonMode season_mode = {};
+    /// The age this season completed at.
+    int32_t lived_year = {};
+    /// What the director said this person would do with the season the way it was chosen, before it was lived.
+    std::string season_plan = {};
+    /// The season as it was lived, in the director's telling.
+    std::string season_telling = {};
+};
+
+
+/// One moment faced, exactly as the book requires it recorded: "its kind, the chance as it was stated, what was drawn, and what it did" [02-seasons-and-moments-in-play.md "What a moment risks"].
+/// This record is also what stage IS: stage is never stored, it is counted, kind by kind, from these [02-seasons-and-moments-in-play.md "What stage is"]. A stored stage would be a second copy that can drift; a counted one cannot.
+struct MomentFaced : public Event {
+    /// Which kind this moment was. An entity reference, so a kind the book never defined cannot be recorded.
+    MomentKind moment_kind = {};
+    /// The probability of the moment going against the character, as the referee stated it. The book's own bounds (tighter than this slot's) are RuleConstants read where the chance is accepted [02-seasons-and-moments-in-play.md "What a moment risks"].
+    float moment_chance = {};
+    /// What the engine drew against that chance.
+    float moment_draw = {};
+    /// Whether the draw went against the character.
+    bool moment_went_against = {};
+    /// The situation, as the referee described it.
+    std::string moment_situation = {};
+    /// What it did, as the referee told it afterwards.
+    std::string moment_outcome = {};
+    /// How hard it hit, as the director stated it on arrival.
+    WeightKey moment_weight = {};
+    /// Which door the player took through it.
+    DoorKey moment_door = {};
+};
+
+
+/// A character LIVED an event: a season spent, a moment faced. The generic part-of link accepts entities and these records are EVENTS, which is correct twice over: a moment is not a part of a person, it is something that happened to one, and the stage query counts what happened, never what is attached. One relation name, target range Event, so the next kind of lived record is a row in the graph rather than a new link type.
+struct LivedRelation : public Relation {
+};
+
+
+/// One standing the book names, cited to the sentence that fixes all of them [03-what-a-life-carries.md "Standings"]. StandingKind rather than Standing because Standing is also a kind of moment, and a type name must not be a word the book owns.
+struct StandingKind : public Entity, public Cited {
+    /// What the counterpart is to the character.
+    StandingKey standing_key = {};
+};
+
+
+/// One thing a moment may do, cited to the sentence that allows it [03-what-a-life-carries.md "What a moment may do"]. The referee composes effects from these and only these.
+struct EffectKind : public Entity, public Cited {
+    /// Which of the allowed things this is.
+    EffectKey effect_key = {};
+    /// Whether this kind of effect turns the life, which only some rungs allow. Read off the book's sentence by the extractor.
+    bool effect_turns_life = {};
+    /// Whether this kind of effect moves a characteristic, which is the kind two of which may not pull one characteristic both ways.
+    bool effect_moves_characteristic = {};
+};
+
+
+/// One way a life may turn, cited. Whether it ends the season or the life is read off the book's own words by the extractor and carried here, so the C++ never spells a turn.
+struct Turn : public Entity, public Cited {
+    /// Which way the life turned.
+    TurnKey turn_key = {};
+    /// Whether this turn ends the season it lands in.
+    bool turn_ends_season = {};
+    /// Whether this turn ends the life, and with it the making.
+    bool turn_ends_life = {};
+};
+
+
+/// One rung of the weight ladder, cited to the sentence that says what it permits [03-what-a-life-carries.md "How hard a moment hits"]. What the rung permits lives ON the rung: how many effects, whether it may turn the life, whether it is unbounded. A position on a ladder is an edge to a rung, never an index, and nothing in the C++ knows which rung is which.
+struct Weight : public Entity, public Cited {
+    /// Which rung of the ladder.
+    WeightKey weight_key = {};
+    /// How many effects a resolution at this rung may carry. Absent on an unbounded rung.
+    std::optional<int32_t> weight_effect_limit = std::nullopt;
+    /// Whether a resolution at this rung may turn the life.
+    bool weight_may_turn = {};
+    /// Whether this rung caps nothing.
+    bool weight_unbounded = {};
+};
+
+
+/// One rate the director stated for one kind in one season, what the engine drew against it, and whether it landed [04-the-directors-playbook.md "How events arrive"]. This is the capture the probability engine will be fitted to: what the director believed the rate was, beside what happened.
+struct ArrivalProposed : public Event {
+    /// Which kind this moment was. An entity reference, so a kind the book never defined cannot be recorded.
+    MomentKind moment_kind = {};
+    /// The probability of the moment going against the character, as the referee stated it. The book's own bounds (tighter than this slot's) are RuleConstants read where the chance is accepted [02-seasons-and-moments-in-play.md "What a moment risks"].
+    float moment_chance = {};
+    /// What the engine drew against that chance.
+    float moment_draw = {};
+    /// Whether the draw landed the kind this season.
+    bool arrival_landed = {};
+};
+
+
+/// One of the four ways through an event, cited to the sentence that defines it [04-the-directors-playbook.md "The doors"]. The referee's brief is built from these words. Which door is the player's to write is a fact the book states and the extractor reads, so the C++ never spells a door.
+struct Door : public Entity, public Cited {
+    /// Which of the four ways through.
+    DoorKey door_key = {};
+    /// Whether this is the door the player writes.
+    bool door_is_players = {};
+};
+
+
+/// One example the playbook gives for a kind at a weight [04-the-directors-playbook.md "The kinds, by example"]. An example, never a table row: the director riffs on it.
+struct PlaybookExample : public Entity, public Cited {
+    /// Which kind this is. The membership check is the schema's, so a kind no chapter wrote cannot load.
+    MomentKindKey moment_kind_key = {};
+    /// Which rung of the ladder.
+    WeightKey weight_key = {};
+};
+
+
+/// One example door the playbook gives for a kind [04-the-directors-playbook.md "The kinds, by example"].
+struct PlaybookDoorExample : public Entity, public Cited {
+    /// Which kind this is. The membership check is the schema's, so a kind no chapter wrote cannot load.
+    MomentKindKey moment_kind_key = {};
+    /// Which of the four ways through.
+    DoorKey door_key = {};
+};
+
+
+/// Someone the director named at play. Cited for its origin_context and nothing else: it has no book to cite, it has a playing to belong to [04-the-directors-playbook.md "The world thickens"].
+struct Person : public Entity, public Cited {
+};
+
+
+/// Somewhere the director named at play. See Person.
+struct Place : public Entity, public Cited {
+};
+
+
+/// A group the director named at play. See Person.
+struct Faction : public Entity, public Cited {
+};
+
+
+/// A standing formed or changed at a moment: who or where, and what they now are to the character. The latest per counterpart is the standing held [03-what-a-life-carries.md "Standings"].
+struct StandingHeld : public Event {
+    /// What the counterpart is to the character.
+    StandingKey standing_key = {};
+    /// The person, place, or faction the standing is held toward. An entity reference into the playing's own world.
+    Entity standing_with = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
+};
+
+
+/// A named lasting fact a moment left on the character [03-what-a-life-carries.md "What a moment may do"].
+struct MarkLeft : public Event {
+    /// The mark, named.
+    std::string mark_text = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
+};
+
+
+/// A point where the shape of the life changed [03-what-a-life-carries.md "What a moment may do"].
+struct TurnTaken : public Event {
+    /// Which way the life turned.
+    TurnKey turn_key = {};
+    /// The moment that left this on the character. A mark, a standing or a turn with no moment behind it is a fact with no story, and the sheet explains each by the moment that made it.
+    MomentFaced left_by = {};
+};
+
+
+/// A question the book leaves open on purpose, cited to its entry under "Unsettled" [01-the-shape-of-a-career.md "Unsettled"]. Absence with an address: an undecided rule and a nonexistent rule look identical from inside a graph, so the book's own open questions load as records the machinery can count and surface, instead of as silence.
+struct UnsettledQuestion : public Entity, public Cited {
+    /// The open question, in the book's own words.
+    std::string question_text = {};
 };
 
 

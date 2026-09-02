@@ -1,0 +1,296 @@
+{
+  "source": {
+    "file": "03-what-a-life-carries.md",
+    "commit": "sha256:8828ea38f297e8e34a52060bd52988bff284ea3162608f8b33de65020e8e911f"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "StandingKind": 5,
+      "EffectKind": 4,
+      "Turn": 4,
+      "Weight": 4,
+      "RuleConstant": 1,
+      "UnsettledQuestion": 2
+    },
+    "unique_name_per_type": [
+      "EffectKind",
+      "RuleConstant",
+      "StandingKind",
+      "Turn",
+      "UnsettledQuestion",
+      "Weight"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "StandingKind",
+      "as": "@standing_ally",
+      "properties": {
+        "name": "ally",
+        "standing_key": "ally",
+        "source_section": "Standings",
+        "source_kind": "sentence",
+        "source_quote": "A standing is what someone or somewhere is to this character: ally, enemy, debt, obligation, or acquaintance."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StandingKind",
+      "as": "@standing_enemy",
+      "properties": {
+        "name": "enemy",
+        "standing_key": "enemy",
+        "source_section": "Standings",
+        "source_kind": "sentence",
+        "source_quote": "A standing is what someone or somewhere is to this character: ally, enemy, debt, obligation, or acquaintance."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StandingKind",
+      "as": "@standing_debt",
+      "properties": {
+        "name": "debt",
+        "standing_key": "debt",
+        "source_section": "Standings",
+        "source_kind": "sentence",
+        "source_quote": "A standing is what someone or somewhere is to this character: ally, enemy, debt, obligation, or acquaintance."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StandingKind",
+      "as": "@standing_obligation",
+      "properties": {
+        "name": "obligation",
+        "standing_key": "obligation",
+        "source_section": "Standings",
+        "source_kind": "sentence",
+        "source_quote": "A standing is what someone or somewhere is to this character: ally, enemy, debt, obligation, or acquaintance."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "StandingKind",
+      "as": "@standing_acquaintance",
+      "properties": {
+        "name": "acquaintance",
+        "standing_key": "acquaintance",
+        "source_section": "Standings",
+        "source_kind": "sentence",
+        "source_quote": "A standing is what someone or somewhere is to this character: ally, enemy, debt, obligation, or acquaintance."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "EffectKind",
+      "as": "@effect_move_characteristic",
+      "properties": {
+        "name": "move characteristic",
+        "effect_key": "move_characteristic",
+        "effect_turns_life": "false",
+        "effect_moves_characteristic": "true",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may move a characteristic, up or down, by 1 and never more in one moment."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "EffectKind",
+      "as": "@effect_bind_standing",
+      "properties": {
+        "name": "bind standing",
+        "effect_key": "bind_standing",
+        "effect_turns_life": "false",
+        "effect_moves_characteristic": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may bind a standing: a person, a place, or a faction becomes ally, enemy, debt, obligation, or acquaintance to the character."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "EffectKind",
+      "as": "@effect_leave_mark",
+      "properties": {
+        "name": "leave mark",
+        "effect_key": "leave_mark",
+        "effect_turns_life": "false",
+        "effect_moves_characteristic": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may leave a mark: a named lasting fact, a scar, a reputation, a thing known about them where they are known."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "EffectKind",
+      "as": "@effect_turn_life",
+      "properties": {
+        "name": "turn life",
+        "effect_key": "turn_life",
+        "effect_turns_life": "true",
+        "effect_moves_characteristic": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may turn the life, and a turn is one of these: the career ends, the career changes, a forced leaving, or the life ends."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Turn",
+      "as": "@turn_career_ends",
+      "properties": {
+        "name": "the career ends",
+        "turn_key": "career_ends",
+        "turn_ends_season": "true",
+        "turn_ends_life": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may turn the life, and a turn is one of these: the career ends, the career changes, a forced leaving, or the life ends."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Turn",
+      "as": "@turn_career_changes",
+      "properties": {
+        "name": "the career changes",
+        "turn_key": "career_changes",
+        "turn_ends_season": "false",
+        "turn_ends_life": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may turn the life, and a turn is one of these: the career ends, the career changes, a forced leaving, or the life ends."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Turn",
+      "as": "@turn_forced_leaving",
+      "properties": {
+        "name": "a forced leaving",
+        "turn_key": "forced_leaving",
+        "turn_ends_season": "false",
+        "turn_ends_life": "false",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may turn the life, and a turn is one of these: the career ends, the career changes, a forced leaving, or the life ends."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Turn",
+      "as": "@turn_life_ends",
+      "properties": {
+        "name": "the life ends",
+        "turn_key": "life_ends",
+        "turn_ends_season": "true",
+        "turn_ends_life": "true",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may turn the life, and a turn is one of these: the career ends, the career changes, a forced leaving, or the life ends."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "RuleConstant",
+      "as": "@characteristic_move_limit",
+      "properties": {
+        "name": "characteristic_move_limit",
+        "constant_value": "1",
+        "source_section": "What a moment may do",
+        "source_kind": "sentence",
+        "source_quote": "It may move a characteristic, up or down, by 1 and never more in one moment."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Weight",
+      "as": "@weight_nothing",
+      "properties": {
+        "name": "nothing",
+        "weight_key": "nothing",
+        "weight_may_turn": "false",
+        "weight_unbounded": "false",
+        "source_section": "How hard a moment hits",
+        "source_kind": "sentence",
+        "source_quote": "At nothing, a moment may only leave its record.",
+        "weight_effect_limit": "0",
+        "implied_by": "only leave its record"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Weight",
+      "as": "@weight_mark",
+      "properties": {
+        "name": "a mark",
+        "weight_key": "mark",
+        "weight_may_turn": "false",
+        "weight_unbounded": "false",
+        "source_section": "How hard a moment hits",
+        "source_kind": "sentence",
+        "source_quote": "At a mark, it may do one thing from the list and may not turn the life.",
+        "weight_effect_limit": "1"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Weight",
+      "as": "@weight_turn",
+      "properties": {
+        "name": "a turn",
+        "weight_key": "turn",
+        "weight_may_turn": "true",
+        "weight_unbounded": "false",
+        "source_section": "How hard a moment hits",
+        "source_kind": "sentence",
+        "source_quote": "At a turn, it may do up to three things and may turn the life once.",
+        "weight_effect_limit": "3"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "Weight",
+      "as": "@weight_branch",
+      "properties": {
+        "name": "a branch",
+        "weight_key": "branch",
+        "weight_may_turn": "true",
+        "weight_unbounded": "true",
+        "source_section": "How hard a moment hits",
+        "source_kind": "sentence",
+        "source_quote": "At a branch, it may turn the life and mark it as it likes, and branches are rare because the director's own rates make them rare, not because a rule says so."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_03_1",
+      "properties": {
+        "name": "unsettled 03-1",
+        "question_text": "- Whether a life may end during its making, or whether the last turn on the list waits until there is a game around the character to lose.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether a life may end during its making, or whether the last turn on the list waits until there is a game around the character to lose."
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "UnsettledQuestion",
+      "as": "@unsettled_03_2",
+      "properties": {
+        "name": "unsettled 03-2",
+        "question_text": "- Whether a mark can be shed, and what it costs.",
+        "source_section": "Unsettled",
+        "source_kind": "list_item",
+        "source_quote": "- Whether a mark can be shed, and what it costs."
+      }
+    }
+  ]
+}

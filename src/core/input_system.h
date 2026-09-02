@@ -107,6 +107,13 @@ private:
     void handle_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     void handle_cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
     void handle_mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+    // Window coordinates into the UI's coordinates. The UI lives on the
+    // render grid; the mouse arrives in window points. They coincide
+    // only while a game renders at its window's size, and a game that
+    // renders smaller and scales up (bigger type, cheaper frames) gets
+    // every click landing short of the pointer without this.
+    void to_ui_space(double& x, double& y) const;
     
     // 3D Cube intersection helper - tests if mouse ray intersects particle's 3D cube
     bool ray_intersects_cube(const Particle& particle, float ray_world_x, float ray_world_y,

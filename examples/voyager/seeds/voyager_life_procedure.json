@@ -1,0 +1,185 @@
+{
+  "source": {
+    "file": "04-the-directors-playbook.md",
+    "commit": "sha256:8828ea38f297e8e34a52060bd52988bff284ea3162608f8b33de65020e8e911f"
+  },
+  "layer": "voyager-book",
+  "generated_by": "examples/voyager/tools/extract_book.py",
+  "invariants": {
+    "count_of_type": {
+      "Procedure": 1,
+      "ProcedureStep": 4,
+      "StepRoute": 4
+    },
+    "unique_name_per_type": [
+      "Procedure",
+      "ProcedureStep",
+      "StepRoute"
+    ]
+  },
+  "ops": [
+    {
+      "op": "create_entity",
+      "type": "Procedure",
+      "as": "@voyager_life",
+      "properties": {
+        "name": "voyager_life",
+        "source_section": "How events arrive",
+        "source_kind": "heading",
+        "source_quote": "How events arrive"
+      }
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@spend_season",
+      "properties": {
+        "name": "spend_season",
+        "step_index": "0",
+        "primitive_ref": "spend_season",
+        "source_section": "When the making ends",
+        "source_kind": "sentence",
+        "source_quote": "The making of a character ends when the player, at the turn of a season, says it does, or when a turn ends the life."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@spend_season"
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@propose_arrival",
+      "properties": {
+        "name": "propose_arrival",
+        "step_index": "1",
+        "primitive_ref": "propose_arrival",
+        "source_section": "How events arrive",
+        "source_kind": "sentence",
+        "source_quote": "Each season, for each kind, the director states the chance that kind finds this life this season, given its trade, its place, and how the season is being spent, and states it as a probability, never below 0.01 and never above 0.9."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@propose_arrival"
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@face_moment",
+      "properties": {
+        "name": "face_moment",
+        "step_index": "2",
+        "primitive_ref": "face_moment",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "Almost every event offers four ways through it, and the director writes the first three."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@face_moment"
+    },
+    {
+      "op": "create_entity",
+      "type": "ProcedureStep",
+      "as": "@end_making",
+      "properties": {
+        "name": "end_making",
+        "step_index": "3",
+        "primitive_ref": "end_making",
+        "source_section": "When the making ends",
+        "source_kind": "sentence",
+        "source_quote": "The making of a character ends when the player, at the turn of a season, says it does, or when a turn ends the life."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@voyager_life",
+      "relation": "HAS_PART",
+      "to": "@end_making"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@route_spend_season_enough",
+      "properties": {
+        "name": "spend_season enough",
+        "route_label": "enough",
+        "next_step": "@end_making",
+        "source_section": "When the making ends",
+        "source_kind": "sentence",
+        "source_quote": "The making of a character ends when the player, at the turn of a season, says it does, or when a turn ends the life."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@spend_season",
+      "relation": "HAS_PART",
+      "to": "@route_spend_season_enough"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@route_propose_arrival_unbroken",
+      "properties": {
+        "name": "propose_arrival unbroken",
+        "route_label": "unbroken",
+        "next_step": "@spend_season",
+        "source_section": "How events arrive",
+        "source_kind": "sentence",
+        "source_quote": "Each season, for each kind, the director states the chance that kind finds this life this season, given its trade, its place, and how the season is being spent, and states it as a probability, never below 0.01 and never above 0.9."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@propose_arrival",
+      "relation": "HAS_PART",
+      "to": "@route_propose_arrival_unbroken"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@route_face_moment_continue",
+      "properties": {
+        "name": "face_moment continue",
+        "route_label": "continue",
+        "next_step": "@spend_season",
+        "source_section": "The doors",
+        "source_kind": "sentence",
+        "source_quote": "Almost every event offers four ways through it, and the director writes the first three."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@face_moment",
+      "relation": "HAS_PART",
+      "to": "@route_face_moment_continue"
+    },
+    {
+      "op": "create_entity",
+      "type": "StepRoute",
+      "as": "@route_face_moment_ended",
+      "properties": {
+        "name": "face_moment ended",
+        "route_label": "ended",
+        "next_step": "@end_making",
+        "source_section": "When the making ends",
+        "source_kind": "sentence",
+        "source_quote": "The making of a character ends when the player, at the turn of a season, says it does, or when a turn ends the life."
+      }
+    },
+    {
+      "op": "set_relation",
+      "from": "@face_moment",
+      "relation": "HAS_PART",
+      "to": "@route_face_moment_ended"
+    }
+  ]
+}

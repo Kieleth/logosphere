@@ -105,6 +105,10 @@ public:
 
     // Input isolation (Phase 3)
     bool has_exclusive_input_focus() const;
+    // Is the focused widget the text field? Typing is the one thing
+    // that takes every key; any other focused widget gets the keys it
+    // asks for and leaves the rest to the game (key_routing.h).
+    bool is_text_input_focused() const;
     bool is_point_over_widget(int x, int y) const;  // Check if point hits any widget
 
     // ===== IMMEDIATE MODE API (existing) =====
@@ -279,6 +283,16 @@ public:
     void add_chat_message(const std::string& message);
     void clear_chat();
     void set_chat_visible(bool visible);  // Show/hide chat window
+    // Where the chat window sits, in UI (render-grid) coordinates.
+    // The engine gives it a default corner at init, which is right
+    // for a game with a world behind it and wrong for a game that
+    // lays out its whole screen: the one widget it could not place
+    // would land on top of the ones it did.
+    //
+    // Placing it also pins it. The window drags from anywhere inside
+    // itself, so a game that placed it and still let it be dragged
+    // would lose the position on the first click into the field.
+    void set_chat_bounds(int x, int y, int width, int height);
 
     // LLM thinking indicator - shows visual feedback during generation
     void set_llm_thinking(bool thinking);

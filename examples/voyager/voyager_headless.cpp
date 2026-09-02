@@ -12,6 +12,9 @@
 //                  offline, with no model call at all.
 //   --forks FILE   what else that character could have been.
 //   --fork FILE --at N --instead KEY   take one of those roads.
+//   --book         what the graph holds of the game's own book, in
+//                  the words it cites. The endpoint the writing loop
+//                  iterates against: write, regenerate, read back.
 //
 // WHERE THE NARRATION WENT. The background is written by a model and
 // cannot be derived from a seed, so a replay that did not have it could
@@ -98,6 +101,32 @@ std::string trimmed(const std::string& text) {
 // referee that fails still stops the run.
 std::vector<std::string> g_allowed;
 
+// The numeric bounds a free-form answer must respect, as the graph
+// states them, handed over the same way as g_allowed and for the same
+// reason: the generator must answer inside the rules without this
+// file spelling a rule value.
+std::string g_low;
+std::string g_high;
+// The named lists a structured answer composes from, as the graph
+// holds them. The generator spells none of them.
+std::map<std::string, std::vector<std::string>> g_vocab;
+
+// A chance inside the graph's bounds, picked by the seed.
+std::string chance_from(uint64_t roll) {
+    double low = 0.0, high = 0.0;
+    try {
+        low = std::stod(g_low);
+        high = std::stod(g_high);
+    } catch (...) {
+        return {};
+    }
+    std::ostringstream out;
+    out.setf(std::ios::fixed);
+    out.precision(2);
+    out << low + (high - low) * (static_cast<double>(roll % 101) / 100.0);
+    return out.str();
+}
+
 std::string synthetic(const replay::Ask& ask, uint64_t roll) {
     if (ask.site == "referee.background") {
         // NOT a stand-in narration. It says what it is, on screen, so a
@@ -119,12 +148,112 @@ std::string synthetic(const replay::Ask& ask, uint64_t roll) {
         }
         return out.str();
     }
+    if (ask.site == "referee.seasons") {
+        if (g_allowed.empty()) return {};
+        std::ostringstream out;
+        for (const auto& way : g_allowed) {
+            out << way << " | (no referee: a plan invented by the seeded "
+                          "generator)\n";
+        }
+        return out.str();
+    }
+    if (ask.site == "referee.season") {
+        return "(no referee: a season told by the seeded generator, which "
+               "tells no story)";
+    }
+    if (ask.site == "referee.arrival") {
+        // Every kind rated, at one chance the seed picks inside the
+        // graph's bounds, so some seasons break and most do not.
+        if (g_allowed.empty()) return {};
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
+        std::ostringstream out;
+        for (const auto& kind : g_allowed) out << kind << " | " << chance << "\n";
+        return out.str();
+    }
+    if (ask.site == "referee.doors") {
+        // The first rung the graph lists, which the book makes the one
+        // that permits no effect, so the doors carry none; every door
+        // the director writes, priced by the seed. The prose names
+        // itself machine-made, as the background does.
+        const auto weights = g_vocab.find("weights");
+        const auto doors = g_vocab.find("doors");
+        if (weights == g_vocab.end() || weights->second.empty() ||
+            doors == g_vocab.end() || doors->second.empty()) {
+            return {};
+        }
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
+        std::ostringstream out;
+        out << "weight | " << weights->second.front() << "\nsituation\n"
+            << "(no referee: a situation invented by the seeded generator, "
+               "which writes no prose)\n";
+        for (const auto& door : doors->second) {
+            out << "door | " << door << " | " << chance
+                << " | offered by the generator\n";
+        }
+        return out.str();
+    }
+    if (ask.site == "referee.price") {
+        const std::string chance = chance_from(roll);
+        if (chance.empty()) return {};
+        return "chance | " + chance + "\n";
+    }
+    if (ask.site == "referee.moment.aftermath") {
+        return "(no referee: an outcome named by the seeded generator, "
+               "which tells no story)";
+    }
+    if (ask.site == "chargen.plan") {
+        return "(no player: a plan invented by the seeded generator, which "
+               "makes no plans)";
+    }
     return {};
+}
+
+// ------------------------------------------------------------- book
+// The graph as the book's reader sees it. This is the endpoint the
+// writing loop iterates against: write a chapter, regenerate the
+// seeds, and read back what the world now holds, in the exact words
+// it will cite. Reads the graph and nothing else, so what it prints
+// is what the game can actually see.
+int print_book() {
+    kg::KGModule world(game_registry());
+    world.setMode(kg::KGMode::MINIMAL);
+    const auto primitives = voyager::make_procedure_registry();
+    std::string why;
+    if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR, primitives, why)) {
+        std::cout << "the rules did not load: " << why << "\n";
+        return 1;
+    }
+    std::cout << "edition " << voyager::rules_edition(world) << "\n";
+    const auto print_typed = [&world](const char* heading,
+                                      const char* type,
+                                      const char* key_slot,
+                                      const char* text_slot) {
+        std::cout << "\n" << heading << "\n";
+        for (const kg::EntityID id : world.findByType(type)) {
+            const std::string key = world.getProperty(id, key_slot);
+            if (!key.empty()) std::cout << "  [" << key << "] ";
+            else std::cout << "  ";
+            std::cout << world.getProperty(id, text_slot) << "\n";
+        }
+    };
+    print_typed("-- the kinds a moment can be --", "MomentKind",
+                "moment_kind_key", "source_quote");
+    print_typed("-- the ways a season is spent --", "SeasonMode",
+                "season_mode_key", "name");
+    print_typed("-- what the book leaves open --", "UnsettledQuestion",
+                "", "question_text");
+    return 0;
 }
 
 }  // namespace
 
 int main(int argc, char** argv) {
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--book") == 0) return print_book();
+    }
     std::string mode = "--random";
     std::string argument = "1";
     uint64_t pinned = 0;
@@ -234,17 +363,23 @@ int main(int argc, char** argv) {
                 question.site = ask.site;
                 question.prompt = ask.prompt;
                 question.allowed = ask.offered;
-                if (ask.site == "chargen.career") {
+                if (ask.site == "chargen.door") {
                     // The model stops being the referee here and
                     // becomes the player: one door, taken.
                     std::ostringstream prompt;
                     prompt << "You are the PLAYER now, not the referee. "
                               "One of these doors is yours.\n\n"
                            << ask.prompt
-                           << "\n\nAnswer with the career name alone, "
-                              "exactly as it is written above, and "
-                              "nothing else.";
+                           << "\n\nAnswer with one key alone, exactly "
+                              "as it is written above, and nothing "
+                              "else.";
                     question.prompt = prompt.str();
+                } else if (ask.site == "chargen.plan") {
+                    question.prompt =
+                        "You are the PLAYER now, not the referee. You "
+                        "chose to say what you would do.\n\n" + ask.prompt +
+                        "\n\nSay it, first person, two sentences, and "
+                        "nothing else.";
                 }
                 std::string reply;
                 if (!model.answer(question, reply, error)) return false;
@@ -296,6 +431,7 @@ int main(int argc, char** argv) {
     const auto primitives = voyager::make_procedure_registry();
     std::string why;
     if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR,
                              primitives, why)) {
         std::cout << "the rules did not load: " << why << "\n";
         return 1;
@@ -355,6 +491,9 @@ int main(int argc, char** argv) {
             // against a single answer. What a synthetic source may draw
             // from goes through g_allowed instead.
             g_allowed = question.allowed;
+            g_low = question.low;
+            g_high = question.high;
+            g_vocab = question.vocab;
             return tape.ask(ask, answer, error);
         });
 
@@ -366,15 +505,15 @@ int main(int argc, char** argv) {
 
     int guard = 0;
     while (!session.finished() && !session.choices().empty()) {
-        if (++guard > 32) {
-            std::cout << "gave up after 32 decisions\n";
+        if (++guard > 256) {
+            std::cout << "gave up after 256 decisions\n";
             return 1;
         }
         // The keys are the ANSWER and the labels go in the PROMPT,
         // which is never matched on. This is the ask that carries the
         // model-authored option set into the tape.
         replay::Ask ask;
-        ask.site = "chargen.career";
+        ask.site = "chargen.door";
         std::ostringstream prompt;
         prompt << session.prompt();
         for (const auto& choice : session.choices()) {
@@ -392,6 +531,22 @@ int main(int argc, char** argv) {
         if (!session.choose(answer, error)) {
             std::cout << "'" << answer << "' was refused: " << error << "\n";
             return 1;
+        }
+        // The player's own door: a second, free-form ask carries the
+        // player's words, taped verbatim like the referee's prose.
+        if (session.awaiting_plan()) {
+            replay::Ask plan;
+            plan.site = "chargen.plan";
+            plan.prompt = session.prompt();
+            std::string words;
+            if (!tape.ask(plan, words, error)) {
+                std::cout << "the run stopped: " << error << "\n";
+                return 1;
+            }
+            if (!session.choose(words, error)) {
+                std::cout << "the plan was refused: " << error << "\n";
+                return 1;
+            }
         }
     }
 

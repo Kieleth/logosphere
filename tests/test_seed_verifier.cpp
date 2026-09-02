@@ -1722,6 +1722,47 @@ void test_value_must_equal_a_whole_number_token() {
           "token are absorbed, and the sign is dropped");
 }
 
+// A decimal is ONE number token. Before 2026-08-30 "2.5" tokenized as
+// a 2 and a 5, so a bogus 5 could prove itself against "2.5 meters"
+// and a real 1.2 could not prove itself at all - exactly wrong in
+// both directions for a book that fixes probabilities.
+void test_decimal_is_one_number_token() {
+    const char* avians =
+        "Avians are a homeothermic, bi-gendered species averaging 1.2 "
+        "meters in height with a wingspan over 2.5 meters long from "
+        "wingtip to wingtip, and have a typical mass of around 35 "
+        "kilograms.";
+    const auto with_value = [&](const char* value) {
+        return mini_seed(
+            "book1/character-creation.md",
+            std::string(
+                R"({"op":"create_entity","type":"RuleConstant","as":"@t",
+            "properties":{"name":"decimal_case","constant_value":)") +
+                value +
+                R"(,"source_section":"Avians","source_quote":")" + avians +
+                R"("}})");
+    };
+
+    auto r_real = kg::verify_seed(with_value("1.2"), kSourceRoot,
+                                  engine_registry());
+    for (const auto& v : r_real.violations)
+        std::cout << "  [measure] UNEXPECTED [" << v.check << "] "
+                  << v.reason << std::endl;
+    CHECK(r_real.ok(), "1.2 passes on the quote that prints 1.2");
+
+    auto r_frag = kg::verify_seed(with_value("5"), kSourceRoot,
+                                  engine_registry());
+    CHECK(!r_frag.ok(),
+          "5 does NOT pass on '2.5' - a decimal's fragments prove "
+          "nothing");
+    CHECK(reason_contains(r_frag, "value", "equal no number token"),
+          "and VALUE says the digits equal no token");
+
+    auto r_wrong = kg::verify_seed(with_value("1.25"), kSourceRoot,
+                                   engine_registry());
+    CHECK(!r_wrong.ok(), "1.25 does not pass on 1.2");
+}
+
 void test_dice_fields_must_match_the_same_quoted_expression() {
     kg::SeedEnvelope seed = mini_seed(
         "book1/character-creation.md",
@@ -2185,6 +2226,7 @@ int main() {
     test_wrong_class_ref_fails_schema();
     test_wrong_digits_fail_value();
     test_value_must_equal_a_whole_number_token();
+    test_decimal_is_one_number_token();
     test_dice_fields_must_match_the_same_quoted_expression();
     test_band_mismatch_fails_value();
     test_count_mismatch_fails_invariant();

@@ -1209,8 +1209,14 @@ slots:
       Multiplier applied to (dice sum + modifier); 1 when the book
       writes none.
   constant_value:
-    range: integer
-    description: The value the book fixes; signed.
+    range: float
+    description: >-
+      The value the book fixes; signed. Float rather than integer
+      since 2026-08-30, because a book may fix a probability, and a
+      probability written as the physicist writes it is not a whole
+      number. Every integer the packs ever seeded still validates;
+      readers that need a whole number keep parsing one and refuse a
+      fraction where a fraction makes no sense.
   attribute_ref:
     range: string
     description: >-

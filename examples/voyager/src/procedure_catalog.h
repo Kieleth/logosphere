@@ -43,6 +43,23 @@ make_procedure_registry() {
     // Build the legal set from the graph, let the referee narrow it,
     // and suspend until somebody picks.
     add("choose_career");
+    // Offer the ways the book fixes for spending a season, suspend
+    // until somebody picks, and record the year it costs. "enough" is
+    // the player ending the making at the turn of a season.
+    add("spend_season", {"enough"});
+    // The director states, per kind, the chance that kind finds this
+    // life this season; the engine draws each. "unbroken" means no
+    // kind landed and the season passes with its record only. (Not a
+    // word the book owns: exits are the code's vocabulary, and the
+    // scan that keeps them apart is right to bark at a shared one.)
+    add("propose_arrival", {"unbroken"});
+    // What landed, dressed: weight, situation, three doors and the
+    // open one; the player picks; the engine draws; effects land or
+    // are refused. "continue" goes on to the next season, "ended" is
+    // a turn that ended the life.
+    add("face_moment", {"continue", "ended"});
+    // The making ends, and the character is what the record says.
+    add("end_making");
     return registry;
 }
 

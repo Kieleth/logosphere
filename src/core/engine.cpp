@@ -771,8 +771,12 @@ void Engine::copy_buffer(const PixelBuffer& source, PixelBuffer& dest) {
 }
 
 void Engine::set_render_resolution(int width, int height) {
-    render_width_  = width;
-    render_height_ = height;
+    // One render size. The manager presents by it and the input path
+    // maps the pointer by it; a copy here that the manager did not
+    // share put every click short by the scale (2026-09-02).
+    resolution_manager_.set_render_resolution(width, height);
+    render_width_  = resolution_manager_.get_render_width();
+    render_height_ = resolution_manager_.get_render_height();
 
     if constexpr (!Optimizations::USE_GPU_RASTERIZATION) {
         surface_rasterizer_.init_frame_buffers(render_width_, render_height_);

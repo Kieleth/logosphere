@@ -30,13 +30,23 @@ int main(int argc, char** argv) {
     config.window_title = "Voyager";
     config.show_debug_overlay = false;
     config.show_kg_inspector = false;
-    // No chat box. This screen is read and clicked, not typed into.
-    config.enable_chat_window = false;
+    // The engine's text field is the open door: it shows only while
+    // the player's own words are wanted, and is hidden otherwise.
+    config.enable_chat_window = true;
 
     if (engine.initialize(config) < 0) {
         std::cerr << "[voyager] engine init failed" << std::endl;
         return 1;
     }
+    // The game draws on the window's own grid, so the pointer and the
+    // drawing agree without any mapping. Said explicitly, because the
+    // engine otherwise leaves the grid at a preset that is not the
+    // window's shape (1280x960 in a 1280x800 window, measured
+    // 2026-09-02), which squashes everything by a sixth and puts every
+    // click short by the same. Bigger type comes from the draw
+    // surface's scaled text, in this game's own widgets, not from
+    // rendering smaller and scaling up.
+    engine.set_render_resolution(voyager::kRenderW, voyager::kRenderH);
 
     auto last = std::chrono::high_resolution_clock::now();
     while (engine.should_continue()) {

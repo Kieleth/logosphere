@@ -56,6 +56,30 @@ public:
 
     void pin_seed(uint64_t seed) { seed_ = seed; pinned_ = true; }
 
+    // Bigger or smaller type, at any moment: plus and minus, on the
+    // main row or on the keypad. The screen keeps the words rather
+    // than the pixels, so one call re-lays the whole thing out.
+    //
+    // Consumed whether or not the size changed. The engine maps the
+    // same two keys to its own UI scale, and that multiplier has to
+    // stay at one or every click lands somewhere else.
+    //
+    // Keys reach a game only while the text field is hidden; an open
+    // field takes every key, which is what typing is.
+    bool handle_key(int key, int, int action, int) override {
+        if (action != 1 && action != 2) return false;   // press, repeat
+        int step = 0;
+        switch (key) {
+            case 61:                        // = and, shifted, +
+            case 334: step = 1; break;      // keypad +
+            case 45:                        // -
+            case 333: step = -1; break;     // keypad -
+            default: return false;
+        }
+        screen_.set_text_scale(screen_.text_scale() + step);
+        return true;
+    }
+
     void initialize_game(void* engine_ptr) override {
         engine_ = static_cast<Engine*>(engine_ptr);
         auto& world = engine_->get_kg();
@@ -71,6 +95,7 @@ public:
 
         std::string why;
         if (!load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                        VOYAGER_BOOK_CORPUS_DIR,
                         make_procedure_registry(), why)) {
             screen_.say("The rules did not load: " + why +
                         "  Nothing can be made without them, and that is "
@@ -95,10 +120,22 @@ public:
     // they are made. Otherwise the window opens on nothing for as long
     // as the model takes to answer, which reads as a hang.
     void update_game(float) override {
-        if (!armed_ || started_) return;
-        if (++frames_ < 2) return;
-        started_ = true;
-        start();
+        if (!armed_) return;
+        if (!started_) {
+            if (++frames_ < 2) return;
+            started_ = true;
+            start();
+            return;
+        }
+        // The player's own door: their words arrive through the
+        // engine's text field, and Enter hands them to the session.
+        auto* ui = engine_->get_ui_system();
+        if (session_ && session_->awaiting_plan() && ui &&
+            ui->has_pending_submit()) {
+            const std::string plan = ui->get_input_text();
+            ui->clear_input_text();
+            take_door(plan);
+        }
     }
 
 private:

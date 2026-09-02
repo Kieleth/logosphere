@@ -42,6 +42,7 @@
 #include "procedure_catalog.h"
 #include "rule_loader.h"
 #include "sheet.h"
+#include "test_support.h"
 
 #include "logosphere/kg/kg_module.h"
 #include "logosphere/kg/kg_ops_transaction.h"
@@ -106,71 +107,6 @@ kg::KGOp create_entity(
     return op;
 }
 
-std::string slurp(const std::filesystem::path& path) {
-    std::ifstream input(path, std::ios::binary);
-    if (!input) return {};
-    std::ostringstream bytes;
-    bytes << input.rdbuf();
-    return bytes.str();
-}
-
-bool is_word_char(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-           (c >= '0' && c <= '9') || c == '_';
-}
-
-// Does `token` appear in `text` as a whole word? Word-bounded on
-// purpose: "Int" must not fire on "Integer", and "end" must not fire on
-// ".end()". Case sensitive, because these are the book's spellings and
-// a lower-case `strength` in a slot name is exactly the leak looked for.
-bool names_word(const std::string& text, const std::string& token) {
-    if (token.empty()) return false;
-    for (size_t at = text.find(token); at != std::string::npos;
-         at = text.find(token, at + 1)) {
-        const bool before = at > 0 && is_word_char(text[at - 1]);
-        const size_t after_at = at + token.size();
-        const bool after =
-            after_at < text.size() && is_word_char(text[after_at]);
-        if (!before && !after) return true;
-    }
-    return false;
-}
-
-// Every shipping translation unit and header of this game. Generated
-// registries are excluded and only they: a generated registry declares
-// the ontology, which is where these names BELONG, and it is written by
-// a tool from the schema rather than by a person from memory.
-std::vector<std::filesystem::path> shipping_sources(
-    size_t& generated_skipped) {
-    std::vector<std::filesystem::path> out;
-    const std::filesystem::path root(VOYAGER_GAME_DIR);
-    for (const auto& entry :
-         std::filesystem::recursive_directory_iterator(root / "src")) {
-        if (!entry.is_regular_file()) continue;
-        const auto path = entry.path();
-        // generic_string, not string: native separators are '\' on
-        // Windows and this match must not depend on the platform.
-        if (path.generic_string().find("/generated/") != std::string::npos) {
-            ++generated_skipped;
-            continue;
-        }
-        const auto extension = path.extension().string();
-        if (extension != ".cpp" && extension != ".h") continue;
-        out.push_back(path);
-    }
-    for (const auto& entry :
-         std::filesystem::directory_iterator(root)) {
-        if (!entry.is_regular_file()) continue;
-        const auto path = entry.path();
-        if (path.extension() != ".cpp") continue;
-        // Tests spell what they are testing; they ship no behaviour.
-        if (path.filename().string().rfind("test_", 0) == 0) continue;
-        out.push_back(path);
-    }
-    std::sort(out.begin(), out.end());
-    return out;
-}
-
 }  // namespace
 
 int main() {
@@ -180,6 +116,7 @@ int main() {
     const auto primitives = voyager::make_procedure_registry();
     std::string error;
     if (!voyager::load_rules(world, VOYAGER_GAME_DIR, VOYAGER_CORPUS_DIR,
+                             VOYAGER_BOOK_CORPUS_DIR,
                              primitives, error)) {
         std::cout << "FAIL: the rules did not load: " << error << '\n';
         return 1;
@@ -368,7 +305,8 @@ int main() {
           "weaker than it reads");
 
     size_t generated_skipped = 0;
-    const auto sources = shipping_sources(generated_skipped);
+    const auto sources = voyager_test::shipping_sources(
+        VOYAGER_GAME_DIR, generated_skipped);
     CHECK(!sources.empty(),
           "no shipping source was scanned, so this check proved nothing");
     CHECK(generated_skipped >= 1,
@@ -377,12 +315,12 @@ int main() {
           "match reports the schema's own generated output as leaks");
     size_t scanned = 0;
     for (const auto& path : sources) {
-        const std::string text = slurp(path);
+        const std::string text = voyager_test::slurp(path);
         CHECK(!text.empty(), "could not read " << path);
         if (text.empty()) continue;
         ++scanned;
         for (const std::string& word : forbidden) {
-            CHECK(!names_word(text, word),
+            CHECK(!voyager_test::names_word(text, word),
                   path.filename().string() << " spells '" << word
                   << "'. Every characteristic is the graph's; a name in "
                      "C++ is the leak this game was written to not have.");

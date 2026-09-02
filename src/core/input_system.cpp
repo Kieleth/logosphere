@@ -9,7 +9,10 @@
 #include "logosphere/kg/kg_module.h"     // For entity selection via KG
 #include "object_id.h"        // For ObjectID encoding/decoding
 #include "platform/platform_layer.h"  // For IApplication interface
+#include "logosphere/core/ui_space.h"   // Window points into the UI grid
+#include "logosphere/core/key_routing.h"  // Who a key press belongs to
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <cassert>
 
@@ -130,50 +133,58 @@ void InputSystem::handle_key_callback(GLFWwindow* window, int key, int scancode,
     //
     // For most games, we care about PRESS and RELEASE
 
-    // Update key state array
-    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-        input_state.keys[key] = true;
-    } else if (action == GLFW_RELEASE) {
-        input_state.keys[key] = false;
-    }
-
     // ARCH-017 COMPLETED: Assert pattern applied to all systems with stored dependencies
     assert(engine_ && "InputSystem requires Engine to be set via set_engine()");
 
     // Phase 3 Input Isolation: Check if UI has exclusive focus
     auto* ui = engine_->get_ui_system();
 
-    // System keys (ESC, `, F-keys) always pass to both UI and game
-    if (is_system_key(key)) {
-        if (ui) {
-            ui->handle_key_down(key);
+    // Who wants this key: see logosphere/core/key_routing.h. One rule,
+    // read from one place, so the call sites cannot drift.
+    const bool down = (action == GLFW_PRESS || action == GLFW_REPEAT);
+    const bool widget_focused = ui && ui->has_exclusive_input_focus();
+    const bool typing = ui && ui->is_text_input_focused();
+    const logosphere::KeyRoute route =
+        logosphere::route_key(is_system_key(key), widget_focused, typing);
+
+    // Update key state array. A key that went into a sentence is not
+    // a key the game is holding down: a game polling this array for
+    // movement would otherwise walk while the player types. A release
+    // always clears, so a key held before the field took focus cannot
+    // stay stuck down.
+    if (down) {
+        if (route != logosphere::KeyRoute::TextField) {
+            input_state.keys[key] = true;
         }
-        engine_->get_key_mapper().process_key_event(key, scancode, action, mods);
-        return;
+    } else if (action == GLFW_RELEASE) {
+        input_state.keys[key] = false;
     }
 
-    // Regular keys: check UI exclusive focus
-    bool has_focus = ui && ui->has_exclusive_input_focus();
-
-    // DEBUG: Log focus state and key presses
-    if (key == GLFW_KEY_COMMA || key == GLFW_KEY_PERIOD) {
-        std::cout << "[INPUT_FOCUS_DEBUG] Key=" << (key == GLFW_KEY_COMMA ? "COMMA" : "PERIOD")
-                  << " has_focus=" << has_focus << std::endl;
+    switch (route) {
+        case logosphere::KeyRoute::TextField:
+            // Typing takes every key, escape included: a keystroke in
+            // the middle of a sentence is a character or an edit and
+            // never a command.
+            if (down) ui->handle_text_input_key(key);
+            return;
+        case logosphere::KeyRoute::WidgetAndGame:
+            // System keys (ESC, `, F-keys) reach both, always.
+            if (ui) {
+                if (down) ui->handle_key_down(key);
+                else ui->handle_key_up(key);
+            }
+            break;
+        case logosphere::KeyRoute::WidgetThenGame:
+            // The focused widget first. A key it does not take is not
+            // its key, and the game has to keep hearing those, or it
+            // goes deaf the moment a click lands on one of its own
+            // widgets.
+            if (down && ui->handle_key_down(key)) return;
+            if (!down && ui->handle_key_up(key)) return;
+            break;
+        case logosphere::KeyRoute::Game:
+            break;
     }
-
-    // DEBUG: Log SPACE key routing
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        std::cout << "[InputSystem] SPACE press, has_focus=" << has_focus << std::endl;
-    }
-
-    if (has_focus) {
-        // UI has focus - route key to UI for special keys (Enter, Backspace, Escape, etc.)
-        // but BLOCK all keys from reaching KeyMapper (prevents comma/period triggering zoom, etc.)
-        ui->handle_key_down(key);
-        return;  // Block ALL keys from game when chat is active
-    }
-
-    // No UI focus - route to game via KeyMapper
     engine_->get_key_mapper().process_key_event(key, scancode, action, mods);
 }
 
@@ -195,19 +206,12 @@ void InputSystem::on_key_event(Platform::KeyCode key, int scancode, bool pressed
     if (mods.alt) glfw_mods |= GLFW_MOD_ALT;
     if (mods.super) glfw_mods |= GLFW_MOD_SUPER;
 
-    // Check UI exclusive focus - when chat is open, ALL keyboard input goes to UI only
-    if (engine_) {
-        auto* ui = engine_->get_ui_system();
-        if (ui && ui->has_exclusive_input_focus()) {
-            // UI has focus - forward ALL key presses to UI for text input
-            if (pressed) {
-                ui->handle_text_input_key(glfw_key);
-            }
-            return;  // Block from game completely
-        }
-    }
-
-    // No UI focus - route keys to game
+    // Everything goes through the one routing rule below, in
+    // handle_key_callback. This used to short-circuit on ANY focused
+    // widget and hand the key to the text field, which meant that
+    // after a click on a list the game heard nothing at all and the
+    // list itself never saw the arrow keys either: the key went to a
+    // field that was not focused and was dropped.
     handle_key_callback(nullptr, glfw_key, scancode, glfw_action, glfw_mods);
 }
 
@@ -256,14 +260,41 @@ void InputSystem::on_mouse_button(Platform::MouseButton button, bool pressed, co
     handle_mouse_button_callback(nullptr, glfw_button, glfw_action, glfw_mods);
 }
 
+void InputSystem::to_ui_space(double& x, double& y) const {
+    if (!engine_) return;
+    const auto& res = engine_->get_resolution_manager();
+    // The render size comes from the engine, which owns the UI plane.
+    // The manager keeps a copy for the presenter; if the two ever
+    // disagree, the pointer is about to land short of the drawing by
+    // the difference, and that is said once, loudly, not hidden.
+    static bool warned = false;
+    if (!warned && (res.get_render_width() != engine_->get_render_width() ||
+                    res.get_render_height() != engine_->get_render_height())) {
+        warned = true;
+        std::cerr << "[INPUT] render size disagrees: engine "
+                  << engine_->get_render_width() << "x"
+                  << engine_->get_render_height() << ", resolution manager "
+                  << res.get_render_width() << "x" << res.get_render_height()
+                  << "; the pointer maps by the engine's" << std::endl;
+    }
+    const logosphere::UiSpace space{engine_->get_render_width(),
+                                    engine_->get_render_height(),
+                                    res.get_window_width(),
+                                    res.get_window_height()};
+    space.window_to_ui(x, y);
+}
+
 void InputSystem::on_mouse_scroll(double x_offset, double y_offset) {
     if (!engine_) return;
 
     // UI first: the widget under the cursor may want the scroll
     // (chat scrollback). Widgets that don't care return false.
     auto* ui = engine_->get_ui_system();
-    if (ui && ui->handle_mouse_scroll(static_cast<int>(input_state.mouse_x),
-                                      static_cast<int>(input_state.mouse_y),
+    double ui_x = input_state.mouse_x;
+    double ui_y = input_state.mouse_y;
+    to_ui_space(ui_x, ui_y);
+    if (ui && ui->handle_mouse_scroll(static_cast<int>(ui_x),
+                                      static_cast<int>(ui_y),
                                       x_offset, y_offset)) {
         return;
     }
@@ -290,9 +321,13 @@ void InputSystem::handle_cursor_position_callback(GLFWwindow* window, double xpo
     // This decouples from mouse callback (1000+ Hz) to game loop (60-120 Hz)
     // See docs/mouse_hover_performance.md for rationale
 
-    // Route to UISystem for widget interactions (dragging, hover, etc.)
+    // Route to UISystem for widget interactions (dragging, hover, etc.),
+    // in the UI's own coordinates.
     if (engine_ && engine_->get_ui_system()) {
-        engine_->get_ui_system()->handle_mouse_move(static_cast<int>(xpos), static_cast<int>(ypos));
+        double ui_x = xpos;
+        double ui_y = ypos;
+        to_ui_space(ui_x, ui_y);
+        engine_->get_ui_system()->handle_mouse_move(static_cast<int>(ui_x), static_cast<int>(ui_y));
     }
 
     // Forward to camera controller if available
@@ -372,8 +407,19 @@ void InputSystem::handle_mouse_button_callback(GLFWwindow* window, int button, i
         GLFWwindow* glfw_window = static_cast<GLFWwindow*>(engine_->get_platform()->get_native_window_handle());
         double mouse_x, mouse_y;
         glfwGetCursorPos(glfw_window, &mouse_x, &mouse_y);
+        const double raw_x = mouse_x;
+        const double raw_y = mouse_y;
+        to_ui_space(mouse_x, mouse_y);
+        if (std::getenv("LOGOSPHERE_INPUT_DEBUG")) {
+            const auto& res = engine_->get_resolution_manager();
+            std::cout << "[INPUT_MAP] click window=(" << raw_x << "," << raw_y
+                      << ") ui=(" << mouse_x << "," << mouse_y << ") window="
+                      << res.get_window_width() << "x" << res.get_window_height()
+                      << " render=" << res.get_render_width() << "x"
+                      << res.get_render_height() << std::endl;
+        }
 
-        // Route to UISystem
+        // Route to UISystem, in the UI's own coordinates
         if (action == GLFW_PRESS) {
             if (engine_->get_ui_system()->handle_mouse_down(static_cast<int>(mouse_x), static_cast<int>(mouse_y), button)) {
                 // UI handled the click - don't forward to game

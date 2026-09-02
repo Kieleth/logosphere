@@ -7,7 +7,109 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **A focused widget no longer swallows the keyboard.** A click
+  focuses whatever it lands on, and every key was then routed to the
+  text field and dropped there. So a game with a list or a panel on
+  screen stopped hearing its own keys the moment the player clicked
+  one of them, escape included, until they clicked the background;
+  the clicked widget did not get the arrow keys either, because the
+  key went to a field that was not focused. The focused widget now
+  gets first refusal and the game hears what it passes on. Typing is
+  the one exception and still takes every key, escape included, since
+  a keystroke in the middle of a sentence is a character and never a
+  command. The rule is one function, `logosphere::route_key` in
+  `logosphere/core/key_routing.h`, called from the one place that
+  routes keys and locked by `test_key_routing`.
+
+### Changed
+- **`RuleConstant.constant_value` widens from integer to float.** A
+  book may fix a probability, and a probability written as the
+  physicist writes it is not a whole number. Every integer the packs
+  ever seeded still validates; game registries regenerate mechanically.
+- **The seed verifier's number tokenizer reads decimals as one
+  token.** "0.05" in a quote is one number, never a 0 and a 5. Before
+  this, a bogus 5 could prove itself against "2.5 meters" and a real
+  0.05 could not prove itself at all; `test_seed_verifier` now locks
+  both directions.
+
 ### Added
+- **`examples/voyager`: the type size is the player's, one to four, on
+  the plus and minus keys.** Every rectangle on the screen is a
+  function of the window, the type size and how many rows the sheet
+  has, so a keypress re-lays out the whole thing: columns re-wrap,
+  boxes resize, the doors move, the text field follows. The screen
+  keeps the words rather than the pixels, which is what makes that one
+  call. The story, the question, the notes and the sheet now scroll on
+  the wheel with a mark at the edge they continue past, so a life that
+  outgrows its box is scrolled back through rather than trailed off,
+  and the notes start below the sheet's last row instead of over it.
+  Three headless tests hold it: `test_voyager_layout` (no two
+  rectangles overlap and none leaves the window, at every size, on
+  three window shapes, for sheets of eight to thirty rows),
+  `test_voyager_text` (no word split, no word lost) and
+  `test_voyager_doors` (the block under the pointer is the block that
+  gets the click).
+- **`UISystem::set_chat_bounds`.** A game that lays out its whole
+  screen can say where the chat window goes instead of finding it
+  wherever the engine's default corner left it. Placing it also pins
+  it: the window drags from anywhere inside itself, so the first click
+  into the input field used to carry it out of the layout.
+- **`examples/voyager`: event mode. Seasons loop, events arrive by
+  probability, moments have teeth and doors, and the world thickens.**
+  Chapters Three and Four of the book fix what a life carries
+  (standings toward people, places and factions; marks; turns), the
+  only four things a moment may do, a weight ladder whose rungs carry
+  their own caps, how events arrive (the director rates every kind
+  every season as a probability and the engine draws each), the four
+  doors (direct, sideways, pass, and the player's own, priced by the
+  director), and a director's playbook with examples. The life
+  procedure loops through routes in the seed: spend a season, learn
+  what lands, face it, until the player ends the making or a turn ends
+  the life. Effects land atomically through a catalog of four handlers
+  and are refused when the rung, the move limit, the turn rule or the
+  opposite-pull rule says so. Everything the director names becomes an
+  entity in the playing's own scope. Every proposal is captured
+  (`ArrivalProposed`) for the probability engine to be fitted to
+  later. The windowed game grows the engine's text field for the open
+  door. Nothing in the C++ spells a kind, a rung, a door, a standing
+  or a turn: the book's own sentences carry the facts the code reads,
+  and `test_voyager_book` scans string literals to keep it that way.
+- **`examples/voyager`: the season and the moment, played from the
+  game's own book.** Chapter Two fixes what a season costs (a year,
+  world-relative, standard reckoning as the fallback), what a moment
+  risks (a probability, referee-set within book-cited bounds the game
+  refuses to cross), and what stage is (counted per kind from the
+  `MomentFaced` records, stored nowhere). After the career door the
+  player chooses how the season is spent, the season breaks, the
+  engine draws against the stated chance, and the referee's situation
+  and telling land on the sheet, which now also shows the lived
+  record. Characters link their lived events through a typed `LIVED`
+  relation. Everything is taped: a recorded life replays bit-identical
+  with no model, seven decisions deep.
+- **`corpora/voyager-book`: Voyager's own rulebook, chapter one.** The
+  game stops following the published book's structure (terms are out)
+  and gets a book of its own, authored in-repo and ingested through
+  the same reflection machinery. Chapter One fixes the shape of a
+  career: seasons broken by moments, five kinds of moments, typed
+  stage deciding whether trouble arrives as pre-rolled fate or as
+  doors. `examples/voyager/docs/GAME_DESIGN.md` opens as the game's
+  design ledger.
+
+  And the chapter is not prose beside the game, it is IN the game,
+  through the same reflection that absorbed the published SRD: an
+  extractor (`tools/extract_book.py`) reads the chapter and seeds the
+  kinds of moments, the season modes and the book's own open
+  questions, each cited to the chapter's bytes; the kind and mode
+  vocabularies are closed schema enums; the world now carries one
+  edition per corpus and a tape pins both, so rewriting a chapter
+  changes what a recorded life is pinned to. `test_voyager_book`
+  gates the loop (uninstantiated enum values, unloaded open
+  questions, book words spelled in shipping C++, a half-pinned
+  edition all go red), CI regenerates the book seed and rejects
+  drift, and `voyager-headless --book` prints what the graph holds
+  of the book, verbatim, as the endpoint the writing loop iterates
+  against.
 - **Physics: two default-off levers that make a stack of boxes stand
   still under contact torque.** `MANIFOLD_SPAN=1` reduces a face
   contact's manifold to a set that spans the contact polygon instead of
