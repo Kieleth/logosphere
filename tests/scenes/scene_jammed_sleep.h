@@ -310,7 +310,11 @@ struct Scene {
             p.omega_x = p.omega_y = p.omega_z = 0.0f;
             p.rotation_x = p.rotation_y = p.rotation_z = 0.0f;
             p.rotation_q = logosphere::Quat::identity();
-            p.is_at_rest = false;
+            // The window replays a case the way headless builds it: a body
+            // born asleep (G) is re-armed asleep, or the two modes stop
+            // being reflections (measured: the window woke G's tiles and
+            // read 1 red where headless read 19).
+            p.is_at_rest = b.born_asleep;
             p.frames_at_rest = 0;
             p.low_velocity_frames = 0;
             p.quiet_growth_run = 0;
@@ -934,7 +938,12 @@ inline std::vector<Verdict> evaluate(ParticleSystem& ps, PhysicsSystem& physics,
                       "gap %.1f mm < %.0f mm)", c.gid, s.birth_bond_gap * 1000.0f,
                       OVERLAP_TOL * 1000.0f);
         v.push_back({t, s.birth_bond_gap < OVERLAP_TOL});
-        const size_t live = physics.get_total_gluon_count();
+        // The case's OWN bonds (the window holds every case's floor at once).
+        size_t live = 0;
+        for (const Bond& bd : c.bonds)
+            if (s.ids[bd.a] >= 0 && s.ids[bd.b] >= 0 &&
+                physics.get_gluon((size_t)s.ids[bd.a], (size_t)s.ids[bd.b]) != nullptr)
+                ++live;
         std::snprintf(t, sizeof t, "%s/INV-14: every bond survives (%zu of %zu)", c.gid,
                       live, c.bonds.size());
         v.push_back({t, live == c.bonds.size()});

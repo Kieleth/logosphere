@@ -2379,3 +2379,33 @@ absent from the stage), red until the door lands.
 Still open, explained to the owner the same day: the door-law branch
 push (G-65; parked behind the creation door so its cost can be
 measured on a healed Eden) and the R5/R6 rungs' setup (G-66).
+
+## 2026-09-02 — G-69: Eden's floor, rebuilt piece by piece
+
+Owner: "what is next then to fix Eden situation?" The census with the
+door in: 1,275 ms/frame, 47 quiet tiles held by the sleep gate, the
+6-ton layer 6-13 mm into bedrock; SLEEP_LAW_OFF=1 on the same tree:
+16.6 ms. The floor was rebuilt in the jammed-sleep scene one
+ingredient at a time (cases E, F, G): a lone stack, a 2 x 2 grid with
+seams, the generator's bonds, a staggered layer, Eden's birth gaps, a
+3 x 3 grid with a woken centre - every staging green with 0.0 mm
+contacts. The floor's own physics does not compact. Three defects
+stand on their own evidence: (1) the chunk store births its tiles
+ASLEEP where it stored them, 2-7 mm above their supports, and nothing
+checks that a sleeper rests on anything (case G, nineteen red at
+INV-2's bar; a 312 kg stone does not wake a 2.4-ton tile, correctly);
+(2) the surface-continuity merge builds phantom rows for a coplanar
+sibling once a woken tile's height differs from its sleeping
+neighbours' - Eden's dirt tile traced by position: 4 m along x, then
+94 mm along z, then shoved 20 mm in a frame into the layer below
+(booked in G-69; no case yet, the wakers are Eden's trees and grass);
+(3) the tree generator births leaf bonds strained past the 2 cm wake
+strain with no material set (the 85 bond-held bodies at frame 0).
+Instruments added on the way: the sleep gate's census by setter line,
+depth, partner and position; CANARY_AT to pick a canary by place
+(ids follow the chunk streaming order and differ run to run); the
+window re-arms born-asleep bodies asleep (a reflection break found by
+G). Owner rulings owed: the order of the three fixes (recommended: the
+birth-asleep check, then the merge's containment case, then the tree
+bonds), the merge order of #166 / #168 / #169, the door agent's three
+decided-alone items.
