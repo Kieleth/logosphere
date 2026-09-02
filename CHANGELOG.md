@@ -288,6 +288,21 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **The seam phantom: a face has area (G-69, INV-2).** Two rows the
+  contact builder manufactured between neighbouring tiles are gone. The
+  surface-continuity merge, which widens a sleeping tile's box by its
+  coplanar neighbours so a body straddling a seam sees one surface, now
+  applies only when the body actually rests on that tile (its footprint
+  overlaps the tile's own by more than `ADJ_EPS` on both tangent axes);
+  a coplanar sibling touching at a corner used to lie inside the merged
+  slab and read a 95 mm z-penetration. And the AABB narrow phase builds
+  a row along one axis only where the boxes overlap on the other two by
+  more than `SLOP`: a tile 2 mm above its diagonal neighbour used to get
+  a speculative z-row because a gap beats a touch in the axis metric, so
+  every landing tile pressed on six tiles below it. Eden's floor
+  compaction (a dirt tile traced 94 mm along z, then shoved 20 mm into
+  the layer below) is this. `SEAM_MERGE_PRECONDITION=0` and
+  `SEAM_FACE_AREA=0` restore the old rows for A/B.
 - **A sleeper rests on its support (G-72, INV-31).** A body declared asleep
   from outside the sleep law - a chunk restored from the store, a scene's
   born-at-rest tile, a game's `is_at_rest = true` - is judged once at its

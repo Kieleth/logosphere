@@ -2606,3 +2606,36 @@ Owner rulings owed: the four Eden findings above are the game
 layer's (light anchor as KINEMATIC or light source; the stagger is a
 fall; the blades' bonds; the zero-height bodies). The window for this
 round: test_jammed_sleep_visual on fix/sleeper-support.
+
+## 2026-09-02 — G-69 closed on its stage: the seam phantom's two mechanisms (fix/seam-phantom)
+
+Stacked on fix/sleeper-support (#170). TDD by case H (five red at the
+2 mm bar: the awake centre tile lifted 20.7 mm at zero velocity, four
+diagonal sleepers sunk 5 mm) and then by case G, which the first
+mechanism alone turned red.
+
+1. The merge's precondition. The surface-continuity merge widened a
+   sleeping tile's box by its coplanar aligned sleeping neighbours for
+   every awake body near it, siblings included; a dirt tile touching a
+   diagonal sibling at one corner lay inside that sibling's 12 x 12 m
+   slab and read a 95 mm z-penetration (Eden's canary, 94 mm). Now the
+   widened box is used only when the body's footprint overlaps the
+   tile's own by more than ADJ_EPS on both tangent axes. H green; G
+   red: the four edge-adjacent layer-2 tiles landed 3 mm deep, corners
+   and centre exact.
+2. A face has area. Canary on the edge tile: at frame 1 it carried
+   z-rows to six bedrock tiles below and six dirt tiles above, the
+   diagonal and edge-adjacent ones included, because in the AABB
+   metric a 2 mm gap (-0.002) beats a touching x (0). A row along one
+   axis now requires overlap above SLOP on the other two. With the bar
+   at zero it was not enough: a tile settled 126 um into its bedrock
+   still read a side row to the diagonal bedrock tile through that
+   hair, the row carried 15 N s, and the dirt tile above sank into its
+   sleeping support at 0.8 mm per frame with the true row at zero
+   impulse (frames 42-60), sliding 4 mm outward. SLOP is the engine's
+   own "error, not geometry" bar and it is the right one: all eight
+   cases green, the twin 0 red of 233.
+
+Kill switches: SEAM_MERGE_PRECONDITION=0, SEAM_FACE_AREA=0. Not the
+stack-statics levers: WARM_LEARN on/off changed nothing here. Sweep and
+Eden A/B (alone) below.
