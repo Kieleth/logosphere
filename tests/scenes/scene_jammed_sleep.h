@@ -185,6 +185,12 @@ struct Scene {
         p.SetMaterial(b.mat);
         p.friction = MU;
         ids[i] = ps.queue_particle_addition(p);
+        // The door judges at queue time (it hands back -1 for a refused
+        // body); latch its record here, before the next birth overwrites it.
+        if (ps.last_creation_refusal().refused) {
+            door_refused = true;
+            door_depth = ps.last_creation_refusal().depth;
+        }
         return ids[i];
     }
 
@@ -209,8 +215,6 @@ struct Scene {
             if (ids[i] >= 0) argus.watch(ids[i], specs[i].label);
         reset_latches();
         birth_overlap = worst_overlap(ps).pen;
-        door_refused = ps.last_creation_refusal().refused;
-        door_depth = ps.last_creation_refusal().depth;
         return (int)ids.size();
     }
 
@@ -223,10 +227,6 @@ struct Scene {
         for (size_t i = 0; i < ids.size(); ++i)
             if (specs[i].late) argus.watch(ids[i], specs[i].label);
         birth_overlap = std::fmax(birth_overlap, worst_overlap(ps).pen);
-        if (ps.last_creation_refusal().refused) {
-            door_refused = true;
-            door_depth = ps.last_creation_refusal().depth;
-        }
         last_event_frame = frame;
     }
 
