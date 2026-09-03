@@ -1371,6 +1371,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // ========================================================================
     // LEFT FOOT - standalone particle (no gluon to external surfaces)
     Particle l_foot = {};
+    l_foot.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_foot.x = world_x - LEG_SPREAD;
     l_foot.y = world_y;
     l_foot.z = world_z + foot_thickness / 2.0f;  // Foot center above floor level
@@ -1385,6 +1386,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // LEFT TOE - gluoned to front of foot
     Particle l_toe = {};
+    l_toe.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_toe.shape = ParticleShape::BOX;
     l_toe.width = toe_width; l_toe.height = toe_height; l_toe.thickness = toe_thickness;
     l_toe.r = skin_r; l_toe.g = skin_g; l_toe.b = skin_b; l_toe.a = 1.0f;
@@ -1404,6 +1406,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  L_Toe: id=" << l_toe_id << std::endl;
 
     Particle l_shin = {};
+    l_shin.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_shin.shape = ParticleShape::BOX;
     l_shin.width = shin_width; l_shin.height = shin_width; l_shin.thickness = shin_length;
     l_shin.r = skin_r; l_shin.g = skin_g; l_shin.b = skin_b; l_shin.a = 1.0f;
@@ -1423,6 +1426,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  L_Shin: id=" << l_shin_id << std::endl;
 
     Particle l_thigh = {};
+    l_thigh.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_thigh.shape = ParticleShape::BOX;
     l_thigh.width = thigh_width; l_thigh.height = thigh_width; l_thigh.thickness = thigh_length;
     l_thigh.r = skin_r; l_thigh.g = skin_g; l_thigh.b = skin_b; l_thigh.a = 1.0f;
@@ -1469,6 +1473,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // ========================================================================
     // RIGHT FOOT - standalone particle (no gluon to external surfaces)
     Particle r_foot = {};
+    r_foot.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_foot.x = world_x + LEG_SPREAD;
     r_foot.y = world_y;
     r_foot.z = world_z + foot_thickness / 2.0f;  // Foot center above floor level
@@ -1483,6 +1488,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // RIGHT TOE - gluoned to front of foot
     Particle r_toe = {};
+    r_toe.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_toe.shape = ParticleShape::BOX;
     r_toe.width = toe_width; r_toe.height = toe_height; r_toe.thickness = toe_thickness;
     r_toe.r = skin_r; r_toe.g = skin_g; r_toe.b = skin_b; r_toe.a = 1.0f;
@@ -1502,6 +1508,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  R_Toe: id=" << r_toe_id << std::endl;
 
     Particle r_shin = {};
+    r_shin.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_shin.shape = ParticleShape::BOX;
     r_shin.width = shin_width; r_shin.height = shin_width; r_shin.thickness = shin_length;
     r_shin.r = skin_r; r_shin.g = skin_g; r_shin.b = skin_b; r_shin.a = 1.0f;
@@ -1521,6 +1528,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  R_Shin: id=" << r_shin_id << std::endl;
 
     Particle r_thigh = {};
+    r_thigh.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_thigh.shape = ParticleShape::BOX;
     r_thigh.width = thigh_width; r_thigh.height = thigh_width; r_thigh.thickness = thigh_length;
     r_thigh.r = skin_r; r_thigh.g = skin_g; r_thigh.b = skin_b; r_thigh.a = 1.0f;
@@ -1547,6 +1555,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // TORSO: hips → abdomen → chest
     // ========================================================================
     Particle hips = {};
+    hips.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     hips.shape = ParticleShape::BOX;
     hips.width = hips_width; hips.height = hips_depth; hips.thickness = hips_thickness;
     hips.r = clothing_r; hips.g = clothing_g; hips.b = clothing_b; hips.a = 1.0f;
@@ -1586,6 +1595,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  R_Thigh→Hips gluon added" << std::endl;
 
     Particle abdomen = {};
+    abdomen.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     abdomen.shape = ParticleShape::BOX;
     abdomen.width = abdomen_width; abdomen.height = abdomen_depth; abdomen.thickness = abdomen_thickness;
     abdomen.r = clothing_r; abdomen.g = clothing_g + 0.1f; abdomen.b = clothing_b + 0.2f; abdomen.a = 1.0f;
@@ -1605,6 +1615,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  Abdomen: id=" << abdomen_id << std::endl;
 
     Particle chest = {};
+    chest.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     chest.shape = ParticleShape::BOX;
     chest.width = chest_width; chest.height = chest_depth; chest.thickness = chest_thickness;
     chest.r = clothing_r; chest.g = clothing_g + 0.1f; chest.b = clothing_b + 0.2f; chest.a = 1.0f;
@@ -1631,6 +1642,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // NECK
     // ========================================================================
     Particle neck = {};
+    neck.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     neck.shape = ParticleShape::BOX;
     neck.width = neck_width; neck.height = neck_width; neck.thickness = neck_thickness;
     neck.r = skin_r; neck.g = skin_g; neck.b = skin_b; neck.a = 1.0f;
@@ -1652,6 +1664,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // HEAD
     // ========================================================================
     Particle head = {};
+    head.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     head.shape = ParticleShape::BOX;
     head.width = head_width; head.height = head_depth; head.thickness = head_thickness;
     head.r = skin_r; head.g = skin_g; head.b = skin_b; head.a = 1.0f;
@@ -1681,6 +1694,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // Upper hair (on top of head)
     Particle upper_hair = {};
+    upper_hair.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     upper_hair.shape = ParticleShape::BOX;
     upper_hair.width = upper_hair_width; upper_hair.height = upper_hair_width; upper_hair.thickness = upper_hair_thickness;
     upper_hair.r = hair_r; upper_hair.g = hair_g; upper_hair.b = hair_b; upper_hair.a = 1.0f;
@@ -1699,6 +1713,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // Back hair (behind head)
     Particle back_hair = {};
+    back_hair.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     back_hair.shape = ParticleShape::BOX;
     back_hair.width = back_hair_width; back_hair.height = 0.05f; back_hair.thickness = back_hair_length;
     back_hair.r = hair_r; back_hair.g = hair_g; back_hair.b = hair_b; back_hair.a = 1.0f;
@@ -1722,6 +1737,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // Left ear
     Particle l_ear = {};
+    l_ear.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_ear.shape = ParticleShape::BOX;
     l_ear.width = ear_size; l_ear.height = ear_size; l_ear.thickness = ear_size;
     l_ear.r = skin_r; l_ear.g = skin_g; l_ear.b = skin_b; l_ear.a = 1.0f;
@@ -1739,6 +1755,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // Right ear
     Particle r_ear = {};
+    r_ear.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_ear.shape = ParticleShape::BOX;
     r_ear.width = ear_size; r_ear.height = ear_size; r_ear.thickness = ear_size;
     r_ear.r = skin_r; r_ear.g = skin_g; r_ear.b = skin_b; r_ear.a = 1.0f;
@@ -1778,6 +1795,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
         // LEFT EYE - OUTER (socket) - very flat plate on face
         Particle l_eye_outer = {};
+        l_eye_outer.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
         l_eye_outer.shape = ParticleShape::BOX;
         l_eye_outer.width = eye_outer_size; l_eye_outer.height = eye_outer_depth; l_eye_outer.thickness = eye_outer_size;
         l_eye_outer.r = spec.eye_outer_r; l_eye_outer.g = spec.eye_outer_g; l_eye_outer.b = spec.eye_outer_b; l_eye_outer.a = 1.0f;
@@ -1796,6 +1814,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
         // LEFT EYE - INNER (pupil) - very flat, on outer eye
         Particle l_eye_inner = {};
+        l_eye_inner.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
         l_eye_inner.shape = ParticleShape::BOX;
         l_eye_inner.width = eye_inner_size; l_eye_inner.height = eye_inner_depth; l_eye_inner.thickness = eye_inner_size;
         l_eye_inner.r = spec.eye_inner_r; l_eye_inner.g = spec.eye_inner_g; l_eye_inner.b = spec.eye_inner_b; l_eye_inner.a = 1.0f;
@@ -1814,6 +1833,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
         // RIGHT EYE - OUTER (socket) - very flat plate on face
         Particle r_eye_outer = {};
+        r_eye_outer.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
         r_eye_outer.shape = ParticleShape::BOX;
         r_eye_outer.width = eye_outer_size; r_eye_outer.height = eye_outer_depth; r_eye_outer.thickness = eye_outer_size;
         r_eye_outer.r = spec.eye_outer_r; r_eye_outer.g = spec.eye_outer_g; r_eye_outer.b = spec.eye_outer_b; r_eye_outer.a = 1.0f;
@@ -1832,6 +1852,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
         // RIGHT EYE - INNER (pupil) - very flat, on outer eye
         Particle r_eye_inner = {};
+        r_eye_inner.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
         r_eye_inner.shape = ParticleShape::BOX;
         r_eye_inner.width = eye_inner_size; r_eye_inner.height = eye_inner_depth; r_eye_inner.thickness = eye_inner_size;
         r_eye_inner.r = spec.eye_inner_r; r_eye_inner.g = spec.eye_inner_g; r_eye_inner.b = spec.eye_inner_b; r_eye_inner.a = 1.0f;
@@ -1869,6 +1890,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // LEFT SHOULDER
     Particle l_shoulder = {};
+    l_shoulder.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_shoulder.shape = ParticleShape::BOX;
     l_shoulder.width = shoulder_size; l_shoulder.height = shoulder_size; l_shoulder.thickness = shoulder_size;
     l_shoulder.r = skin_r; l_shoulder.g = skin_g; l_shoulder.b = skin_b; l_shoulder.a = 1.0f;
@@ -1893,6 +1915,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // RIGHT SHOULDER
     Particle r_shoulder = {};
+    r_shoulder.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_shoulder.shape = ParticleShape::BOX;
     r_shoulder.width = shoulder_size; r_shoulder.height = shoulder_size; r_shoulder.thickness = shoulder_size;
     r_shoulder.r = skin_r; r_shoulder.g = skin_g; r_shoulder.b = skin_b; r_shoulder.a = 1.0f;
@@ -1916,6 +1939,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // LEFT ARM: shoulder → upper_arm → forearm → hand
     // ========================================================================
     Particle l_upper_arm = {};
+    l_upper_arm.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_upper_arm.shape = ParticleShape::BOX;
     l_upper_arm.width = upper_arm_width; l_upper_arm.height = upper_arm_width; l_upper_arm.thickness = upper_arm_length;
     l_upper_arm.r = clothing_r; l_upper_arm.g = clothing_g + 0.1f; l_upper_arm.b = clothing_b + 0.2f; l_upper_arm.a = 1.0f;
@@ -1942,6 +1966,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  L_UpperArm: id=" << l_upper_arm_id << std::endl;
 
     Particle l_forearm = {};
+    l_forearm.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_forearm.shape = ParticleShape::BOX;
     l_forearm.width = forearm_width; l_forearm.height = forearm_width; l_forearm.thickness = forearm_length;
     l_forearm.r = skin_r; l_forearm.g = skin_g; l_forearm.b = skin_b; l_forearm.a = 1.0f;
@@ -1961,6 +1986,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // LEFT HAND
     Particle l_hand = {};
+    l_hand.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     l_hand.shape = ParticleShape::BOX;
     l_hand.width = hand_width; l_hand.height = hand_depth; l_hand.thickness = hand_thickness;
     l_hand.r = skin_r; l_hand.g = skin_g; l_hand.b = skin_b; l_hand.a = 1.0f;
@@ -1984,6 +2010,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     // RIGHT ARM: shoulder → upper_arm → forearm → hand
     // ========================================================================
     Particle r_upper_arm = {};
+    r_upper_arm.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_upper_arm.shape = ParticleShape::BOX;
     r_upper_arm.width = upper_arm_width; r_upper_arm.height = upper_arm_width; r_upper_arm.thickness = upper_arm_length;
     r_upper_arm.r = clothing_r; r_upper_arm.g = clothing_g + 0.1f; r_upper_arm.b = clothing_b + 0.2f; r_upper_arm.a = 1.0f;
@@ -2009,6 +2036,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
     std::cout << "  R_UpperArm: id=" << r_upper_arm_id << std::endl;
 
     Particle r_forearm = {};
+    r_forearm.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_forearm.shape = ParticleShape::BOX;
     r_forearm.width = forearm_width; r_forearm.height = forearm_width; r_forearm.thickness = forearm_length;
     r_forearm.r = skin_r; r_forearm.g = skin_g; r_forearm.b = skin_b; r_forearm.a = 1.0f;
@@ -2028,6 +2056,7 @@ PhysicsHumanoidResult HumanoidGenerator::generate_humanoid_physics(
 
     // RIGHT HAND
     Particle r_hand = {};
+    r_hand.SetMaterial(Materials::Type::FLESH);   // INV-38: a humanoid is flesh, SET, not inherited
     r_hand.shape = ParticleShape::BOX;
     r_hand.width = hand_width; r_hand.height = hand_depth; r_hand.thickness = hand_thickness;
     r_hand.r = skin_r; r_hand.g = skin_g; r_hand.b = skin_b; r_hand.a = 1.0f;

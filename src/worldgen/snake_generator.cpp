@@ -99,6 +99,7 @@ unsigned int SnakeGenerator::create_segment(float x, float y, float z,
     // Material properties (applied to all snake segments)
     // Material densities should be stored in KG per material type (not hardcoded)
     // but for now we stub with reptile scales density
+    p.SetMaterial(Materials::Type::FLESH);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = 1100.0f;  // Reptile scales ≈ 1100 kg/m³
     p.CalculateMass();             // Calculate mass = volume × density
 
@@ -137,6 +138,7 @@ unsigned int SnakeGenerator::create_head(float x, float y, float z, const SnakeS
     p.reflectivity = 0.3f;
 
     // Material properties
+    p.SetMaterial(Materials::Type::FLESH);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = 1100.0f;  // Same as body
     p.CalculateMass();
 

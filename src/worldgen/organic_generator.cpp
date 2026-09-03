@@ -403,6 +403,7 @@ std::vector<Particle> OrganicGenerator::generate_trunk(float world_x, float worl
         const float seg_shift   = seg_overlap * 0.5f;
 
         Particle trunk_seg;
+        trunk_seg.SetMaterial(spec.type == OrganicType::GRASS ? Materials::Type::LEAVES : Materials::Type::WOOD_SOFT);   // INV-38
         trunk_seg.x = seg_center_x + seg_dir_x * seg_shift;
         trunk_seg.y = seg_center_y + seg_dir_y * seg_shift;
         trunk_seg.z = seg_center_z + seg_dir_z * seg_shift;
@@ -487,6 +488,7 @@ std::vector<Particle> OrganicGenerator::skeleton_to_particles(const TreeSkeleton
         );
 
         Particle p;
+        p.SetMaterial(spec.type == OrganicType::GRASS ? Materials::Type::LEAVES : Materials::Type::WOOD_SOFT);   // INV-38
         p.x = mid_pos.x;
         p.y = mid_pos.y;
         p.z = mid_pos.z;
@@ -572,6 +574,7 @@ std::vector<Particle> OrganicGenerator::create_foliage(const Vec3& position,
         float phi_rad = phi * M_PI / 180.0f;
 
         Particle leaf;
+        leaf.SetMaterial(Materials::Type::LEAVES);   // INV-38
         leaf.x = position.x + offset_radius * std::sin(phi_rad) * std::cos(theta_rad);
         leaf.y = position.y + offset_radius * std::sin(phi_rad) * std::sin(theta_rad);
         leaf.z = position.z + offset_radius * std::cos(phi_rad);

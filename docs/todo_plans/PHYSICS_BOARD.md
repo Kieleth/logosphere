@@ -1314,3 +1314,12 @@ F-CROWN: with real stiffness the crown's born-strained bonds drag the
 canopy (foliage test 0.85 m vs 0.50, booked expect-fail). **OWNER
 RULING:** the junction geometry (G-70's whorl) - and whether this part
 merges before it.
+
+## OWNER RULING 2026-09-03 → INV-38: EVERY GENERATOR NAMES A MATERIAL (fix/born-with-material, stacked on #172)
+
+Particle::material_set + the door's unnamed-birth line and census;
+test_born_with_material, one stage per generator (strata, tree, grass,
+rock, humanoid, snake, butterfly), Argus style. Born red: rock 0/3,
+humanoid rig 0/29, snake 0/17, butterfly 0/8, 57 unnamed at the door;
+fixed at every birth site. **OWNER RULING:** whether the door REFUSES
+an unnamed birth (INV-37's playbook) once Eden's census reads 0.

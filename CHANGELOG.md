@@ -288,6 +288,19 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **Every generator names a material on every body it births (INV-38).**
+  A material is the body's physical identity, and the organic bond law
+  derives its stiffness and damping from `material_type`; a body left at
+  the default was priced as flesh whatever it was. The physics rock,
+  the snake, the butterfly, the organic generator (grass, trees, bushes,
+  vines) and the humanoid's physics rig now set their materials at birth
+  (stone; flesh, set not inherited; flesh body and leaf-membrane wings;
+  leaves for grass, soft wood for stems and trunks; flesh), with each
+  generator's own densities kept. New: `Particle::material_set`, raised
+  only by `SetMaterial`; a `[PHYSICS] born without a material` line and
+  `ParticleSystem::births_without_material()` at the door with a census
+  by recipe at shutdown. Refusing such births is the owner's ruling.
+  Witness: `test_born_with_material` (one stage per generator).
 - **A tree is born with its materials (G-69).** The physics tree generator
   set densities and strengths on trunk, branches, roots and leaves but
   never a material, so every tree part carried the FLESH default, and the

@@ -99,6 +99,7 @@ unsigned int ButterflyGenerator::create_body_segment(float x, float y, float z, 
     p.size = size;
     p.reflectivity = 0.2f;
 
+    p.SetMaterial(Materials::Type::FLESH);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = 300.0f;  // Insect density
     p.CalculateMass();
 
@@ -133,6 +134,7 @@ unsigned int ButterflyGenerator::create_wing(float x, float y, float z,
     p.size = std::max({width, thickness, height});
     p.reflectivity = 0.6f;  // Wings are shiny
 
+    p.SetMaterial(Materials::Type::LEAVES);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = 200.0f;  // Very light wing membrane
     p.CalculateMass();
 

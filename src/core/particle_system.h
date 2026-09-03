@@ -147,6 +147,13 @@ public:
     // door refused anything, and callable on demand.
     void report_creation_door() const;
 
+    // A BODY IS BORN WITH ITS MATERIAL (INV-38, owner ruling 2026-09-03).
+    // Every birth that crosses add_particle without SetMaterial is counted,
+    // printed once (capped) and censused by recipe at shutdown - the door's
+    // playbook, without the refusal (that enforcement is the owner's call).
+    size_t births_without_material() const { return births_unnamed_; }
+    void report_unnamed_births() const;
+
     // THE DOOR'S MEASURE, offered to the sleep law (G-72): the deepest overlap
     // `probe` has with any live body other than `exclude` (pass the probe's
     // own index when it is a shifted copy of a live body). 0.0 when it meets
@@ -425,6 +432,9 @@ private:
     logosphere::CreationDoorStats door_stats_;
     std::map<std::string, size_t> door_census_;
     size_t                        door_lines_printed_ = 0;
+    size_t                        births_unnamed_ = 0;          // INV-38
+    std::map<std::string, size_t> unnamed_census_;
+    size_t                        unnamed_lines_printed_ = 0;
 
     // Judge one birth against what already exists. Returns true when the body
     // must be REFUSED; fills last_refusal_ and prints the [PHYSICS REFUSED]
