@@ -55,6 +55,16 @@ ParticleSystem::~ParticleSystem() {
     // world that creates twelve thousand bodies; the census is what turns
     // those lines into a list of SITES to fix.
     if (door_stats_.refusals > 0) report_creation_door();
+    if (births_unnamed_ > 0) report_unnamed_births();
+}
+
+// INV-38: the census of bodies born without a material, by recipe.
+void ParticleSystem::report_unnamed_births() const {
+    std::cerr << "\n[BORN WITHOUT A MATERIAL] INV-38 census: " << births_unnamed_
+              << " bodies crossed add_particle unnamed (material_type left at the"
+                 " default, SetMaterial never called). By recipe:" << std::endl;
+    for (const auto& kv : unnamed_census_)
+        std::cerr << "  " << kv.second << "  " << kv.first << std::endl;
 }
 
 // ============================================================================
@@ -349,6 +359,31 @@ int ParticleSystem::add_particle(const Particle& particle) {
                   << " density=" << p.material_density
                   << std::endl;
         assert(false && "Particle must have mass > 0 or density > 0 (unless is_light_source=true)");
+    }
+
+    // A BODY IS BORN WITH ITS MATERIAL (INV-38). A body left at the default
+    // is priced as flesh by every law that asks what it is made of (the
+    // organic bond's modulus and loss factor, contact damping). Named here,
+    // counted, censused at shutdown; refusal is the owner's ruling.
+    if (!p.is_light_source && !p.material_set) {
+        ++births_unnamed_;
+        char sig[96];
+        std::snprintf(sig, sizeof sig, "%s %.0fx%.0fx%.0f mm density %.0f kg/m3",
+                      p.shape == ParticleShape::BOX ? "BOX" : "SPHERE",
+                      p.width * 1000.0f, p.height * 1000.0f, p.thickness * 1000.0f,
+                      p.material_density);
+        unnamed_census_[sig]++;
+        constexpr size_t UNNAMED_LINE_CAP = 40;
+        if (unnamed_lines_printed_ < UNNAMED_LINE_CAP) {
+            std::cerr << "[PHYSICS] born without a material: " << sig
+                      << " at (" << p.x << ", " << p.y << ", " << p.z
+                      << ") - the generator must name it (INV-38)" << std::endl;
+            unnamed_lines_printed_++;
+        } else if (unnamed_lines_printed_ == UNNAMED_LINE_CAP) {
+            std::cerr << "[PHYSICS] ... further unnamed births counted, not printed"
+                         " (the census arrives at shutdown)" << std::endl;
+            unnamed_lines_printed_++;
+        }
     }
 
     // THE CREATION DOOR (INV-37). Last gate before the body exists: it is

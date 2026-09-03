@@ -404,6 +404,11 @@ public:
 
     // Total gluon count (useful for worldgen cross-checks and instrumentation)
     size_t get_total_gluon_count() const { return gluon_constraints_v2_.size(); }
+    // Indexed access for a census (tests, audits): the i-th registered bond,
+    // in registration order, or nullptr past the end.
+    const GluonConstraintBase* gluon_at(size_t i) const {
+        return i < gluon_constraints_v2_.size() ? gluon_constraints_v2_[i].get() : nullptr;
+    }
     // THE SOLVER'S OWN VERDICT, readable by a test without the trace:
     // rows it took in, iterations it ran, and which door it left by
     // (the same record the level-2 trace writes as solve_exit).

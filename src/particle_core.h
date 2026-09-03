@@ -122,6 +122,9 @@ struct Particle {
     // Physical material.
     float material_density = 1000.0f;
     Materials::Type material_type = Materials::Type::FLESH;
+    // INV-38: raised only by SetMaterial, so a deliberate FLESH and a
+    // forgotten default are distinguishable at the door and in a census.
+    bool material_set = false;
 
 private:
     // Mass is cached from volume × density on CalculateMass(). DO NOT read
@@ -148,6 +151,7 @@ public:
     // (humanoid, organic, tree, rock) do exactly that.
     void SetMaterial(Materials::Type type) {
         material_type = type;
+        material_set = true;
         material_density = Materials::GetDensity(type);
         material_strength = Materials::GetTensileStrength(type);
     }

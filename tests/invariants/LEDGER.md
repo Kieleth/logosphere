@@ -2748,3 +2748,50 @@ unexplained. Gone green on this branch and booked expect-pass:
 test_tree_wiggly (0.0000 m/s at depths 3, 4, 5 - the 'energy source in
 the gluon-tree assembly' was the flesh-priced bonds) and test_ancient_oak
 (drift 0.019/0.025/0.014 m, trunk velocity 0).
+
+## 2026-09-03 — OWNER RULING: material is needed, on every generator (INV-38)
+
+"material is needed, the problem is that we need to add material to all
+generators, that's the fix, and we need proper tests for this, even the
+tree generator, with our argus-assertion style." Registered as INV-38
+(a body is born with its material) and G-74 (the generators' material
+census), before the code.
+
+Mechanism: Particle::material_set, raised only by SetMaterial, so a
+deliberate FLESH and a forgotten default are distinguishable; at the
+door every unnamed birth prints one line, is counted
+(ParticleSystem::births_without_material) and censused by recipe at
+shutdown. Refusal is the enforcement the law implies - OWNER RULING,
+not taken here.
+
+Born red (tests/test_born_with_material.cpp, one stage per generator
+on a bare turtle, three law-tagged lines per stage plus Argus for 60
+frames): strata floor 675 of 675 named (the control; its first bond
+priced from stone, E 6.0e10, the law's formula reproduced at 0.00 %);
+physics tree 49 of 49 (wood_hard 16, leaves 33); physics rock 0 of 3;
+humanoid 0 of 29 (its physics rig never called SetMaterial - the KG
+humanoid's helper does); snake 0 of 17; butterfly 0 of 8; the door
+counted 57 unnamed births. The organic grass stage birthed nothing in
+this harness (activation): read below.
+
+After the fix (every generator names its bodies at the seven birth
+sites, densities kept; the humanoid's PHYSICS rig was the unnamed one -
+its KG helper already set FLESH): test_born_with_material green, 0 red
+of 25. Named: strata 675/675, tree 49/49, grass 149/149 (once the earth
+ontology pack is extended - a bare engine rejects Grass), rock 3/3,
+humanoid 29/29, snake 17/17, butterfly 8/8; the door counted 0 unnamed
+births on every stage. The bond law at birth, from the named moduli:
+strata stone k 1.8e10, tree wood_hard k 2.3e8, grass leaves k 1.92e3,
+rock stone k 2.03e9, each reproduced to 0.00 %. Eden headless: the
+shutdown census reads 0 unnamed births over the preload. INV-38 active
+on the line, the count and the test. FINDING: the humanoid rig's 28
+joints carry no contact area, so the organic law does not derive their
+stiffness from materials. OWNER RULING: refusal at the door.
+
+Sweep alone on fix/born-with-material: `SWEEP_VERDICT: MOLES 44
+(new-red 0, gone-green 1, unaudited 43)`. The gone-green is
+test_physics_rock, the flip's born-red flag since 2026-09-01 (a bonded
+rock drifting 0.165 m against a 0.05 m bar, 'mechanism unknown'): born
+STONE its net displacement is 0.0001 m over 480 frames. The mechanism
+was the material - its bonds were priced from flesh's modulus. Booked
+expect-pass.

@@ -137,6 +137,7 @@ int PhysicsRockGenerator::create_rock_box(
     p.a = 1.0f;
 
     // Physics: mass auto-calculates from volume and material_density
+    p.SetMaterial(Materials::Type::STONE);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = density;
 
     // High friction for rocks
@@ -446,6 +447,7 @@ Particle PhysicsRockGenerator::build_rock_box_particle(
     p.g = g;
     p.b = b;
     p.a = 1.0f;
+    p.SetMaterial(Materials::Type::STONE);   // INV-38: named at birth (density below stays the generator's)
     p.material_density = density;
     p.friction = 0.8f;
     p.is_light_source = false;
