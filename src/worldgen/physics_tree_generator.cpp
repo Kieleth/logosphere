@@ -735,6 +735,11 @@ int PhysicsTreeGenerator::generate_branch(
             leaf.reflectivity = 0.20f;
 
             // DYNAMIC LEAVES: Follow parent branch via gluon constraint
+            // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+            // reads Young's modulus and the loss factor from material_type, and a
+            // tree born as FLESH (the unset default) got flesh stiffness on wood.
+            // The density below stays the generator's own number.
+            leaf.SetMaterial(Materials::Type::LEAVES);
             leaf.material_density = 100.0f; // Light leaf material (100 kg/m³)
             // Mass will auto-calculate from dimensions and material_density when particle is added
             leaf.material_strength = 1000.0f; // Weak - leaves tear easily
@@ -927,6 +932,11 @@ Particle PhysicsTreeGenerator::create_branch_particle(
     // ========================================================================
 
     // Material properties for wood
+    // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+    // reads Young's modulus and the loss factor from material_type, and a
+    // tree born as FLESH (the unset default) got flesh stiffness on wood.
+    // The density below stays the generator's own number.
+    p.SetMaterial((spec.trunk_diameter > 0.5f ? Materials::Type::WOOD_HARD : Materials::Type::WOOD_SOFT));
     p.material_density = spec.trunk_diameter > 0.5f ? 750.0f : 600.0f; // Oak vs lighter wood
     p.material_strength = 50e6f;                                       // 50 MPa (typical wood strength)
 
@@ -1039,6 +1049,11 @@ int PhysicsTreeGenerator::generate_root_system(
     root_plate.thickness = plate_height;
 
     // Wood material properties
+    // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+    // reads Young's modulus and the loss factor from material_type, and a
+    // tree born as FLESH (the unset default) got flesh stiffness on wood.
+    // The density below stays the generator's own number.
+    root_plate.SetMaterial(Materials::Type::WOOD_HARD);
     root_plate.material_density = 800.0f; // Dense root wood
     root_plate.material_strength = 50e6f;
     root_plate.reflectivity = 0.2f;
@@ -1181,6 +1196,11 @@ int PhysicsTreeGenerator::generate_root_system(
         root.rotation_z = 0.0f;
 
         // Material
+        // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+        // reads Young's modulus and the loss factor from material_type, and a
+        // tree born as FLESH (the unset default) got flesh stiffness on wood.
+        // The density below stays the generator's own number.
+        root.SetMaterial(Materials::Type::WOOD_HARD);
         root.material_density = 800.0f;
         root.material_strength = 50e6f;
         root.reflectivity = 0.2f;
@@ -1511,6 +1531,11 @@ void PhysicsTreeGenerator::collect_tree_specs(
     root_plate.g = 0.25f;
     root_plate.b = 0.1f; // Brown
     root_plate.a = 1.0f;
+    // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+    // reads Young's modulus and the loss factor from material_type, and a
+    // tree born as FLESH (the unset default) got flesh stiffness on wood.
+    // The density below stays the generator's own number.
+    root_plate.SetMaterial(Materials::Type::WOOD_HARD);
     root_plate.material_density = 800.0f;
     root_plate.material_strength = 50e6f;
     root_plate.friction = 0.7f;
@@ -1566,6 +1591,11 @@ void PhysicsTreeGenerator::collect_tree_specs(
         root.y = world_y + face_offset_y + radial_y * root_length * 0.5f;
         root.z = plate_center_z;
 
+        // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+        // reads Young's modulus and the loss factor from material_type, and a
+        // tree born as FLESH (the unset default) got flesh stiffness on wood.
+        // The density below stays the generator's own number.
+        root.SetMaterial(Materials::Type::WOOD_HARD);
         root.material_density = 800.0f;
         root.material_strength = 50e6f;
         root.friction = 0.7f;
@@ -1788,6 +1818,11 @@ void PhysicsTreeGenerator::collect_branch(
             leaf.thickness = 0.02f;
             leaf.facing_angle = theta;
             leaf.reflectivity = 0.20f;
+            // THE MATERIAL IS THE BODY'S IDENTITY (G-69, 2026-09-02): the bond law
+            // reads Young's modulus and the loss factor from material_type, and a
+            // tree born as FLESH (the unset default) got flesh stiffness on wood.
+            // The density below stays the generator's own number.
+            leaf.SetMaterial(Materials::Type::LEAVES);
             leaf.material_density = 100.0f;
             leaf.material_strength = 1000.0f;
 

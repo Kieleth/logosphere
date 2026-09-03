@@ -193,7 +193,23 @@ bool test_tree_bonds_born_at_rest() {
                    w.a, w.b, w.dist, w.rest, w.ratio);
     }
 
-    const bool pass = (born_torn == 0 && ratio_max <= 1.10f);
+    // A BODY IS BORN WITH ITS MATERIAL (G-69): the bond law derives its
+    // stiffness and damping from material_type, so a tree part left at the
+    // default (FLESH) is a wood beam priced as flesh. Every body of this tree
+    // must name a material.
+    size_t flesh = 0, bodies = 0;
+    {
+        auto v = ps.lock_particles_for_read();
+        for (size_t i = 0; i < v.size(); ++i) {
+            if (v[i].is_light_source || v[i].GetMass() <= 0.0f) continue;
+            ++bodies;
+            if (v[i].material_type == Materials::Type::FLESH) ++flesh;
+        }
+    }
+    printf("  bodies born as FLESH (the unset default)              %zu of %zu  (want 0)\n",
+           flesh, bodies);
+
+    const bool pass = (born_torn == 0 && ratio_max <= 1.10f && flesh == 0);
     printf("\n");
     if (!pass) {
         printf("  *** THE TREE IS BORN STRAINED. ***\n"

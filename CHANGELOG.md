@@ -288,6 +288,17 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **A tree is born with its materials (G-69).** The physics tree generator
+  set densities and strengths on trunk, branches, roots and leaves but
+  never a material, so every tree part carried the FLESH default, and the
+  bond law derives Young's modulus and the loss factor from
+  `material_type`: wood beams were priced as flesh. Trunk, branches and
+  roots are now WOOD_HARD or WOOD_SOFT by trunk diameter, leaves LEAVES,
+  with the generator's own densities kept. Eden's frame-2 dissatisfied
+  population falls from 199 to 105. Coupled: with real wood stiffness the
+  crown's born-strained bonds (F-CROWN, G-70) now drag the canopy
+  (`test_foliage_stays_attached` 0.85 m against 0.50), which the soft law
+  was hiding; the junction geometry is the open half.
 - **The seam phantom: a face has area (G-69, INV-2).** Two rows the
   contact builder manufactured between neighbouring tiles are gone. The
   surface-continuity merge, which widens a sleeping tile's box by its

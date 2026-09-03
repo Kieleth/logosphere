@@ -1304,3 +1304,13 @@ per Eden steady frame and removes a symptom whose reason is open (G-73:
 a touching side row carrying 15 N s with no approach). **OWNER RULING:**
 the face rule's default. Third fix still open: the tree generator's
 strained leaf bonds.
+
+## LANDED 2026-09-02 — G-69 THIRD FIX, PART 1: A TREE IS BORN WITH ITS MATERIALS (fix/tree-bonds, stacked on #171)
+
+The generator never set a material; the bond law reads its modulus from
+material_type; every tree part was flesh. Fixed at birth (wood by trunk
+diameter, leaves). Eden frame-2 dissatisfied 199 -> 105. COUPLED with
+F-CROWN: with real stiffness the crown's born-strained bonds drag the
+canopy (foliage test 0.85 m vs 0.50, booked expect-fail). **OWNER
+RULING:** the junction geometry (G-70's whorl) - and whether this part
+merges before it.
