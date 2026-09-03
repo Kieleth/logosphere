@@ -2710,3 +2710,41 @@ the 250 ms kept until G-73 is answered). Merge order owed:
 
 Final sweep, alone, on the shipped default:
 `SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43)`.
+
+## 2026-09-02 — G-69 third fix, part 1: a tree is born with its materials (fix/tree-bonds)
+
+Eden's level-2 census at frames 0-2 named the strained-bond population
+that wakes the tiles: a tree's branches (9 bonds each, gate line 2465,
+17 bodies) and leaves (1 bond, line 2467, 82-100 bodies), all with
+material_type 0 - FLESH, the unset default. The generator set densities
+and strengths but never a material, and the bond law reads its modulus
+and loss factor from material_type (physics_system_v4.cpp:6654, :6672):
+wood priced as flesh. Fixed at the seven birth sites; the generator's
+densities kept so one thing changes. test_tree_bonds_born_at_rest now
+asserts 0 FLESH (was 49 of 49); its geometry lines are unchanged (mean
+1.0664, worst 3.5291, 18 taut, 3 torn): that half is F-CROWN.
+
+Eden frames 0/1/2, dissatisfied: 179/185/199 -> 170/143/105; the
+leaf-bond line 100 -> 36 at f2, the branch line 17 -> 13.
+
+COUPLED, booked expect-fail: test_foliage_stays_attached goes from
+green to a 0.8505 m mean canopy drift at zero peak leaf speed. With
+wood stiffness the crown's born-strained bonds snap to their rest
+lengths by position projection and drag the canopy; the flesh law was
+hiding the geometry defect. A material rollback is not the fix; the
+junction geometry (G-70's whorl, F-CROWN) is, and it has been an owner
+ruling since G-70 was registered. OWNER RULING: merge this before or
+after the junction fix. Sweep alone: below.
+
+Sweep alone on fix/tree-bonds, twice. First: `MOLES 44 (new-red 1,
+gone-green 0, unaudited 43)`, the red being test_oscillation_diagnostic
+(a gluoned 2x2 tile on the turtle; verdict = final speed under 0.1 m/s
+after five simulated seconds). Alone it passes three times at the same
+0.0564591 m/s; the sweep's per-test deadline is 300 s and the run took
+20 s, so not a timeout; no persisted store under the tree; cause not
+found. Second sweep: `MOLES 43 (new-red 0, gone-green 0, unaudited 43)`,
+the diagnostic PASS at 20.0 s. Booked as one failure in five runs,
+unexplained. Gone green on this branch and booked expect-pass:
+test_tree_wiggly (0.0000 m/s at depths 3, 4, 5 - the 'energy source in
+the gluon-tree assembly' was the flesh-priced bonds) and test_ancient_oak
+(drift 0.019/0.025/0.014 m, trunk velocity 0).
