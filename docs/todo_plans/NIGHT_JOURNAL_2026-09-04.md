@@ -851,3 +851,15 @@ neighbour sit 1 mm lower) is the next canary, not tonight's.
 SWEEP alone with the reach re-parked: MOLES 43 (new-red 0,
 gone-green 0, unaudited 43). Shipped: 1-4, 6-8, 11. Parked with
 numbers: 5a, 9/12. test_physics_minimal_v2 passes in 18 s.
+
+READ 13b. The quaternion-target drive path (physics_system_v4.cpp
+~3024-3045) already reads the gluon's own fields: bias = ANGULAR_BETA *
+e / dt clamped, and for force-bounded bonds a torque BUDGET
+tb = (angular_stiffness * |e| + angular_damping * |omega_rel|) * dt
+bounding the row's impulse; rigid joints keep infinite authority. The
+scalar-Z path the drive test exercises has the bias and an unbounded
+budget, and reads neither field. So 'the drive's own damping term' may
+already exist in one path and be missing from the other - the
+asymmetry to measure first: the test's settle and hold numbers, then
+the same budget on the scalar path as the one change, then the
+humanoid tests as guards (their joints are scalar-Z drives).
