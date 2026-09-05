@@ -29,6 +29,13 @@ struct ContactSnapshot {
     float contact_x, contact_y, contact_z;
     bool is_corner_contact;
     bool is_horizontal;  // |normal_x| > 0.1 || |normal_y| > 0.1
+    // NIGHT 2026-09-04 (INV-2's instrument): the snapshot is the solved ROW,
+    // not the penetration event. A body held in the speculative cushion never
+    // penetrates and used to record nothing; a seam question is about the
+    // force a row carries, so the impulses ride along.
+    float normal_impulse = 0.0f;    // N s, accumulated over the solve (0 on a row that did nothing)
+    float tangent_impulse = 0.0f;   // N s, |friction| over both tangents
+    bool  is_turtle = false;        // the world boundary, not a body
 };
 
 // Per-particle per-frame snapshot
@@ -48,6 +55,7 @@ struct ParticleFrameSnapshot {
     int horizontal_contact_count = 0;
     int corner_contact_count = 0;
     int total_contact_count = 0;
+    float horizontal_impulse = 0.0f;   // N s, sum of |normal_impulse| over horizontal rows
 
     float speed() const {
         return std::sqrt(vx * vx + vy * vy + vz * vz);

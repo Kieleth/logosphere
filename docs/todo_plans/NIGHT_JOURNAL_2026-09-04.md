@@ -1,0 +1,152 @@
+# Night journal, 2026-09-04 — one INV-test at a time
+
+Owner's orders at bedtime: "continue iterating in loop one change at
+the time and rerunning, till we find more elegant ways to improve
+malleus, I want RCA every run, understanding, deep, even if it hurts,
+and finding novel ways to continue, log/journal, have fun, and remember
+less is more, many times is about stepping back, reducing complexity
+and finding a more elegant unified way to achieve things. one INV-test
+at the time."
+
+Protocol per run: TARGET (one INV-test) / HYPOTHESIS (one sentence,
+falsifiable) / CHANGE (exactly one, behind a lever if it may not ship)
+/ RUN (what was run, alone if timing matters) / NUMBERS / RCA (what
+the numbers prove, what they refute, what they cannot say) / VERDICT
+(keep, park behind a lever, or undo - never silently) / NEXT.
+Branch: night/2026-09-04, stacked on fix/born-with-material. No merges,
+no windows, sweeps alone before anything is called shippable.
+
+## 0. Scope, then the night's theme
+
+Owner, 2026-09-04 (awake a moment longer): "Malleus is just for the
+ontology work, you can focus on physics here for now." So: physics
+only, the INV registry as the gate, one INV-test per iteration.
+
+The seam family is one mechanism with four names
+
+Open in the registry and all touching tile seams: test_falling_cube
+(INV-2/INV-12, 'contact telemetry records only vertical-normal
+contacts'), test_tile_sticking and test_body_coherence
+('single:seam-normals'), G-73 (a touching side row carries 15 N s with
+no approach), and two shipped mitigations: the surface-continuity merge
+(now with its precondition) and the opt-in face-has-area rule (+250 ms
+per Eden steady frame). If one principled rule in the AABB narrow phase
+retires the merge and the face rule and turns the seam tests green, that
+is the elegant unification the owner asked for. If not, the RCA says
+why. Start with the simplest body on the simplest floor.
+
+## 1. test_falling_cube (INV-2 / INV-12): the instrument, not the physics
+
+TARGET. test_falling_cube, known-open 'single:contact-telemetry'. It
+read: physics PASS (cube stopped, vz 0.000, on floor at pen -0.001)
+and telemetry FAIL twice ('Contacts recorded (0)', 'All normals
+vertical (0 horizontal)' - the second fails only because the first is
+empty).
+
+EVIDENCE BEFORE HYPOTHESIS. Canary on the cube, frames 0-300: one
+manifold per frame from f142 to ~f220 (P0<->P1, n=(0,0,+-1)), depth
+-41.3 mm at f142, -72.7, -77.8 (the 80 mm margin catches it early),
+then -35, -11.5, -3.7, -0.71, -0.23, -0.075 mm - NEGATIVE throughout:
+the speculative rows slow it and it settles 75 um ABOVE the floor.
+Asleep from ~f221, and the broad phase skips a sleeper, so no pair
+after that. The telemetry snapshot copied collision_events_, which
+carries only penetrating manifolds. A body that never penetrates never
+appears. 300 frames, 0 contacts, honest and useless.
+
+HYPOTHESIS. The row the solver priced IS the contact; record the rows
+after the solve, with their accumulated impulses, and the cube reads
+one vertical row per frame with a positive impulse while it rests, and
+none while it sleeps. The seam family (tile_sticking, body_coherence,
+G-73) becomes a question about horizontal IMPULSE on a flat floor,
+which is what a seam phantom is - a force, not a normal's existence.
+
+CHANGE (one). physics_system_v4.cpp: the telemetry block moved from
+after contact generation to after the solve loop; snapshots built from
+`constraints` (contact rows, not angular, not gluons): normal = -j,
+signed penetration, normal_impulse, tangent_impulse, is_turtle.
+entity_telemetry.h: those three fields on ContactSnapshot and a
+horizontal_impulse aggregate on the frame. No test changed yet.
+
+RUN. build-release/logosphere-tests --test test_falling_cube, then
+test_tile_sticking and test_body_coherence for the family's numbers
+under the new instrument (their bars untouched this iteration).
+
+RUN 1a (provenance: NOT the change). The patch script's exact-text
+anchor for the old telemetry block did not match; the script stopped
+after writing the header, the build rebuilt against the new header, and
+the three tests ran on the OLD instrument. Read as the baseline, and
+worth having: test_falling_cube 0 contacts; test_tile_sticking 3389
+horizontal rows recorded, 23 of them against floor tiles, 4.8 m walked,
+4 sticking frames; test_body_coherence 29 horizontal floor contacts,
+max separation 423.8 mm. Lesson for the loop: a run's provenance is part
+of its RCA - a script that stops half-way produces a baseline wearing
+the change's name. The block is now spliced by located line range.
+
+RUN 1b (the change). test_falling_cube GREEN: 103 frames recorded, 248
+rows, worst |normal_z| 1.0000, 0 horizontal, on floor at -0.7 mm. The
+rows are per manifold point (up to four), so 'contacts' counts rows
+now, not manifolds. test_tile_sticking: 10826 horizontal rows recorded
+(was 3389: speculative side rows between Eva's own boxes and the
+floor's neighbours are rows too), 26 against floor tiles (was 23),
+4.8 m walked, 4 sticking frames. test_body_coherence: 29 horizontal
+floor rows (unchanged), max separation 423.8 mm.
+
+RCA. The cube's red was the instrument and nothing else: the physics
+had been right all along (settled 75 um above its floor in the
+cushion). The family's red is real and unchanged by the instrument: a
+walking humanoid on a flat tiled floor gets 26-29 rows whose normals
+are horizontal. What the new instrument adds is the question the old
+one could not ask: whether those rows carry impulse. A horizontal row
+with zero impulse is bookkeeping; one with impulse is the seam catch
+(G-73's 15 N s was one). That is iteration 2's measurement, on
+test_tile_sticking. Completeness gap found: the block runs after the
+solve, so a frame with no rows for a tracked body is not recorded
+('103 frames' for a 300-frame run); 'no contact' is an observation
+and must be a frame. Fixed in this iteration before the commit.
+
+VERDICT. Keep. The instrument change ships with the cube green and the
+audit row updated; the two family reds stay red with their numbers.
+
+RUN 1c (completeness). '103 frames' was neither a scope nor the ring
+buffer: `if (constraints.empty()) return;` at the head of the solve
+section leaves solve_contacts_v3 before its tail on every frame with no
+rows, so the falling cube (f5-f141, nothing within 80 mm) and the
+sleeping cube (f221 on) were never recorded - a probe at the block
+counted 46 calls over 147 frames. Three greps missed it because
+`grep -v "return [a-z_]*;"` also drops a bare `return;`. The recording
+is now one helper, record_row_telemetry, called at both exits; a frame
+with no rows is recorded empty, because 'no contact' is an
+observation. Expected: 300 frames for the cube, numbers otherwise
+unchanged.
+
+RUN 1d (300 frames, 0 rows - the ring). With the empty-frame exit
+recording too, the cube read 300 frames and ZERO rows. Probes at record
+time: at physics call 142 the cube's snapshot holds 4 rows, the buffer's
+newest holds 4, the buffer holds 142. So the rows were recorded and then
+overwritten: solve_contacts_v3 runs once per SUBSTEP, the helper records
+on every call, and a 300-update run writes N x 300 records into a ring
+of 300 - what survives is the sleeping tail. Run 1b's '103 frames' was
+the same ring holding only row-frames (no empty ones were written, so
+nothing overwrote them). The old instrument had the same defect and
+nobody could see it, because every frame was empty anyway. The
+instrument must speak in FRAMES: record on the last substep only.
+
+RUN 1e (the frame gate). SOLVER_SUBSTEPS is 4; the helper now records
+on the last substep only and stamps the update as the frame.
+test_falling_cube GREEN: 150 physics frames (the engine steps physics
+at half its update rate in this harness), 60 rows, worst |normal_z|
+1.0000, 0 horizontal. test_tile_sticking: 3446 horizontal rows per
+frame, 20 against floor tiles, 5.6 m walked, 2 sticking frames.
+test_body_coherence: 12 horizontal floor rows, 423.8 mm max
+separation. The per-substep inflation is gone (10826 -> 3446, 29 ->
+12); the reds are the same reds.
+
+FINDING (not fixed, one thing at a time): test_tile_sticking walked
+4.8 m in two earlier runs and 5.6 m in this one with no physics change
+between them; it renders with GPU sync, so its walk is paced by the
+wall clock and its counts move with it. A gate cannot be paced by the
+clock. Booked in its audit row; the next iteration measures impulse on
+it anyway, because the question is right even when the walk is noisy.
+
+VERDICT 1. KEEP. Committed as one change: the telemetry reads the
+solved rows, after the solve, once per frame, with impulses.

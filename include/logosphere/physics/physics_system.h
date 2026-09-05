@@ -748,7 +748,14 @@ private:
     // sleep only if something holds it. Implementation note above the
     // definition in physics_system_v4.cpp.
     void admit_declared_sleepers(ParticleSystem::WriteView& particles);
+    // INV-2's instrument: the solved rows of every tracked body, every frame.
+    void record_row_telemetry(ParticleSystem::WriteView& particles,
+                              const std::vector<PhysicsV4::Constraint>& constraints, int phys_frame);
     size_t woken_at_birth_ = 0;
+    // INV-2's instrument speaks in FRAMES: the solver runs SOLVER_SUBSTEPS calls per
+    // update and the ring buffer holds frames, so only the last substep records.
+    int  telemetry_frame_ = 0;
+    bool telemetry_last_substep_ = false;
 };
 
 #endif // PHYSICS_SYSTEM_H

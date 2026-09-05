@@ -383,8 +383,10 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     // forces) — clear at frame entry, not per substep.
     filtered_overlaps_.clear();
 
+    ++telemetry_frame_;
     for (int substep = 0; substep < N_SUBSTEPS; ++substep) {
         ::logosphere::phystrace::set_substep(substep);
+        telemetry_last_substep_ = (substep == N_SUBSTEPS - 1);
         // Fresh dissatisfaction slate BEFORE anyone marks (G-48): the
         // contact build marks first, the gluon build marks later, the
         // sleep gate reads the union at frame end.
@@ -2201,46 +2203,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
     auto t_after_contacts = std::chrono::high_resolution_clock::now();
 
-    // ==========================================================================
-    // PHYSICS TELEMETRY: Record contacts for tracked particles
-    // ==========================================================================
-    if (telemetry_.is_enabled()) {
-        for (unsigned int pid : telemetry_.tracked_particles()) {
-            if (pid >= count) continue;
-            const Particle& p = particles[pid];
-
-            Logosphere::ParticleFrameSnapshot snap;
-            snap.frame_number = phys_frame;
-            snap.x = p.x; snap.y = p.y; snap.z = p.z;
-            snap.vx = p.vx; snap.vy = p.vy; snap.vz = p.vz;
-            snap.width = p.width; snap.height = p.height; snap.thickness = p.thickness;
-            snap.is_at_rest = p.is_at_rest;
-
-            for (const auto& evt : collision_events_) {
-                if (evt.particle_a != pid && evt.particle_b != pid) continue;
-
-                Logosphere::ContactSnapshot cs;
-                cs.particle_a = (unsigned)evt.particle_a;
-                cs.particle_b = (unsigned)evt.particle_b;
-                cs.normal_x = evt.normal_x;
-                cs.normal_y = evt.normal_y;
-                cs.normal_z = evt.normal_z;
-                cs.penetration = evt.penetration;
-                cs.contact_x = evt.contact_x;
-                cs.contact_y = evt.contact_y;
-                cs.contact_z = evt.contact_z;
-                cs.is_corner_contact = evt.is_corner_contact;
-                cs.is_horizontal = (std::abs(evt.normal_x) > 0.1f || std::abs(evt.normal_y) > 0.1f);
-
-                snap.contacts.push_back(cs);
-                snap.total_contact_count++;
-                if (cs.is_horizontal) snap.horizontal_contact_count++;
-                if (cs.is_corner_contact) snap.corner_contact_count++;
-            }
-
-            telemetry_.get_buffer(pid).record(std::move(snap));
-        }
-    }
+    // PHYSICS TELEMETRY moved after the solve (night 2026-09-04): it records
+    // the solved rows, not the penetration events. See the block after the
+    // solve loop.
 
     // ==========================================================================
     // ADD GLUON CONSTRAINTS (3 per gluon: X, Y, Z)
@@ -3111,7 +3076,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     auto t_after_gluons = std::chrono::high_resolution_clock::now();
     // (authority report emitted after the solve, below)
 
-    if (constraints.empty()) return;
+    if (constraints.empty()) {
+        // A frame with no rows is an observation: the tracked bodies are in
+        // contact with nothing. Record it (night 2026-09-04).
+        record_row_telemetry(particles, constraints, phys_frame);
+        return;
+    }
 
     // ========================================================================
     // PHASE 4: ITERATIVE CONSTRAINT SOLVING (THE CORE)
@@ -4996,6 +4966,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                    actual_iterations, "iteration_budget_exhausted",
                    (double)SOLVER_ITERATIONS);
     }
+    record_row_telemetry(particles, constraints, phys_frame);
     LOGO_COUNT_N(::logosphere::telemetry::Counter::PhysSolverIterations,
                  (uint64_t)actual_iterations);
 
@@ -5815,6 +5786,72 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
  *
  *   z after = 0.1 + 0 × 0.0167 = 0.1m (stays in place)
  */
+
+// INV-2's instrument (night 2026-09-04): every tracked body records, every
+// frame, the solved contact ROWS it is part of - gap or overlap - with their
+// accumulated impulses; a frame with no rows is recorded empty. Called from
+// both exits of solve_contacts_v3.
+void PhysicsSystem::record_row_telemetry(ParticleSystem::WriteView& particles,
+                                         const std::vector<PhysicsV4::Constraint>& constraints,
+                                         int phys_frame) {
+    // ==========================================================================
+    // PHYSICS TELEMETRY: the solved ROWS of every tracked particle (INV-2's
+    // instrument). Until 2026-09-04 this copied collision_events_, which only
+    // carries manifolds that penetrate: a cube landing in the speculative
+    // cushion settled 75 um ABOVE its floor and recorded nothing for 300
+    // frames (test_falling_cube read 'Contacts recorded (0)' while the canary
+    // saw one manifold per frame from f142). A row is the contact the solver
+    // priced, gap or overlap, and its accumulated impulse is the force it
+    // carried; a seam question ('horizontal normals on a flat floor') is a
+    // question about that force, which no event could answer.
+    // Normal convention as before: from A toward B. A row's jacobian pushes A
+    // along +j (off B), so the telemetry normal is -j.
+    // ==========================================================================
+    if (!telemetry_.is_enabled() || !telemetry_last_substep_) return;
+    const size_t count = particles.size();
+    {
+        for (unsigned int pid : telemetry_.tracked_particles()) {
+            if (pid >= count) continue;
+            const Particle& p = particles[pid];
+            Logosphere::ParticleFrameSnapshot snap;
+            snap.frame_number = (uint32_t)telemetry_frame_;   // the update, not the substep
+            (void)phys_frame;
+            snap.x = p.x; snap.y = p.y; snap.z = p.z;
+            snap.vx = p.vx; snap.vy = p.vy; snap.vz = p.vz;
+            snap.width = p.width; snap.height = p.height; snap.thickness = p.thickness;
+            snap.is_at_rest = p.is_at_rest;
+            for (const Constraint& c : constraints) {
+                if (!c.is_contact || c.is_angular) continue;
+                if (c.body_a != pid && c.body_b != pid) continue;
+                Logosphere::ContactSnapshot cs;
+                cs.particle_a = (unsigned)c.body_a;
+                cs.particle_b = (unsigned)c.body_b;
+                cs.is_turtle = c.is_turtle_contact;
+                cs.normal_x = -c.jx; cs.normal_y = -c.jy; cs.normal_z = -c.jz;
+                cs.penetration = c.penetration;
+                // A row carries no manifold point; its anchor lever arm (0
+                // when none) is the nearest thing to one.
+                const Particle& pa = particles[c.body_a];
+                cs.contact_x = pa.x + c.anchor_rax;
+                cs.contact_y = pa.y + c.anchor_ray;
+                cs.contact_z = pa.z + c.anchor_raz;
+                cs.is_corner_contact = false;
+                cs.is_horizontal = (std::abs(cs.normal_x) > 0.1f || std::abs(cs.normal_y) > 0.1f);
+                cs.normal_impulse = c.accumulated_impulse;
+                cs.tangent_impulse = std::sqrt(c.friction_impulse_t1 * c.friction_impulse_t1 +
+                                               c.friction_impulse_t2 * c.friction_impulse_t2);
+                snap.contacts.push_back(cs);
+                snap.total_contact_count++;
+                if (cs.is_horizontal) {
+                    snap.horizontal_contact_count++;
+                    snap.horizontal_impulse += std::fabs(cs.normal_impulse);
+                }
+            }
+            telemetry_.get_buffer(pid).record(std::move(snap));
+        }
+    }
+}
+
 void PhysicsSystem::integrate_positions(ParticleSystem::WriteView& particles, float dt) {
     const size_t count = particles.size();
     static int position_debug_frame = 0;
