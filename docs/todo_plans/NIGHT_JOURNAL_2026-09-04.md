@@ -1420,3 +1420,41 @@ VERDICT 16 (final): the three-row drive is the mechanism for INV-13's
   KINEMATIC bones (both ledgers, omega included; PHYSICS_BOARD 351-366)
   is the road that makes the scope unnecessary. Sweep under the lever
   next, alone; then the paired Eden A/B.
+
+SWEEP under DRIVE_ROWS=3 (scoped), alone, after d5b368d:
+  SWEEP_VERDICT: MOLES 44 (new-red 0, gone-green 1, unaudited 43)
+  gone-green: test_gluon_3axis_drive_converges. Nothing else moved.
+  Committed d5b368d (16d-16f, GEDANKEN-75). Eden paired A/B/A/B next
+  (one binary, eden target rebuilt, lever off/on/off/on, alone).
+
+EDEN PAIRED A/B/A/B (one binary, eden target rebuilt at d5b368d,
+headless --bench 300, alone, steady tail of 179 frames):
+  A DRIVE_ROWS=1: 713.0 ms (median 714.5, p90 921)
+  B DRIVE_ROWS=3: 873.4 ms (median 870.2, p90 1120)
+  A DRIVE_ROWS=1: 702.8 ms (median 708.9, p90 923)
+  B DRIVE_ROWS=3: 877.2 ms (median 879.0, p90 1126)
+  All-frames: 825 / 914 / 814 / 913 ms.
+  THE LEVER COSTS +165..+174 ms PER STEADY FRAME (+24 %), in both
+  orders. Reading: on Eden every organic bond between two DYNAMIC
+  bodies is a quaternion drive (rung 2: the drive reachable from
+  bonds), so the scoped lever triples the angular rows on thousands of
+  awake bonds (trees settling, grass). Same door census both ways
+  (1739 refused of 11783), physics deterministic per setting.
+
+VERDICT ON THE FLIP (for the owner, not mine): the three-row drive is
+  the right law (rows = DOFs; the cantilever sleeps; humanoids
+  unchanged under the scope) and it is not free: +24 % of Eden's steady
+  frame today. Two roads, both the owner's: (a) flip and pay, (b) the
+  perpendicular rows only where a relative spin exists to damp (a row
+  with zero bias and zero measured spin applies nothing; skipping it is
+  exact for that iteration and an approximation across iterations) -
+  an optimization to measure, not a law. Default stays 1 tonight.
+
+STANDING EDEN FINDING (both settings, pre-existing on this branch,
+  deterministic): [EXPLOSION WARNING] particle 3945, 17.25 kg, at 45.0
+  m/s (ceiling 40) at physics frame 467, pos (45.9, -37.6, 2.8), again
+  at f610 (40.3), f773 (40.0); with the lever on: f649 (40.2), f744,
+  f804 (41.3), 38-43 bodies suppressed per line. A 17 kg body at 45 m/s
+  is a detonation (INV-11). Not the night's doing; whether the door /
+  sleeper / seam stack birthed it is not established. Iteration 17
+  target: who launches 3945.
