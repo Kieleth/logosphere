@@ -1752,3 +1752,57 @@ FINAL SWEEP alone on the branch head (3e9b704 + this journal):
   SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43).
   The night ends on a clean verdict. Branch night/2026-09-04, on top
   of fix/born-with-material (#173), pushed. Nothing merged by me.
+
+# THE LOOP, RESET (owner, morning of 2026-09-05)
+
+"All this to me sounds like we're edge casing and not working on deeper
+understanding and application of physics to our engine via invs and
+gedanken, review and reread our principles and get into loop on this
+to small incremental improvements."
+
+READ AGAIN: the repo's engine invariants, the physics skill (the board
+is the starting point; gedanken first; TDD law-first: DECLARE,
+REGISTER, born-red assert, green via Argus, visible on the panel;
+levers default off; sweep alone; board updated in the same commit),
+the tests skill (one scene, two drivers, full-state narration, the
+live panel), INVARIANTS.jsonl in full, the open gedanken, the board's
+orientation-truth front and D2, the ledger's tail.
+
+WHAT THE NIGHT DID WRONG, in the skill's own words: fronts not on the
+board got worked; the board was never opened and never updated;
+G-75/G-76 were written after their code; the three-row drive was
+code first; the scope 'three rows only when both endpoints DYNAMIC'
+is an if-case; the promise counter and the bond guard are bookkeeping;
+four fixtures were moved to the engine's world instead of the engine
+being asked which law it breaks.
+
+THE PHYSICS UNDER THE NIGHT'S SYMPTOMS, read one level deeper:
+  - A KINEMATIC body is a body of infinite mass with PRESCRIBED motion.
+    Its velocity is state. The solver keeps none for it and reads zero,
+    so every row against it prices a false relative velocity: a drive's
+    rows weld an arm to a forearm read as still (G-75), a nail damps an
+    arm against a post that is turning, a contact holds a cube on a
+    floor that is sliding away. One missing state, many symptoms.
+  - A constraint's rows must span the DOFs it removes (rows = DOFs):
+    the one-row drive, the scalar-Z nail. That is INV-16 / D2's
+    full-Jacobian row, on the board, with a study complete.
+
+INCREMENT 1 (law first): INV-39 registered, aspirational, born red -
+'a body moved from outside carries its motion' (v = dx/dt, omega from
+dq/dt for KINEMATIC bodies, before any row is priced; INV-7 keeps it
+immovable; INV-20 prices the true relative velocity). Its two
+experiments written and PREDICTED before any test or code: G-77 the
+moving platform, G-78 the turning post. tests/scenes/scene_writers_motion.h
+with test_writers_motion (+ _visual, live panel), Argus-witnessed,
+full-state narration, every assert law-tagged. The board carries
+SLICE 2 in the same commit. The mechanism is the NEXT increment, behind
+KINEMATIC_LEDGER, only after the red is measured.
+RUN (increment 1, first measurement, build fresh): 5 of 7 RED.
+  G-77: slab x 0 -> 1.254 m; cube x 0.000 all run; slip 1.2542 m (bar
+  0.010); seat gap +0.0002..+0.0183; steady cube vx error 0.5000 m/s.
+  The cube is held on a floor the ledger calls still.
+  G-78: post yaw 0 -> 1.50 rad; arm yaw 0.00, spin 0.000 throughout;
+  yaw error 1.5000 rad; separation drift 0.00000 (rigid); coherence
+  green for both. The nail transmits none of the turn - not even the
+  scalar-Z row's lag: the arm is silent. That silence is the mechanism
+  increment's first read (is the row built against a KINEMATIC 'a'?).

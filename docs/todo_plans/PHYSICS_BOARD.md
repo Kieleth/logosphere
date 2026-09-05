@@ -374,6 +374,17 @@ direction-locked in physics-linux beside the drop ladder:
 
 This is the unification's red ladder. The lever lands into it.
 
+**SLICE 2 REGISTERED 2026-09-05 (law first, code second): INV-39, a body
+moved from outside carries its motion.** A KINEMATIC body's velocity and
+angular velocity in the ledger are its writer's deltas, before any row
+is priced; rows then price the true relative velocity. Experiments
+G-77 (the moving platform) and G-78 (the turning post), written and
+predicted before the test; `test_writers_motion` (+ `_visual`) born red.
+The mechanism is owed behind `KINEMATIC_LEDGER`. This law retires the
+night's scope 'three rows only when both endpoints are DYNAMIC' (G-75)
+and answers G-38's velocity half: the writer's motion is read from what
+it wrote, not from a flag.
+
 ## ARGUS (landed 2026-08-19) + the assert-or-waive discipline
 
 `src/core/argus.h`, pure engine module (owner: "not only in physics...
