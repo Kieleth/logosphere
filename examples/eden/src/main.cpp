@@ -65,6 +65,7 @@ private:
 
     // Spirit lights (floating, animated)
     struct SpiritLight {
+        bool reported_stranger = false;
         int particle_id = -1;
         float base_x, base_y, base_z;
         float phase;       // Animation phase offset
@@ -116,6 +117,9 @@ public:
                 22.0f, -20.0f, 5.5f,  // Top of the streetlight pole
                 500000.0f, 200.0f,
                 1.0f, 0.95f, 0.9f);
+            // Flushed at once: left pending, this one promise made every birth
+            // of the world a direct birth over it (11783 of them, GEDANKEN-76).
+            engine_->get_particle_system().flush_pending_particles();
         }
 
         // PRE-POPULATE KG: Create entities that will be loaded by scene_generator
@@ -1006,6 +1010,13 @@ public:
                 if (sl.particle_id < 0 || static_cast<size_t>(sl.particle_id) >= particles_view.size())
                     continue;
                 auto& p = particles_view[sl.particle_id];
+                if (!p.is_light_source && !sl.reported_stranger) {
+                    sl.reported_stranger = true;
+                    printf("[EDEN] spirit light promise P%d resolved to a non-light"
+                           " (mass %.2f kg, size %.2fx%.2fx%.2f m): its orbit is being"
+                           " written onto a body\n", sl.particle_id, p.GetMass(),
+                           p.width, p.height, p.thickness);
+                }
                 float t = time_acc * sl.speed;
                 float phase = sl.phase;
                 // Lissajous-like path: different frequencies per axis
@@ -1966,6 +1977,12 @@ public:
                 sl.radius = s.wander;
                 spirit_lights_.push_back(sl);
             }
+            // A queued birth's index is a PROMISE (live + pending) that any direct
+            // birth before the flush takes for itself; five spirits were orbiting
+            // a trunk, a branch and three leaves at 45 m/s (night 2026-09-04,
+            // journal 17e, GEDANKEN-76). Flush now, before the next direct birth,
+            // so every particle_id above is the body it names.
+            ps.flush_pending_particles();
 
             // Subscribe to particle swaps: keep SpiritLight particle_id valid
             // when chunks unload and particles get reshuffled.

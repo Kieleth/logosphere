@@ -1458,3 +1458,104 @@ STANDING EDEN FINDING (both settings, pre-existing on this branch,
   is a detonation (INV-11). Not the night's doing; whether the door /
   sleeper / seam stack birthed it is not established. Iteration 17
   target: who launches 3945.
+
+## 17. Eden's 45 m/s body (INV-11): who launches P3945
+
+17a. Canary P3945, Eden headless, F455-F468 (default lever): a body in
+  FREE FALL with no rows at all - contacts 0, turtle 0, omega 0,
+  velocity (0, 0, -35.4) growing to -36.3 by gravity - whose height
+  runs 2.7 -> 2.4 -> 5.6 -> 5.3 -> ... -> 2.3, a sawtooth: every dozen
+  substeps its POSITION is rewritten 3.3 m up with its velocity kept.
+  The detector's 40-45 m/s is that velocity; the body never travels.
+  The writer: examples/eden/src/main.cpp:1012-1016, the spirit lights'
+  orbit (x, y, z from a Lissajous path, z clamped at 2.0, once per
+  render frame; the bench frame is ~700 ms, so several fixed physics
+  steps run between writes and the fall shows). The body: created by
+  ParticleSystem::queue_light (particle_system.cpp:1002), material
+  LIGHT with the comment 'density=0, floats (mass auto-calc to 0)' -
+  but the detector reads mass 17.25 kg and the gravity site feeds it
+  ('P3945 receives gravity'). Either LIGHT's density is not zero or
+  the size set AFTER SetMaterial re-prices the mass. Reading.
+  The engine's own rule: a body whose position an external writer
+  owns is KINEMATIC; a massless body carries no momentum to fight.
+  The judge (G-72) and the door already skip light sources; the
+  integrator and the detector do not. Two candidates, one of them the
+  code's stated intent (massless light).
+17b. LIGHT's density is 0 at every site (materials.h 81/152/226/255)
+  and add_particle never prices a light's mass: a queued light is
+  massless and cannot receive gravity. P3945 has 17.25 kg and a rotated
+  orientation q = (0.8, -0.4, 0.4, 0.2): it is NOT a light. Eden's
+  spirit-light loop writes the position of the wrong body: its
+  particle_id is the PROMISE queue_light returned
+  (queue_particle_addition), and P3944 - the 96 kg rotated trunk that
+  detonates the same way - is the neighbouring promise. A stale promise:
+  births between the queue and its flush, or the door's refusals (1739
+  of 11783 in this scene; the queue's promise cannot know them), shift
+  the index and the spirit's orbit lands on a tree. Reading the
+  promise's contract next.
+17c. Canary P3944 (the 96 kg trunk), F300-F525: the same signature -
+  velocity (-0.4, 0.1, -23.6) growing to -35.6 by gravity, height
+  sawtoothing 1.8 -> 3.9 -> 3.7 -> ... -> 1.8. A second spirit's
+  promise, one index lower, landed on a trunk. Two spirits, two trees.
+  The promise (particle_system.cpp:626, live + pending, door-judged so
+  refusals never shift it) is broken by any DIRECT birth between the
+  queue and its flush (engine.cpp:1479, once per frame): that birth
+  takes the index the promise gave away. Instrument next: count direct
+  births made while promises are outstanding, report at shutdown like
+  INV-38's census; Eden's spirit loop says once when its body is not a
+  light. Then the guard (C-121: a broken promise is loud) with its
+  test, and Eden's spirits born by create_light - iteration 18.
+17d. Provenance: the first instrument patch failed its header anchor
+  (the census field's declaration is not the line I assumed), wrote
+  nothing, and the Eden run that followed was the baseline again -
+  identical explosion lines. Re-patched with a looser anchor, the
+  build and the run gated on the patch's success.
+
+RUN 17e (instrument, provenance: 'header/cpp/eden patched' then the
+  build): Eden headless, one run.
+  [EDEN] spirit light promise P3944 -> a non-light, 96.47 kg,
+    0.25x0.25x2.62 m (a trunk); P3945 -> 17.25 kg, 0.13x0.13x1.69 m
+    (a branch); P3946, P3947, P3948 -> 0.16-0.28 kg, 0.44x0.31x0.02 m
+    (three leaves). ALL FIVE spirits orbit trees.
+  [PROMISE BROKEN] 11783 direct births crossed add_particle while
+    queued promises were outstanding (first: live 0, pending 1).
+  Reading: the sun light is queued first at init (main.cpp:115) and
+  stays pending until the first frame's flush (engine.cpp:1479); every
+  birth of the world - the door's 11783 - is a direct birth over that
+  promise. The spirits, queued at live 3943, were promised 3944-3948;
+  the trees born afterwards took those indices. No promise Eden ever
+  received was true. The organic floor generator bonds by the same
+  promise (organic_floor_generator.cpp 153/286/522) on the loader
+  thread: whether its promises are honoured there is a morning
+  question with a past (phantom bonds between the wrong tiles would
+  look exactly like the seam family). Not claimed; booked.
+  Steady frame 705 ms (instrument cost nil).
+17f. The first fix (create_light) was refused by its own gate: the
+  signature has no radius (create_light(x, y, z, strength, r, g, b)
+  against queue_light's (x, y, z, strength, radius, r, g, b)); nothing
+  was built. The fix that uses the API as written: Eden flushes the
+  queue right after queuing at init (the sun light, then the five
+  spirits), before the next direct birth, so each promise is the body
+  it names. Two lines in examples/eden/src/main.cpp; the engine's
+  contract stays the owner's ruling (GEDANKEN-76). Measured next:
+  stranger lines, explosion lines, the promise-break census (what is
+  left is the loader thread's), steady frame.
+
+RUN 17g (two flushes; provenance 'eden patched: two flushes', eden
+  rebuilt): stranger lines 0, explosion lines 0, NO [PROMISE BROKEN]
+  report at all (0 direct births over outstanding promises in the
+  whole run, the loader thread's tiles included - the morning question
+  answered early: Eden's only broken promises were its own two queues
+  at init). Steady frame 614.6 ms (median 590) against 705-721 on the
+  same binary within the hour - not a paired A/B (no lever for a
+  two-line game fix), read as a hint: five trees no longer rewritten at
+  35 m/s every frame stop churning their neighbourhoods.
+
+VERDICT 17: KEEP. The detonations were never physics: an index promised
+  by the queue and taken by the world. The instrument stays (always on,
+  a census like INV-38's); Eden flushes its queues at init; the
+  contract is booked as GEDANKEN-76 for the owner. The regression test
+  for the class comes with this commit: queue one body, birth one
+  directly, flush, and read what stands at the promised index - RED by
+  the engine's contract today, expect-fail with its finding, green the
+  day the contract is fixed either way.

@@ -153,6 +153,14 @@ public:
     // playbook, without the refusal (that enforcement is the owner's call).
     size_t births_without_material() const { return births_unnamed_; }
     void report_unnamed_births() const;
+    // A PROMISE IS KEPT OR IT IS LOUD (night 2026-09-04, journal 17).
+    // queue_particle_addition hands back a predicted index (live + pending);
+    // a DIRECT add_particle before the flush takes that index for itself and
+    // every promise handed out after it points at a stranger (Eden's spirit
+    // lights orbiting a trunk and a branch at 45 m/s). Counted here, reported
+    // at shutdown like INV-38's census; the guard is the next step.
+    size_t promise_breaks() const { return promise_breaks_; }
+    void report_promise_breaks() const;
 
     // THE DOOR'S MEASURE, offered to the sleep law (G-72): the deepest overlap
     // `probe` has with any live body other than `exclude` (pass the probe's
@@ -433,6 +441,10 @@ private:
     std::map<std::string, size_t> door_census_;
     size_t                        door_lines_printed_ = 0;
     size_t                        births_unnamed_ = 0;          // INV-38
+    bool   flushing_pending_ = false;
+    size_t promise_breaks_ = 0;
+    int    first_break_live_ = -1;
+    int    first_break_pending_ = 0;
     std::map<std::string, size_t> unnamed_census_;
     size_t                        unnamed_lines_printed_ = 0;
 

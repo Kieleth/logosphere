@@ -56,9 +56,18 @@ ParticleSystem::~ParticleSystem() {
     // those lines into a list of SITES to fix.
     if (door_stats_.refusals > 0) report_creation_door();
     if (births_unnamed_ > 0) report_unnamed_births();
+    if (promise_breaks_ > 0) report_promise_breaks();
 }
 
 // INV-38: the census of bodies born without a material, by recipe.
+void ParticleSystem::report_promise_breaks() const {
+    std::cerr << "\n[PROMISE BROKEN] " << promise_breaks_
+              << " direct births crossed add_particle while queued promises were"
+                 " outstanding (first: live " << first_break_live_ << ", pending "
+              << first_break_pending_ << "). Every predicted index handed out before"
+                 " such a birth points at a stranger." << std::endl;
+}
+
 void ParticleSystem::report_unnamed_births() const {
     std::cerr << "\n[BORN WITHOUT A MATERIAL] INV-38 census: " << births_unnamed_
               << " bodies crossed add_particle unnamed (material_type left at the"
@@ -319,6 +328,13 @@ int ParticleSystem::add_particle(const Particle& particle) {
     assert_above_turtle(particle, "add_particle");
     // THREAD SAFETY: Acquire exclusive lock for particle addition
     std::unique_lock<std::shared_mutex> lock(particles_mutex_);
+    // A direct birth with promises outstanding (see promise_breaks()).
+    if (!flushing_pending_ && !pending_particles.empty()) {
+        if (promise_breaks_++ == 0) {
+            first_break_live_    = static_cast<int>(particles.size());
+            first_break_pending_ = static_cast<int>(pending_particles.size());
+        }
+    }
 
     // AUTO-CREATE ENTITY: If entity_id is 0, auto-create via KG
     // This allows tests and simple code to call add_particle() directly
@@ -656,10 +672,12 @@ int ParticleSystem::queue_particle_addition(const Particle& particle) {
 void ParticleSystem::flush_pending_particles() {
     // Apply all queued particle additions
     // This should be called between frames when no rendering is happening
+    flushing_pending_ = true;
     while (!pending_particles.empty()) {
         add_particle(pending_particles.front());
         pending_particles.pop_front();
     }
+    flushing_pending_ = false;
     // The batch is over: its bodies are live (or were refused), and the
     // pending index has nothing left to stand for.
     pending_index_.clear();
