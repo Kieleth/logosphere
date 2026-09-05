@@ -1773,7 +1773,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
                         const Particle& pk = particles[k];
-                        if (!pk.is_at_rest) continue;
+                        // THE FAMILY IS COPLANAR, NOT ASLEEP (night 2026-09-04, journal
+                        // 11): the tile under a walking foot is awake because it was
+                        // stepped on, not because it moved; excluding it made the
+                        // seam between it and the next tile the strip's end - a
+                        // 30 mm wall to the oriented SAT (test_body_coherence, physics
+                        // frame 140). Coplanarity within SLOP is the test of whether a
+                        // neighbour is still the floor.
                         float half_xk = pk.width * 0.5f, half_yk = pk.height * 0.5f, half_zk = pk.thickness * 0.5f;
                         float kx_min = pk.x - half_xk, kx_max = pk.x + half_xk;
                         float ky_min = pk.y - half_yk, ky_max = pk.y + half_yk;

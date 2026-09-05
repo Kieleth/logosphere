@@ -731,3 +731,48 @@ P4549, P4550, mat 4 = STONE). The scene never converges because its
 rock clusters' stiff bonds never converge. VERDICT 10. Booked with the
 mechanism; the joint block solver branch owns it. The instrument
 (three fastest bodies) stays.
+
+RCA 9 (canary P10, physics frames 138-142, the strip in the oriented
+path on). Frame 140: `P1<->P10` (the tile P1 first - the broad phase
+iterates awake bodies as i, so P1, the tile under the foot, is AWAKE)
+z contact +3.44 mm; `P10<->P2` (the foot first: P2 asleep) n = (0, -1,
+0), depth -29.89 mm: the foot at y 2.93 moving +y at 2 m/s sees P2's
+y-edge at 3.00 as a wall. P2's family is built from SLEEPING coplanar
+neighbours only, so P1 - awake because a foot is standing on it - is
+excluded, the strip starts at P2's edge, and the seam between the tile
+being stepped on and the next tile is exactly the strip's end. Every
+catch a walker has produced tonight sits on that seam: the tile under
+the foot is awake by construction. A tile woken by a step has not
+moved; coplanarity within SLOP is the test of whether it is still the
+floor, and it passes.
+
+## 11. The family is coplanar, not asleep
+
+CHANGE (one). The family loop no longer skips awake neighbours;
+coplanarity within SLOP and adjacency decide membership. j itself must
+still be a sleeping tile for the block to run (a foot over an awake
+tile approaching a sleeping one is the case at hand). Measured on
+body_coherence and tile_sticking with SEAM_MERGE_ORIENTED 0 and 1 -
+iteration 9's reach may un-park if its wall was this - and the guards.
+
+RUN 11 (A/B SEAM_MERGE_ORIENTED 0 / 1 on the same binary). Lever off:
+unchanged (body_coherence 5 rows max 1.94480, tile_sticking 12 rows
+max 0.00000, jammed 0, ladder 2, diagnostic 0.104858) - the walker's
+catch lives in the oriented path and the family alone cannot reach
+it. Lever on: body_coherence 5 rows max 0.00000 (the 1.94480 catch
+GONE; the heaviest row is an inert tilted gap row, f36 P1<->P10,
+impulse 0), tile_sticking 2 rows max 0.00000, sticking frames 0,
+jammed 0, ladder 2, cube green; the diagnostic 0.104858 -> 0.156871
+(the non-converging rock cluster's residual, already booked, moves with
+any change to the rows its rotated stones see).
+
+RCA. Iteration 9's wall was iteration 11's exclusion: with the awake
+tile in the family, the strip under a walking foot has no end at the
+seam, and the oriented SAT, handed that strip, reads the floor as one
+surface. The two parked experiments were one defect seen from two
+sides. Less is more: the reach is four lines, the family rule is one
+line removed.
+
+VERDICT 11. KEEP the family rule. 12: un-park the oriented reach
+(SEAM_MERGE_ORIENTED default on; =0 kills), with the diagnostic's
+0.157 recorded against it. Then the sweep alone, then Eden alone.
