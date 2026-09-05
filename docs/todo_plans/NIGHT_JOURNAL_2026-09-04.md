@@ -201,3 +201,53 @@ rows vs one catch. OWNER RULING owed on INV-12's wording (rows without
 force are bookkeeping; the law should speak of force). Iteration 3
 hunts the catch: in narrow_phase_obb, a separated pair chooses among
 FACE axes only; cross axes are for penetration. Behind a lever.
+
+## 3. The catch itself: a separated pair meets a face, not an edge
+
+TARGET. test_tile_sticking's force line (max 1.27716 N s), and by the
+same mechanism test_body_coherence's floor rows and G-73's family.
+
+HYPOTHESIS. In narrow_phase_obb the edge-edge axis wins when its
+overlap is clearly the smallest. For a PENETRATING pair that is the
+separating-axis theorem doing its job. For a SEPARATED pair every
+overlap is a negative separation and 'smallest' means 'most
+separated', which is not a rule for choosing where two bodies will
+touch: two boxes approaching from a distance meet on a face (a vertex
+into a face, or face on face) unless they are skew enough to cross
+edges, and a foot swinging over a tile is not that. Restrict a
+separated pair to the six face axes; let the cross axes back in the
+moment the face axes report penetration. Expected: the f140 row
+becomes a z-face row, the 1.28 N s vanishes, the count law's 20 rows
+stay (they are inert), the ladder's edge landings (which penetrate
+before they matter) are untouched.
+
+CHANGE (one). narrow_phase.cpp, narrow_phase_obb: use_edge also
+requires best_face_overlap > 0. Lever SEAM_OBB_FACES_FIRST=0 restores
+the old choice for A/B.
+
+RUN 3. test_tile_sticking: the force line GREEN - max 0.00000 N s over
+12 horizontal floor rows (was 1.27716 over 20), sum 0.00000, sticking
+frames 0 (was 2), 5.8 m walked; the count line still red on 12 rows
+that carry nothing. test_body_coherence: horizontal floor rows 12 -> 5
+(no force line there yet). test_falling_cube green. A/B on the same
+binaries with SEAM_OBB_FACES_FIRST=0/1: test_cube_drop_ladder 2
+failures either way (R5/R6, G-66's wheel walk), test_jammed_sleep 17
+either way (G-73's edge tiles), body_coherence 12 -> 5. The change
+touches the seam family and nothing else that was measured.
+
+RCA. The catch was the oriented SAT choosing 'the most separated
+axis' for a separated pair. With cross axes reserved for penetration,
+the foot part crossing the tile's edge gets the tile's face normal,
+the speculative row along it does what a speculative row is for (slow
+an approach to the face), and no impulse leaks sideways. The inert
+rows that remain (12 and 5) are speculative side rows between Eva's
+parts and neighbouring tiles at zero impulse: the count law counts
+them, the force law does not care. Less is more here: no merge, no
+face-area rule, one predicate on the axis choice.
+
+VERDICT 3. KEEP behind SEAM_OBB_FACES_FIRST (default on). Sweep alone
+before anything is called shippable. NEXT: body_coherence gets the
+same force line (its count red is the same nineteen-inert-rows story
+until measured); then G-73 with this lens - the AABB path's touching
+side row that carried 15 N s is the same class (a separated or
+touching pair given a non-face axis by a metric).

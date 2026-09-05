@@ -866,7 +866,21 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
     // frame to frame. An edge axis wins only when clearly smaller (1 mm,
     // the SLOP scale) — sign-safe, unlike a relative factor, because
     // speculative overlaps can be negative.
+    // A SEPARATED PAIR MEETS A FACE (night 2026-09-04, journal entry 3).
+    // With every overlap negative, 'smallest' means 'most separated', and a
+    // cross axis that separates the pair by 20 mm beat the face axis that
+    // separated it by 10 mm: a swinging foot part crossing a tile's edge got
+    // n = (0, -0.92, 0.40) for one frame and a 1.28 N s speculative shove
+    // (test_tile_sticking, physics frame 140). Two boxes approaching from a
+    // distance meet on a face; the cross axes are for penetration, where the
+    // separating-axis theorem is the rule. SEAM_OBB_FACES_FIRST=0 restores the
+    // old choice for A/B.
+    static const bool faces_first = [] {
+        const char* v = std::getenv("SEAM_OBB_FACES_FIRST");
+        return !(v && v[0] == '0');
+    }();
     const bool use_edge = (best_ea >= 0) &&
+                          (!faces_first || best_face_overlap > 0.0f) &&
                           (best_edge_overlap + EDGE_TOL < best_face_overlap);
 
     if (use_edge) {
