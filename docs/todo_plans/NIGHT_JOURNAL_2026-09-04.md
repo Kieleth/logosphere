@@ -781,3 +781,54 @@ VERDICT 11. KEEP the family rule. 12: un-park the oriented reach
 
 CHANGE (one). SEAM_MERGE_ORIENTED default on; =0 kills. Verified to
 reproduce run 11's lever-on numbers, then the sweep alone.
+
+## 13. The angular drive owns its damping (INV-13) - after the sweep
+
+TARGET. test_gluon_angular_drive_converges, known-open F7 since the
+derived drag law replaced ANGULAR_DRAG: 'the PD drives leaned on the
+dead constant as free world damping; the fix is the drive's own
+damping term'. Two stone particles in space, one NailGluon with
+angular_stiffness 200, angular_damping 12, target pi/4; must settle
+within 0.5 s and hold without oscillation.
+
+READ. The drive row (physics_system_v4.cpp ~3093) sets
+angular_bias = ANGULAR_BETA * angle_diff / dt, clamped by
+MAX_ANGULAR_BIAS_VELOCITY, with an unbounded impulse budget. Neither
+angular_stiffness nor angular_damping enters the row: the 'PD' is a P
+on the error at the velocity level, and its only damping is whatever
+the world supplies - nothing, since G-42 killed the air-drag constant.
+
+HYPOTHESIS. A velocity-level row that zeroes relative angular velocity
+and then adds a bias proportional to the error is a P controller with
+implicit unit damping per substep, and with ANGULAR_BETA it overshoots
+and rings. The gluon's angular_damping (N m s / rad) belongs in the
+row: a bias term -damping * relative_omega / effective_inertia (the
+D of the PD), and the stiffness sets the P gain instead of the global
+ANGULAR_BETA. One change: the drive row reads its own gluon's two
+fields; ANGULAR_BETA stays for limits and dead zones. Measured on the
+drive test (settle error, hold error), test_rotation_cascade_yaw and
+the humanoid tests as guards.
+
+RUN 12 (verified, default on): body_coherence max 0.00000 over 5 rows,
+tile_sticking max 0.00000 over 2 rows. SWEEP alone: MOLES 44 (new-red
+1, gone-green 0, unaudited 43). The red is a HANG: test_physics_minimal_v2
+hit the 300 s deadline (rc None). A/B under a 60 s timeout, lever on
+and off, before anything else.
+
+RUN 12b (A/B under a perl alarm, no `timeout` on macOS).
+test_physics_minimal_v2 is a 16 x 16 x 16 stack of 0.5 m tiles (4096)
+plus a tree, frame-bounded at 1800 frames: lever off 18 s wall, all
+4096 at rest, PASS; lever on killed at 120 s still stepping. Not a
+hang - a cost, seven times or worse, that the walkers did not show
+(their floors are one layer, their rotated bodies few). Tracing the
+solve exits and row counts under both settings before deciding.
+
+RUN 12c (level-1 trace, 60 s each). Lever off: the 4096-tile stack is
+4096/4096 at rest by game frame 19 and the test exits (the 18 s). Lever
+on: 58 physics frames in 60 s and 0/4096 at rest - the stack never
+sleeps, so the frame-bounded loop runs its 1800 frames at ~1 s each:
+the 'hang'. A stack of slightly rotated tiles over sleeping tiles,
+each pair handed an 8 m strip, does not come to rest. The walkers
+could not show this (one layer, few rotated bodies). The reach goes
+back behind its lever, default off, with this evidence; the stack
+under strips is the RCA to do before it ships.

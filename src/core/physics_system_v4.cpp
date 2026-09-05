@@ -1758,11 +1758,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // it reads one surface. Refuted once (journal 9) when the family
                 // excluded the awake tile under the foot and the strip ended at the
                 // seam; with the family by coplanarity (journal 11) both walkers'
-                // force lines read 0.00000 N s. SEAM_MERGE_ORIENTED=0 restores the
-                // tile's own box for A/B.
+                // force lines read 0.00000 N s. RE-PARKED (journal 12c): a 16-cube
+                // stack of 4096 tiles, slightly rotated by settling, never sleeps
+                // when each tile over a sleeping tile is handed an 8 m strip
+                // (test_physics_minimal_v2: at rest by frame 19 without it, never
+                // with it). Default OFF until the stack under strips is understood;
+                // SEAM_MERGE_ORIENTED=1 enables.
                 static const bool merge_oriented = [] {
                     const char* v = std::getenv("SEAM_MERGE_ORIENTED");
-                    return !(v && v[0] == '0');
+                    return v && v[0] == '1';
                 }();
                 if (pj.is_at_rest && !obb_j) {
                     // A STRIP, NEVER AN L'S BOUNDING BOX (night 2026-09-04,
