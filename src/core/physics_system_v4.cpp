@@ -1708,28 +1708,27 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // that makes SAT pick the phantom boundary axis.
                 // Axis-aligned seam fix; the oriented path doesn't read aabb_j.
                 //
-                // THE MERGE'S OWN PREMISE (G-69, 2026-09-02): the widened box
-                // is the surface a body RESTS ON. It was applied to every
-                // awake body near a sleeping tile, including the tile's own
-                // coplanar siblings: a dirt tile touching a diagonal sibling
-                // at one corner lay inside that sibling's merged 12 x 12 m
-                // slab and read a 95 mm z-penetration (Eden's canary: 94 mm
-                // along z, then the shove into the layer below; case H: the
-                // awake centre tile lifted 20.7 mm at zero velocity, the
-                // diagonal sleepers sunk 5 mm). A body beside the surface is
-                // not on it: merge only when i's footprint overlaps j's OWN
-                // footprint by more than the adjacency epsilon on both
-                // tangent axes - the stone straddling a seam does, the
-                // sibling sharing an edge or a corner does not.
+                // THE MERGE'S PREMISE, STATED RIGHT (night 2026-09-04, journal 6).
+                // The widened box is the surface j's coplanar sleeping neighbours
+                // form with it; it is the right box for a body ON that surface
+                // and the wrong box for a body that is PART of it. Three tests:
+                //  (a) the body's bottom is at j's top plane, within the contact
+                //      margin - resting, landing, or embedded by error;
+                //  (b) the body is not a coplanar sibling of j (its z-extent
+                //      differs: case H's centre dirt tile beside its siblings);
+                //  (c) the body's footprint overlaps the MERGED footprint by more
+                //      than ADJ_EPS - it is somewhere on that surface. Footprint
+                //      overlap with j ALONE (2026-09-02) lost the foot crossing a
+                //      seam 4.6 mm before the next tile's edge (a 0.9 mm wall,
+                //      test_tile_sticking f260) and G's diagonal supports.
+                // The merged box is built first, then judged.
                 // SEAM_MERGE_PRECONDITION=0 restores the unconditional merge for A/B.
                 static const bool merge_precondition_off = [] {
                     const char* v = std::getenv("SEAM_MERGE_PRECONDITION");
                     return v && v[0] == '0';
                 }();
-                const bool rests_on_j = merge_precondition_off ||
-                    (std::fmin(max_xi, max_xj) - std::fmax(min_xi, min_xj) > ADJ_EPS &&
-                     std::fmin(max_yi, max_yj) - std::fmax(min_yi, min_yj) > ADJ_EPS);
-                if (pj.is_at_rest && !oriented_pair && rests_on_j) {
+                if (pj.is_at_rest && !oriented_pair) {
+                    AABB6 merged = aabb_j;
                     for (int cand_k : candidates) {
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
@@ -1749,13 +1748,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         bool x_aligned = std::abs(kx_min - min_xj) < ADJ_EPS && std::abs(kx_max - max_xj) < ADJ_EPS;
                         bool y_aligned = std::abs(ky_min - min_yj) < ADJ_EPS && std::abs(ky_max - max_yj) < ADJ_EPS;
                         if ((y_touch && x_aligned) || (x_touch && y_aligned)) {
-                            // Merge: expand j's effective AABB to include k
-                            aabb_j.min_x = std::min(aabb_j.min_x, kx_min);
-                            aabb_j.max_x = std::max(aabb_j.max_x, kx_max);
-                            aabb_j.min_y = std::min(aabb_j.min_y, ky_min);
-                            aabb_j.max_y = std::max(aabb_j.max_y, ky_max);
+                            merged.min_x = std::min(merged.min_x, kx_min);
+                            merged.max_x = std::max(merged.max_x, kx_max);
+                            merged.min_y = std::min(merged.min_y, ky_min);
+                            merged.max_y = std::max(merged.max_y, ky_max);
                         }
                     }
+                    const bool on_top   = std::fabs(min_zi - max_zj) <= CONTACT_MARGIN;
+                    const bool sibling  = std::fabs(min_zi - min_zj) <= COPLANAR_EPS &&
+                                          std::fabs(max_zi - max_zj) <= COPLANAR_EPS;
+                    const bool on_surface =
+                        std::fmin(max_xi, merged.max_x) - std::fmax(min_xi, merged.min_x) > ADJ_EPS &&
+                        std::fmin(max_yi, merged.max_y) - std::fmax(min_yi, merged.min_y) > ADJ_EPS;
+                    if (merge_precondition_off || (on_top && !sibling && on_surface)) aabb_j = merged;
                 }
 
                 ContactManifold manifold;

@@ -439,3 +439,31 @@ then decide with (a)(b)(c) whether to use it. Same lever
 SEAM_MERGE_PRECONDITION=0 (unconditional merge) for A/B. Measured on
 the two force lines, the jammed twin (G and H), the ladder, the
 oscillation diagnostic.
+
+RUN 6. test_jammed_sleep 17 -> 1 failure (A/B: 5 with the merge
+unconditional, 17 with the footprint precondition, 1 with 'on the
+surface'). Case G fully green - the four edge tiles land at 0.3750
+with their diagonal support rows back and no face-area rule. The one
+red: H's centre dirt tile rests at 0.498 against 0.495 (bar 2 mm; it
+was 0.516 with the merge unconditional, 0.495 with the footprint
+precondition). tile_sticking unchanged (12 rows, max 0.00000).
+body_coherence unchanged (5 rows, max 1.94480). Ladder 2, oscillation
+0.104858, falling cube green - untouched.
+
+RCA. H's 3 mm: the centre column's layer-2 tile is 5 mm thinner, and
+5 mm is exactly COPLANAR_EPS, so l11 joins l10's merged family and the
+merged plane sits at l10's top, 5 mm above d11's true support; the
+solver lifts it 3 mm. That is the merge's own tolerance made visible:
+'one plane within 5 mm' lifts a body on the lower tile by up to 5 mm,
+against INV-2's 2 mm. The engine's own geometric-error bar is SLOP
+(1 mm); Eden's tile families are generated at one z and the sleeper
+judge lands them within SLOP. body_coherence's catch: the foot is a
+ROTATED box, so its pairs go through the oriented narrow phase, and
+the merge lives only in the axis-aligned branch (`!oriented_pair`). A
+walking foot never sees a continuous surface. That is the structural
+gap behind every remaining seam catch of a humanoid.
+
+VERDICT 6. KEEP. Commit. NEXT: 7 - COPLANAR_EPS from 5 mm to SLOP in
+the registry (schema/physics.yaml, regenerated), H as the assert, G and
+the family as guards. Then 8 - the merge reaches the oriented path (an
+unrotated sleeping tile widened by its family before the OBB SAT).
