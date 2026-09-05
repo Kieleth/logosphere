@@ -776,3 +776,8 @@ line removed.
 VERDICT 11. KEEP the family rule. 12: un-park the oriented reach
 (SEAM_MERGE_ORIENTED default on; =0 kills), with the diagnostic's
 0.157 recorded against it. Then the sweep alone, then Eden alone.
+
+## 12. The oriented reach un-parked (default on)
+
+CHANGE (one). SEAM_MERGE_ORIENTED default on; =0 kills. Verified to
+reproduce run 11's lever-on numbers, then the sweep alone.

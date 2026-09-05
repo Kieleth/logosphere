@@ -1751,15 +1751,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // The tile under a foot is unrotated: its family's surface is
                 // built and judged here for any i, and the oriented SAT below
                 // receives it as an axis-aligned OBB in place of the tile's own.
-                // PARKED (night 2026-09-04, journal 9): handing the strip to the
-                // oriented SAT refuted itself - the oriented path takes the most
-                // separated FACE axis, a strip has ends, and a foot 30 mm past a
-                // tile's edge saw the strip's end as a wall (2.49 N s; the walker
-                // 0.000 -> 2.36 N s). The oriented path's speculative axis is the
-                // open question (journal 5a). SEAM_MERGE_ORIENTED=1 enables.
+                // THE STRIP REACHES THE ORIENTED PATH (night 2026-09-04, journals 9
+                // and 12). A walking foot is a rotated box; its pairs take the
+                // oriented SAT, which saw only the tile's own box and so met every
+                // seam as a wall. Handed the family's strip as an axis-aligned OBB
+                // it reads one surface. Refuted once (journal 9) when the family
+                // excluded the awake tile under the foot and the strip ended at the
+                // seam; with the family by coplanarity (journal 11) both walkers'
+                // force lines read 0.00000 N s. SEAM_MERGE_ORIENTED=0 restores the
+                // tile's own box for A/B.
                 static const bool merge_oriented = [] {
                     const char* v = std::getenv("SEAM_MERGE_ORIENTED");
-                    return v && v[0] == '1';
+                    return !(v && v[0] == '0');
                 }();
                 if (pj.is_at_rest && !obb_j) {
                     // A STRIP, NEVER AN L'S BOUNDING BOX (night 2026-09-04,
