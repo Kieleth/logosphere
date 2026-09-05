@@ -1738,3 +1738,17 @@ so the sweep does not count a coincidence as a mole, with the
 hollowness named; retire or restage is the owner's. The night's
 lesson stands in a sharper form: a fixture's comment is not a
 measurement - the door printed the mass, the test printed a story.
+
+RULINGS OWED, ADDED AFTER 20:
+  9. A NailGluon that says 'skeleton' is a hinge about X and Y on any
+     body (its only angular row is the scalar-Z path). Rows = DOFs
+     for nails: three angular rows or a rigid quaternion row at the
+     rest pose (GEDANKEN-75's companion). Every tree's branch nails
+     are in it.
+ 10. test_gluon_tree_v34: retire, or restage with the door's masses
+     and a B2 that does not overlap B1.
+
+FINAL SWEEP alone on the branch head (3e9b704 + this journal):
+  SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43).
+  The night ends on a clean verdict. Branch night/2026-09-04, on top
+  of fix/born-with-material (#173), pushed. Nothing merged by me.
