@@ -863,3 +863,28 @@ already exist in one path and be missing from the other - the
 asymmetry to measure first: the test's settle and hold numbers, then
 the same budget on the scalar path as the one change, then the
 humanoid tests as guards (their joints are scalar-Z drives).
+
+EDEN on the shipped state (11 on, 12 off), alone: steady 1115.2 ms
+(median 1079, p90 1391, p99 1818), all-frames 1075.3; end state 9027
+asleep / 223 quiet / 79 dissatisfied. Before iteration 11: steady
+704.6, all-frames 813.5, 9113 / 160 / 59. The family by coplanarity
+costs 410 ms per steady frame and ends less quiet.
+
+RCA. The merge widens per PAIR: a body over a family gets one
+full-face row per member whose strip covers it (the diagonal supports
+of case G are such rows). Sleeping members were the only ones
+included; iteration 11 adds the awake ones, and in Eden the awake
+tiles are exactly the ones under moving grass, trees and rocks - so
+the duplicate rows land where the work is, and the extra support
+over-corrects into jitter (more quiet-awake, more dissatisfied).
+Alone, 11 moved no test; it served only the parked reach. It does not
+pay.
+
+VERDICT 11 (revised). PARK behind SEAM_FAMILY_AWAKE=1 (default off,
+the sleeping-members family restored). Shipped: 1-4, 6-8. Parked with
+numbers: 5a, 9/12, 11. A body over a family getting N rows for one
+contact is the deeper defect under all three parked experiments: the
+merge should produce ONE row per body per surface, which is a
+different design (a surface as its own contact target) and the
+morning's question, not the night's. Eden re-measured alone after the
+park, then the sweep alone.

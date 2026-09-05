@@ -1780,13 +1780,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
                         const Particle& pk = particles[k];
-                        // THE FAMILY IS COPLANAR, NOT ASLEEP (night 2026-09-04, journal
-                        // 11): the tile under a walking foot is awake because it was
-                        // stepped on, not because it moved; excluding it made the
-                        // seam between it and the next tile the strip's end - a
-                        // 30 mm wall to the oriented SAT (test_body_coherence, physics
-                        // frame 140). Coplanarity within SLOP is the test of whether a
-                        // neighbour is still the floor.
+                        // PARKED (night 2026-09-04, journal 11, revised): including
+                        // awake coplanar neighbours in the family removed the walker's
+                        // seam wall - together with the parked oriented reach - and cost
+                        // Eden 410 ms per steady frame (705 -> 1115) with a less quiet
+                        // end state: the merge widens per PAIR, so a body over a family
+                        // gets one full-face row per member, and awake members are the
+                        // tiles under moving bodies. SEAM_FAMILY_AWAKE=1 includes them.
+                        static const bool family_awake = [] {
+                            const char* v = std::getenv("SEAM_FAMILY_AWAKE");
+                            return v && v[0] == '1';
+                        }();
+                        if (!family_awake && !pk.is_at_rest) continue;
                         float half_xk = pk.width * 0.5f, half_yk = pk.height * 0.5f, half_zk = pk.thickness * 0.5f;
                         float kx_min = pk.x - half_xk, kx_max = pk.x + half_xk;
                         float ky_min = pk.y - half_yk, ky_max = pk.y + half_yk;
