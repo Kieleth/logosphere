@@ -832,3 +832,22 @@ each pair handed an 8 m strip, does not come to rest. The walkers
 could not show this (one layer, few rotated bodies). The reach goes
 back behind its lever, default off, with this evidence; the stack
 under strips is the RCA to do before it ships.
+
+RUN 12d (the gate census under the reach, level-2, frames 42-43): 202
+dissatisfied, held by the contact-penetration gate (setter lines 2077
+and 2081), and the named ones are tiles of the bottom two layers (P235
+BRICK 0.5 x 0.5 x 0.1 at z 0.051 on the turtle, P508 at z 0.118), each
+against a partner tile. Reading: a tile micro-rotated by settling has
+a corner over its neighbour; against the neighbour's own box that
+corner is outside the clipped face and reports nothing, against the
+8 m strip it is inside the face and reports a 3-4 mm penetration; the
+correction rotates the tile, the neighbour answers, the layer couples
+and never sleeps. The strip tells a truth the raw box hid (the corner
+IS over the neighbour, IS below its plane) and the solver cannot rest
+on that truth at 32 iterations. Whether the corner's dip is real
+geometry (a tilted tile) or the strip's plane (COPLANAR_EPS lets a
+neighbour sit 1 mm lower) is the next canary, not tonight's.
+
+SWEEP alone with the reach re-parked: MOLES 43 (new-red 0,
+gone-green 0, unaudited 43). Shipped: 1-4, 6-8, 11. Parked with
+numbers: 5a, 9/12. test_physics_minimal_v2 passes in 18 s.
