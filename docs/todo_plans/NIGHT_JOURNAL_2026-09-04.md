@@ -1079,3 +1079,107 @@ VERDICT 14: KEEP (test + one comment, no engine behaviour change). The
   visit the tests that state the old one on the day it lands; the
   audit's 'known_open' held the truth for a month while the sweep
   counted the red as expected.
+
+## 15. test_gluon_3axis_drive_converges (INV-13, INV-26): the ring-down
+
+TARGET: booked 'hold through an impact' (fixture) + 'a real change in
+post-impact ring-down amplitude under the single law' (mechanism), two
+readings for the owner. The header of the test itself says the scene
+is not the conversion's to change; the hold window stays as it is.
+
+15a BASELINE on this binary: free flight exact (|q_err| 0.0021 by f20,
+|w_rel| 0, pair spin 0), turtle strike f61 at 9.68 m/s; post-impact
+max hold |q_err| 0.1412 (budget 0.0785), band 0.1392, final 0.0043,
+nail 0.3000 -> 0.2721 m. The booking of 2026-09-01 read 0.0666 for the
+same band: it has doubled since, base unknown.
+
+15b BISECT BY LEVERS, one binary, seven runs:
+  DEFAULT, SLEEPER_JUDGE=0, SEAM_MERGE_PRECONDITION=0,
+  SEAM_OBB_FACES_FIRST=0, CREATION_DOOR=0, LOGOSPHERE_QUAT_TRUTH=0:
+      all BIT-IDENTICAL (max hold 0.1412, band 0.1392, f70 line equal).
+  SINGLE_LAW_GATE=0: max hold 0.0610, band 0.0589, final 0.0067,
+      nail final 0.1757 m (worse: 42 % compression against 0.2721).
+  Nothing of the night's or the stack's touches it. The single-law
+  position gate (v4.cpp:5464, dead zone SLOP*BETA instead of SLOP,
+  'the gate says what it meant') is the whole difference: it halves
+  the angular ring-down when off and lets the nail crush when off.
+  Reading: the position pass repairs bond rows too (the nail's length
+  is held by it under a 9.7 m/s strike), and something in that pass
+  feeds the drive's ring-down. INV-13's own sentence: 'the controller
+  never fights a second controller'. Next: read the pass's angular
+  half; is a drive row corrected twice (velocity bias + position)?
+
+Census on the way (bookings corrected in TEST_AUDIT, no code):
+  test_ramp_race: both spin asserts PASS; the D2 reading retired. Its
+    two reds are G-46's and compare travel distances that saturate at
+    the ramp's bottom (both racers at rest there, 0.003 m); peak
+    speeds say the sphere is the faster (6.722 vs 6.639 m/s). Fixture
+    question for the owner.
+  test_cube_drop_ladder: R0-R4 green in default; the reds are R5/R6,
+    a spinning cube never WALKS (spin buys no translation): G-46's
+    family. Booked.
+
+15c READING OF THE MECHANISM (code, no run).
+  The 'second controller' hypothesis is REFUTED by the code: the drive's
+  rows have a finite torque budget (k 200, c 12: tb = (k|e| + c|w|) dt),
+  so they are spring rows; spring rows keep their bias in the velocity
+  solve (v4.cpp:4087, 'CONSTRAINTS split, SPRINGS don't') and the
+  angular position pass skips them outright (v4.cpp:5364, 'repairing
+  them here too would double-apply the force'). The single-law gate
+  (5464) lives in the LINEAR pass only. So the lever reaches the drive
+  through the nail's distance row and the turtle rows: with the 1 mm
+  dead zone the nail is held (0.2721 m final) and the crash energy
+  stays in the pair's rotation (max 0.1412); with the 3.5 mm dead zone
+  the nail creeps under the pair's weight to 0.1757 m (42 % crush) and
+  the rotation rings half as much. The gate on is right; the ring-down
+  is the price of a held nail after a 9.7 m/s strike. What the 120
+  frames do not say: at f110 the pair still rocks (|w_rel| 0.95 rad/s,
+  vzA -0.048 at f100), fifty frames after impact. Settling or limit
+  cycle? The booking's missing-law candidate needs that number.
+CHANGE 15 (instrument, test-only): DRIVE_FRAMES=N runs the scene longer;
+  default 120 unchanged, asserts unchanged. Run at 480.
+
+RUN 15 (DRIVE_FRAMES=480; default 120 rerun bit-identical: 0.1412 /
+0.1392). NOT A RING-DOWN. From f190 to f470 the pair's |w_rel| sits
+at 0.86 -> 1.12 -> 0.95 rad/s, never below 0.23 after f120, with
+|w_A + w_B| EQUAL to |w_rel| to four decimals every printed frame
+(f190..f470). The drive error holds 0.020-0.024 rad; the nail creeps
+0.2746 -> 0.1883 m (f190 -> f470); zA 0.053 -> 0.086; vzA 0.000.
+Final at f479: |q_err| 0.0200, |w_rel| 0.9156 rad/s, nail 0.1817 m.
+
+RCA 15 (canary at f300, both bodies; AUTHORITY_DEBUG on both).
+  The scene after the strike: A on the turtle (z 0.054, two turtle
+  rows), B on top of it (z 0.312, no contact), held up at the drive's
+  45 deg: a CANTILEVER, B's weight on the joint - the load INV-13
+  names, arrived at by crash.
+  1. The quaternion drive is ONE row per joint (v4.cpp:2921-3076),
+     along the current Rodrigues error axis, budget [-inf, inf] here
+     because the test's gluon is not force_bounded(); NO row at all
+     when e_mag < 1e-6. The comment above it (2774-2786) describes
+     three world-axis rows; the code builds one along e.
+  2. The nail's three anchor rows carry lever arms. AUTHORITY on B at
+     f300: angular-drive -4.42 rad/s per solve, linear-anchor +2.73,
+     net -1.69 (on A: +0.17 / -1.01). Two rows correcting each other,
+     the pivot-law comment's own words (v4.cpp:4113).
+  3. Along the row's axis the solve CONVERGES: w_rel -1.110 (I0) ->
+     -0.018 (I24), 25 iterations. But at the substep's end
+     omega_A = (-0.51, +0.54, -1.05), omega_B = (-0.63, -0.44, -0.36):
+     the relative spin (0.12, 0.98, -0.70), 1.2 rad/s, is PERPENDICULAR
+     to the row's axis (0.99, -0.14, -0.01) - its projection is -0.011.
+     Nothing in the solve touches it: the drive's damping c acts along
+     the error axis only.
+  4. That perpendicular spin integrates 1.1/60 = 0.018 rad per frame
+     - the standing error 0.020-0.024 is that number - and the angular
+     position pass repairs the angle each frame (pseudo-omega
+     discarded) while the spin itself is never taken out. A limit
+     cycle held at velocity level and masked at position level; the
+     'correction that fires forever' of INV-24, measured. The energy
+     is B's cantilevered weight through the anchor rows
+     (force-at-anchor makes torque).
+  VERDICT 15: the booking's 'missing law: settling band' is answered
+  by a mechanism gap, not a missing number: a driven joint's damping
+  must act on the whole relative angular velocity, not on its
+  projection onto the error axis. The comment already says so (three
+  world-axis rows). One change for 16, behind a lever: the drive
+  builds its three rows. Instrument kept: DRIVE_FRAMES, and the
+  per-frame line now prints both omegas.

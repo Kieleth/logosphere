@@ -95,6 +95,7 @@
 #include "core/argus.h"
 #include "generated/physics_constants.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -172,7 +173,14 @@ bool test_gluon_3axis_drive_converges() {
     argus.watch(b_id, "B/child");
 
     const float dt = 1.0f / 60.0f;
-    constexpr int FRAMES = 120;
+    // DRIVE_FRAMES=N runs the scene longer (diagnostic, night 2026-09-04,
+    // journal 15): does the post-impact rocking settle or limit-cycle? The
+    // asserts keep their windows; the default is the test as always.
+    const int FRAMES = [] {
+        const char* e = std::getenv("DRIVE_FRAMES");
+        const int n = e ? std::atoi(e) : 0;
+        return n > 0 ? n : 120;
+    }();
     constexpr int HOLD_START = 60;
 
     float max_err_settle = 0.0f;
@@ -279,9 +287,11 @@ bool test_gluon_3axis_drive_converges() {
 
         if (f % 10 == 0) {
             printf("  [f%3d] %s  |q_err| %+.4f rad  sep %.4f  |w_rel| %.4f  "
-                   "|w_A+w_B| %.4f  zA %+.3f  vzA %+.3f\n",
+                   "|w_A+w_B| %.4f  zA %+.3f  vzA %+.3f"
+                   "  wA (%+.2f,%+.2f,%+.2f)  wB (%+.2f,%+.2f,%+.2f)\n",
                    f, f < HOLD_START ? "drive-up" : "hold    ",
-                   err, sep, rel_spin_final, pair_spin, sa->z, sa->vz);
+                   err, sep, rel_spin_final, pair_spin, sa->z, sa->vz,
+                   sa->ox, sa->oy, sa->oz, sb->ox, sb->oy, sb->oz);
             argus.narrate(std::cout, a_id);
             argus.narrate(std::cout, b_id);
         }
