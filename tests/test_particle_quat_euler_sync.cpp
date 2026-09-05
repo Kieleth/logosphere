@@ -15,9 +15,16 @@
 //   A. quat-driven particle with a seeded non-identity rotation_q and
 //      zero omega. After one physics step, rotation_q is unchanged and
 //      rotation_x/y/z match to_euler_zyx(rotation_q).
-//   B. non-quat-driven particle with the same seeded rotation_q. After
-//      one step, rotation_q is NOT copied into Euler — the Euler triple
-//      stays at whatever it was (the legacy path owns that particle).
+//   B. DYNAMIC particle, not quat-driven, same seeded rotation_q. Under
+//      quaternion truth (the flip, owner ruling 2026-08-19, default ON,
+//      LOGOSPHERE_QUAT_TRUTH=0 the kill switch) every DYNAMIC body
+//      publishes its Euler triple from rotation_q: one orientation
+//      whichever field a consumer reads. Same expectation as A.
+//   C. KINEMATIC particle, same seed. The flip's publish excludes
+//      KINEMATIC (G-38): its external writer owns both ledgers, so the
+//      Euler triple stays at zero.
+//   Rewritten to the ruled world in the night of 2026-09-04 (journal 14);
+//   the pre-flip law 'B stays at zero' had been red since the flip.
 //
 // Run: ./build/logosphere-tests --test test_particle_quat_euler_sync --no-head
 // =============================================================================
@@ -76,6 +83,15 @@ bool test_particle_quat_euler_sync() {
     b.is_at_rest = false;
     int b_id = engine.add_particle(b);
 
+    // Scene C: KINEMATIC body, same seed; the publish must leave it alone.
+    Particle c = {};
+    c.shape = ParticleShape::BOX;
+    c.x = 4.0f; c.y = 0.0f; c.z = 10.0f;
+    c.width = 0.1f; c.height = 0.1f; c.thickness = 0.1f;
+    c.SetMaterial(Materials::Type::STONE);
+    c.solver_mode = ParticleSolverMode::KINEMATIC;
+    int c_id = engine.add_particle(c);
+
     // Flip A into quat-driven mode + seed rotation_q. Do the same seed on
     // B (but leave is_quat_driven=false) to prove the solver doesn't touch
     // Euler on non-opted-in particles.
@@ -85,6 +101,7 @@ bool test_particle_quat_euler_sync() {
         view[a_id].is_quat_driven = true;
         view[b_id].rotation_q = seed_q;
         // view[b_id].is_quat_driven stays false
+        view[c_id].rotation_q = seed_q;
     }
 
     const float dt = 1.0f / 60.0f;
@@ -103,6 +120,7 @@ bool test_particle_quat_euler_sync() {
         auto v = ps.lock_particles_for_read();
         const Particle& pa = v[a_id];
         const Particle& pb = v[b_id];
+        const Particle& pc = v[c_id];
 
         printf("  A: is_quat_driven=%s solver_mode=%s at_rest=%s\n",
                pa.is_quat_driven ? "true" : "false",
@@ -120,16 +138,23 @@ bool test_particle_quat_euler_sync() {
         ok &= approx_eq(pa.rotation_y, ey, 1e-4f, "A.rotation_y", max_err);
         ok &= approx_eq(pa.rotation_z, ez, 1e-4f, "A.rotation_z", max_err);
 
-        printf("  B (legacy):         rot_q=(%+.3f,%+.3f,%+.3f,%+.3f) euler=(%+.4f,%+.4f,%+.4f)\n",
+        printf("  B (DYNAMIC):        rot_q=(%+.3f,%+.3f,%+.3f,%+.3f) euler=(%+.4f,%+.4f,%+.4f)\n",
                pb.rotation_q.w, pb.rotation_q.x, pb.rotation_q.y, pb.rotation_q.z,
                pb.rotation_x, pb.rotation_y, pb.rotation_z);
 
-        // B should have Euler untouched (all zeros) even though rotation_q
-        // was seeded — the solver must not write Euler on non-quat-driven
-        // particles.
-        ok &= approx_eq(pb.rotation_x, 0.0f, 1e-4f, "B.rotation_x (legacy, must stay 0)", max_err);
-        ok &= approx_eq(pb.rotation_y, 0.0f, 1e-4f, "B.rotation_y (legacy, must stay 0)", max_err);
-        ok &= approx_eq(pb.rotation_z, 0.0f, 1e-4f, "B.rotation_z (legacy, must stay 0)", max_err);
+        // B is DYNAMIC: under quaternion truth its Euler triple is published
+        // from rotation_q like A's (one orientation, whichever field).
+        ok &= approx_eq(pb.rotation_x, ex, 1e-4f, "B.rotation_x (DYNAMIC publishes)", max_err);
+        ok &= approx_eq(pb.rotation_y, ey, 1e-4f, "B.rotation_y (DYNAMIC publishes)", max_err);
+        ok &= approx_eq(pb.rotation_z, ez, 1e-4f, "B.rotation_z (DYNAMIC publishes)", max_err);
+
+        printf("  C (KINEMATIC):      rot_q=(%+.3f,%+.3f,%+.3f,%+.3f) euler=(%+.4f,%+.4f,%+.4f)\n",
+               pc.rotation_q.w, pc.rotation_q.x, pc.rotation_q.y, pc.rotation_q.z,
+               pc.rotation_x, pc.rotation_y, pc.rotation_z);
+        // C is KINEMATIC: the publish excludes it (G-38), its writer owns both.
+        ok &= approx_eq(pc.rotation_x, 0.0f, 1e-4f, "C.rotation_x (KINEMATIC, untouched)", max_err);
+        ok &= approx_eq(pc.rotation_y, 0.0f, 1e-4f, "C.rotation_y (KINEMATIC, untouched)", max_err);
+        ok &= approx_eq(pc.rotation_z, 0.0f, 1e-4f, "C.rotation_z (KINEMATIC, untouched)", max_err);
     }
 
     printf("\n  Max abs err: %.2e\n", max_err);

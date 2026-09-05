@@ -6612,7 +6612,8 @@ void PhysicsSystem::integrate_angular_velocities(ParticleSystem::WriteView& part
         // Under the quat-truth lever every DYNAMIC body publishes, so a
         // body has one orientation whichever field a consumer reads
         // (G-23's red, the frozen twin). KINEMATIC stays with its
-        // external writer. Default OFF: bit-identical to the old gate.
+        // external writer. Default ON (owner ruling 2026-08-19);
+        // LOGOSPHERE_QUAT_TRUTH=0 is the kill switch, the old gate.
         if (p.is_quat_driven ||
             (quat_truth_ && p.solver_mode == ParticleSolverMode::DYNAMIC)) {
             // + 0.0f canonicalizes IEEE negative zero: to_euler_zyx of the

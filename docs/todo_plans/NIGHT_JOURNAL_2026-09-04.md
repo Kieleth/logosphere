@@ -1028,3 +1028,54 @@ VERDICT 13: KEEP (test-only, two changes of fixture, no engine change).
 
 NEXT 14: test_particle_quat_euler_sync, the same seam's own test (its
   law 'B.rotation_z (legacy, must stay 0)' predates the flip).
+
+## 14. test_particle_quat_euler_sync (touches INV-13): the stale law
+
+TARGET: booked 'STALE LAW 2026-08-20: asserts the pre-flip split (legacy
+rotation_z must stay 0); the quat-truth publish now writes it honestly.
+Rewrite to the ruled world owed.'
+
+BASELINE (14a, same binary as 13d): scene A green (quat-driven body,
+euler (+0.1654,+0.1950,-0.3252) = to_euler_zyx(seed)); scene B red on
+all three axes: the non-quat-driven body reads the SAME triple, the
+test expects zeros. Max abs err 3.25e-01.
+
+RCA: the ruled world, read from the code, not the booking.
+  physics_system.h:626 `quat_truth_ = true; // DEFAULT ON, owner ruling
+  2026-08-19`; physics_system_v4.cpp:271 LOGOSPHERE_QUAT_TRUTH=0 the
+  kill switch; the publish (v4.cpp:6616) fires for `is_quat_driven ||
+  (quat_truth_ && DYNAMIC)`: every DYNAMIC body publishes its Euler
+  triple from rotation_q (G-23's frozen twin was the red that ruled
+  it); KINEMATIC stays with its external writer (G-38: a KINEMATIC FK
+  bone carries a stale quaternion; that exclusion is what still keeps
+  is_quat_driven alive, PHYSICS_BOARD 351-366). Scene B's zeros were
+  the law BEFORE the flip. The comment at the publish site itself still
+  said 'Default OFF: bit-identical to the old gate' - a stale sentence
+  at the very site the test proves.
+
+CHANGE 14 (test + one comment): scene B keeps its body (DYNAMIC, not
+quat-driven) and expects the published triple, same as A; scene C is a
+KINEMATIC body with the same seed whose Euler must stay at zero (the
+flip's exclusion, asserted for the first time here); the publish
+site's comment says Default ON and names the kill switch. No engine
+behaviour change. Expected: A, B, C green.
+
+RUN 14b (provenance: 'test patched' + 'comment corrected' + the C line
+in the output). GREEN.
+  A (quat-driven, DYNAMIC): euler (+0.1654,+0.1950,-0.3252) = expected
+  B (DYNAMIC, not quat-driven): the same triple, published
+  C (KINEMATIC): euler (+0.0000,+0.0000,+0.0000), rot_q seeded, untouched
+  Max abs err 0.00e+00. PASS.
+
+VERDICT 14: KEEP (test + one comment, no engine behaviour change). The
+  test now states the flip as it is ruled: every DYNAMIC body has one
+  orientation whichever field a consumer reads; a KINEMATIC body's two
+  ledgers belong to its writer (G-38's exclusion, asserted for the
+  first time). The booking's 'rewrite owed' is paid. 14c: the B print
+  label 'legacy' -> 'DYNAMIC' before the commit (rebuilt and rerun).
+  Less-is-more note: two tests, one lesson. Both reds of the night's
+  second half were laws written before a ruling (G-39's gate, the
+  flip) and never re-read after it. A ruling that changes a law should
+  visit the tests that state the old one on the day it lands; the
+  audit's 'known_open' held the truth for a month while the sweep
+  counted the red as expected.
