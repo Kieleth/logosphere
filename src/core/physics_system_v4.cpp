@@ -3011,8 +3011,30 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     const char* e = std::getenv("DRIVE_ROWS");
                     return (e && e[0] == '3' && e[1] == '\0') ? 3 : 1;
                 }();
-                if (drive_rows == 3) {
+                // DRIVE_ROWS_DIAG_SKIP_KIN_B=1: diagnostic only (journal 16e).
+                // A joint whose body_b is KINEMATIC falls back to the one row.
+                // a/b is no parent-child convention; this is a scalpel for one
+                // measurement: is the elbow's three-row weld to the FK forearm
+                // what locks the physics-driven shoulder?
+                static const bool diag_skip_kin_b =
+                    std::getenv("DRIVE_ROWS_DIAG_SKIP_KIN_B") != nullptr;
+                // THE SCOPE (journal 16f): a joint row damps only what the
+                // solver can see. A KINEMATIC endpoint is FK-owned; its spin
+                // is not in the ledger (G-38), so a complete three-row drive
+                // against it welds the DYNAMIC side to a ghost at rest - the
+                // elbow's rest-pose drive undid the shoulder's impulses to the
+                // last digit. Three rows only when both endpoints are DYNAMIC;
+                // a joint with an FK side keeps the one row it always had.
+                const bool both_dynamic =
+                    pa.solver_mode == ParticleSolverMode::DYNAMIC &&
+                    pb.solver_mode == ParticleSolverMode::DYNAMIC;
+                if (drive_rows == 3 && both_dynamic &&
+                    !(diag_skip_kin_b && pb.solver_mode == ParticleSolverMode::KINEMATIC)) {
                     const float ecomp[3] = {ex, ey, ez};
+                    const float bias_mag_raw = ANGULAR_BETA * e_mag / dt;
+                    const bool  bias_capped  = bias_mag_raw > PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY;
+                    const float bias_scale   = bias_capped
+                        ? PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY / bias_mag_raw : 1.0f;
                     const float wcomp[3] = {pa.omega_x - pb.omega_x,
                                             pa.omega_y - pb.omega_y,
                                             pa.omega_z - pb.omega_z};
@@ -3030,9 +3052,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         if (Ia3 > 0.0f) inv3 += 1.0f / Ia3;
                         if (Ib3 > 0.0f) inv3 += 1.0f / Ib3;
                         if (inv3 > 0.0f) c_k.effective_inertia = 1.0f / inv3;
-                        const float bk = ANGULAR_BETA * ecomp[k] / dt;
-                        c_k.angular_bias = std::max(-PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY,
-                                                    std::min(PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY, bk));
+                        // Cap the bias VECTOR's magnitude, never its components:
+                        // a per-axis cap gave the smallest error component the
+                        // same 4 rad/s as the largest and turned a 0.05 rad twist
+                        // into a third of the commanded motion, into the torso's
+                        // contacts, which refused all of it (journal 16d).
+                        c_k.angular_bias = ANGULAR_BETA * ecomp[k] / dt * bias_scale;
+                        c_k.angular_bias_saturated = bias_capped;
                         if (gluon->force_bounded()) {
                             const float tb = (gluon->angular_stiffness * std::fabs(ecomp[k]) +
                                               gluon->angular_damping * std::fabs(wcomp[k])) * dt;
@@ -4131,7 +4157,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // 0.018 -> 0.034 rad across the hold window.
                 const bool contact_coupled =
                     body_in_contact[c.body_a] || body_in_contact[c.body_b];
-                const bool saturated = std::fabs(c.angular_bias) >=
+                const bool saturated = c.angular_bias_saturated ||
+                    std::fabs(c.angular_bias) >=
                     PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY * 0.999f;
                 float effective_angular_bias = c.angular_bias;
                 if (ENABLE_SPLIT_IMPULSE && !ang_split_off &&
@@ -4206,6 +4233,11 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                               << " bias=" << c.angular_bias
                               << " dL=" << angular_impulse
                               << " acc=" << c.accumulated_angular_impulse
+                              << " Ia=" << I_a << " Ib=" << I_b
+                              << " inv=" << applied_inv_inertia
+                              << " mode=" << (int)pa.solver_mode << "/" << (int)pb.solver_mode
+                              << " wa=(" << pa.omega_x << "," << pa.omega_y << "," << pa.omega_z << ")"
+                              << " wb=(" << pb.omega_x << "," << pb.omega_y << "," << pb.omega_z << ")"
                               << std::endl;
                 }
 
@@ -5417,8 +5449,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     if (std::isfinite(c.min_angular_impulse) ||
                         std::isfinite(c.max_angular_impulse)) continue;
                     if ((body_in_contact[c.body_a] || body_in_contact[c.body_b]) &&
-                        std::fabs(c.angular_bias) >=
-                            PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY * 0.999f) continue;
+                        (c.angular_bias_saturated ||
+                         std::fabs(c.angular_bias) >=
+                            PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY * 0.999f)) continue;
                     if (c.angular_bias == 0.0f) continue;   // dead-zone rows couple velocity only
                     // Tolerance, same law as SLOP: bias*dt is the rotation this
                     // pass wants; under the floor it is float residue.

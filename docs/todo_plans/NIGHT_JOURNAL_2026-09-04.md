@@ -1237,3 +1237,186 @@ VERDICT 16: MECHANISM CONFIRMED BY INTERVENTION. The standing spin, the
   because every live humanoid drive goes through this branch: the
   jury is the sweep under the lever (alone) and a paired Eden A/B on
   one binary; the flip of the default is the owner's ruling.
+
+## STANDING SUMMARY FOR THE MORNING (after 16; the sweep under the
+## lever runs alone as this is written)
+
+Shipped on night/2026-09-04 (defaults byte-identical where it says so):
+  1-4, 6-8, 11 (seams, telemetry, strip merge); 13 (drive test in the
+  ruled world); 14 (quat/euler sync test states the flip); 15
+  (DRIVE_FRAMES instrument, omegas printed, three bookings corrected).
+Parked behind levers: 5a SEAM_SPECULATIVE_FACE, 9/12 SEAM_MERGE_ORIENTED,
+  11 SEAM_FAMILY_AWAKE, 16 DRIVE_ROWS=3 (default 1).
+
+THE NIGHT'S TWO LESSONS.
+  A. Three reds of the second half (13, 14, and the 3-axis booking's
+     'ring-down') were laws written before a ruling and never re-read
+     after it: G-39's apply gate, the flip, the hold-through-an-impact
+     fixture. The sweep counted each as an expected red for a month.
+     A ruling that changes a law should visit the tests that state
+     the old law the day it lands.
+  B. The drive's standing error under load was never stiffness or
+     damping: a driven joint built ONE row along its error axis, so the
+     relative spin perpendicular to it was damped by nothing, integrated
+     each frame, and repaired back by the position pass - a limit cycle
+     at velocity level, invisible at position level. Three rows (rows =
+     DOFs) close it and the pair sleeps. No new constant. Reference
+     for the morning: feat/joint-block-solver assembles 3 anchor rows +
+     1 drive row per joint into one block; with three drive rows the
+     block is 6x6. The two are complementary (simultaneity vs
+     completeness), and 16 alone already sleeps the cantilever.
+
+OWNER RULINGS OWED (new tonight):
+  - DRIVE_ROWS=3 as the default (INV-13's mechanism), on the sweep under
+    the lever and a paired Eden A/B - both run tonight, results below.
+  - The 3-axis test's hold window (hold through a 9.7 m/s strike): keep
+    as a crash test, or move the hold into free flight and assert the
+    settled cantilever separately (16 makes the second one green).
+  - test_ramp_race's G-46 asserts compare travel that saturates at the
+    ramp's bottom; the race is in the peak speeds (sphere 6.722 vs cube
+    6.639 m/s). Fixture question.
+  - The five hand-negated Z quaternions in the engine (journal 13): one
+    named bridge, zero behaviour change. Simplification, not a fix.
+  - INV-12's wording (count vs force), from iteration 3, still owed.
+
+SWEEP under DRIVE_ROWS=3, alone (360 binaries):
+  SWEEP_VERDICT: MOLES 45 (new-red 1, gone-green 1, unaudited 43)
+  gone-green: test_gluon_3axis_drive_converges (16's own).
+  new-red:    test_physics_drive_two_joints (INV-13: Eva's neck on the
+              scalar path and her right shoulder on the quat path
+              driven at once, 30 deg flex about X with 20 deg abduct
+              about Y, settle within 5 % after 3 s, hold 1 s).
+  The lever's cost on a live humanoid joint. RCA below.
+
+RUN 16b: test_physics_drive_two_joints, one binary, lever off / on.
+  DRIVE_ROWS=1: neck err 0.0009 (f20) -> 0.0000; shoulder err 0.6319
+    -> 0.4402 (f20) -> 0.2094 (f40) -> 0.1531 (f60) -> 0.0297 (f80)
+    -> 0.018-0.026 standing (the booked loaded-shoulder error).
+  DRIVE_ROWS=3: neck 0.0017 -> 0.0023 (slightly worse, a cross-talk);
+    shoulder 0.6319 -> 0.6057 -> 0.6072 -> 0.6255 -> 0.6737 -> 0.6963:
+    NEVER STARTS. Not a slow divergence, a joint that does not move.
+  So the three rows work on a free pair (STONE cubes, unbounded
+  budget) and fail on a loaded, force-bounded humanoid joint. RCA by
+  canary on the shoulder's rows.
+
+16c. Reading the shoulder (instruments; two test prints added).
+  The joint: 'right_shoulder' k_ang 2000, c_ang 60, force_bounded=0
+  (a nail-class gluon, not an OrganicGluon): so its drive rows are
+  CONSTRAINT rows, budget [-inf, inf], bias capped at
+  MAX_ANGULAR_BIAS_VELOCITY = 4 rad/s, bias sent to the position pass
+  unless the body is contact-coupled and the row saturated.
+  Canary provenance: the arm's index moves. The solver ran 420 times;
+  a canary on P3701 (the test's id at setup) printed 24 frames and
+  then followed a swapped-out particle. The test's own ids follow the
+  strata's swap-pops through its callback; a canary pid does not. The
+  test now prints [ids-final] after the run; the canary uses that id
+  and the drive's start frame found by scanning e_mag.
+  Suspect before reading: my per-axis clamp of the bias distorts the
+  commanded direction (each axis capped at 4 rad/s independently: e =
+  (0.52, 0.35, 0) commands (4, 4, 0)/dt-wise instead of e/|e|), where
+  the one-row cap preserves it. The cure would be a cap on the vector's
+  magnitude, distributed per axis - a fix of the lever's own
+  arithmetic, not a new mechanism. To be read, not assumed.
+
+16d. THE READING (canary P914 at F101, the drive 40 solver frames in;
+     ANGSOLVE line extended with Ia, Ib, applied inverse inertia, modes,
+     both omegas after the write).
+  The bridge P910 is KINEMATIC (mode 1), the arm P914 DYNAMIC; only the
+  arm receives impulses (Ib 0.0084 about X and Y, 0.00065 about Z).
+  DRIVE_ROWS=3, iteration 0: the X row writes wb = (4, 0, 0); the Y row
+  wb = (4, 4, 0); the Z row wb = (4, 4, -4). The rows LAND. Iteration
+  1: the X row measures w_rel -4e-9 and writes (4, 0, 0) again -
+  between iterations the arm's spin went back to zero. Thirty-two
+  identical applies, acc -1.078 on X, the arm never moves.
+  DRIVE_ROWS=1: the one row writes wb = -4 * axis = (2.49, 3.12,
+  -0.43); iteration 1 measures +0.66 (not zero), iteration 2 +1.25, and
+  by iteration 31 +3.95: the drive wins against the same contacts.
+  WHY: the error at F101 is e = 0.437 * (-0.674, -0.731, +0.105); the
+  raw per-axis biases are (-28, -30.6, +4.4) rad/s; capped PER AXIS
+  they become (-4, -4, +4): the Z component, 0.046 rad of twist, gets
+  the weight of the 0.3 rad flex and abduct, and the commanded motion
+  is a third twist about world Z - the arm swung into the torso. Its
+  four grazing bone contacts (contact block, r x J) refuse exactly that
+  and zero the spin every iteration; the row measures zero and repeats.
+  The one-row path caps the MAGNITUDE and keeps the direction. My
+  lever's arithmetic was the defect, not the three rows.
+CHANGE 16d (lever arithmetic + one flag): the bias vector is capped by
+  magnitude, scale = MAX / (beta |e| / dt) when over, applied to every
+  component; the three rows share `angular_bias_saturated` (new field
+  on Constraint, never set on the default path) so the split law's
+  'saturated + contact-coupled -> motion through momentum' reads the
+  vector's saturation as the one-row path reads |bias|. Both
+  predicates (velocity split, position pass) OR the flag in. Default
+  path byte-identical by construction (flag false, predicates
+  unchanged). Measured next: two-joints both ways, 3-axis default
+  (must read 0.1412 / 0.1392) and lever, one-axis lever.
+
+RUN 16d: the magnitude cap changed the numbers, not the outcome.
+  two-joints default: PASS (neck 0.0000, shoulder hold max 0.0363);
+  DRIVE_ROWS=3: shoulder 0.6319 -> 0.6104 -> 0.6615 -> 0.6547, FAIL.
+  3-axis default 0.1412 / 0.1392 (byte-identical), lever 0.0110 /
+  0.0089 PASS; one-axis lever PASS. The direction distortion was real
+  and is fixed; it was not what locks the arm.
+
+16e. THE READING, second canary at F101 with the capped rows.
+  The shoulder's rows now write wb = (3.24, 2.27, -0.57) = -4 * axis,
+  the one-row's own vector. Iteration 1 measures zero again. The rows
+  that follow in the same iteration: P914<->P915, the ELBOW, upper arm
+  (DYNAMIC) to forearm (KINEMATIC, mode 1), three rows with bias
+  (-1e-5, 2e-4, -7e-3): a rest-pose drive at its target. They measure
+  w_rel = (3.24, 2.27, -0.57) against the forearm's zero and write
+  dL = (-0.0273, -0.0191, +0.00037): the shoulder's impulses, undone
+  to the last digit. The forearm is FK-owned; the solver's ledger says
+  it does not spin (G-38: a KINEMATIC bone carries a stale ledger).
+  Three complete rows make that rest-pose drive a WELD to the FK
+  forearm's world orientation. In the one-row world the elbow's single
+  row lies along its own error axis (error ~1e-4, an axis of numerical
+  noise) and welds one direction; the shoulder wins along the other
+  two. That is why the humanoid's drives converge today, and a
+  candidate for the shoulder's standing error under load (0.02-0.036):
+  a one-axis fight with its own forearm, not the arm's weight.
+CHANGE 16e (diagnostic sub-lever, proves the cause by intervention):
+  DRIVE_ROWS_DIAG_SKIP_KIN_B=1 builds the one row instead of three for
+  a joint whose body_b is KINEMATIC (the elbow here; the shoulder's
+  KINEMATIC end is body_a). Not a law - a/b is no parent-child
+  convention - a scalpel for one measurement.
+
+RUN 16e (scalpel DRIVE_ROWS_DIAG_SKIP_KIN_B=1 with DRIVE_ROWS=3): the
+  shoulder MOVES: 0.6319 -> 0.5337 (f20) -> 0.4951 -> 0.4751 -> 0.4435
+  -> 0.3633 (f100) -> 0.2991 -> 0.1771 -> 0.1426 (f160). Hold max
+  0.2991, FAIL. Default unchanged (0.0363, PASS). The elbow's weld was
+  the lock, by intervention. What the scalpel does not explain: the
+  three-row shoulder converges four times slower than the one row
+  (0.14 at f160 against 0.03 at f80), with the wrist and hand still
+  one-row welds along noise axes. Unmeasured; booked.
+
+16f. THE SCOPE (the rule the measurements point to, replacing the
+  scalpel's job; the scalpel stays as the diagnostic it is):
+  a joint row damps only what the solver can see. A KINEMATIC endpoint
+  is FK-owned and its spin is not in the ledger (G-38's stale twin);
+  a complete drive against it welds the DYNAMIC side to a ghost at
+  rest. Under DRIVE_ROWS=3 the three rows are built only when BOTH
+  endpoints are DYNAMIC; a joint with an FK side keeps the one row it
+  always had. Not an edge case on a body: a scope by solver visibility,
+  the same kind of scope the block solver takes (force_bounded joints).
+  Expected: two-joints under the lever = the default's numbers exactly
+  (every joint of Eva's rig has an FK side in that test); the 3-axis
+  cantilever (both DYNAMIC) keeps its green; the one-axis test green.
+  Then the sweep under the lever, alone, and the paired Eden A/B.
+
+RUN 16f (the scope): two-joints under DRIVE_ROWS=3 reads the default
+  to the digit (shoulder 0.0297 at f80, 0.0248 at f160, hold max
+  0.0363, PASS); 3-axis lever 0.0110 / 0.0089 PASS; 3-axis default
+  0.1412 / 0.1392 (byte-identical, fourth time); one-axis lever PASS.
+
+VERDICT 16 (final): the three-row drive is the mechanism for INV-13's
+  hold, scoped to joints the solver fully sees. What it exposed is
+  booked as GEDANKEN-75: the humanoid's rest-pose drives against
+  FK-owned bones are welds that the one-row drive enforced along one
+  noise axis each; a complete drive welds fully. The one-row world's
+  humanoids converge BECAUSE their drives are incomplete. The shoulder's
+  standing error under load (0.02-0.036) is a candidate victim of that
+  one-axis fight, not measured tonight. The write-contract for
+  KINEMATIC bones (both ledgers, omega included; PHYSICS_BOARD 351-366)
+  is the road that makes the scope unnecessary. Sweep under the lever
+  next, alone; then the paired Eden A/B.

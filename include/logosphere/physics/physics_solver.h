@@ -212,6 +212,11 @@ struct Constraint {
     float angular_axis_y = 0.0f;
     float angular_axis_z = 0.0f;
     float angular_axis_vec_len = 0.0f;  // 0 => use axis_idx path
+    // DRIVE_ROWS=3: the three world-axis rows of one drive share one bias
+    // vector; when its MAGNITUDE was capped at MAX_ANGULAR_BIAS_VELOCITY the
+    // drive is declaring motion, not repair, for all three rows (the one-row
+    // path reads that from |bias| alone). Never set on the default path.
+    bool angular_bias_saturated = false;
     float effective_inertia;    // 1/(1/Ia + 1/Ib) - angular impulse distribution
     float angular_bias;         // Rotation correction bias (Baumgarte)
     float accumulated_angular_impulse; // Total angular impulse applied

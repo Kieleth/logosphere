@@ -96,6 +96,9 @@ bool test_physics_drive_two_joints() {
         shoulder_id  = eva.right_arm_ids[0];
         upper_arm_id = eva.right_arm_ids[1];
     }
+    // Night 2026-09-04 (journal 16b): name the joint's bodies so a canary
+    // (CANARY_PID) can be pointed at the shoulder's rows.
+    printf("  [ids] head P%d  shoulder P%d  upper_arm P%d\n", head_id, shoulder_id, upper_arm_id);
     if (head_id < 0 || upper_arm_id < 0) {
         printf("  FAIL: Eva missing required particles (head=%d upper_arm=%d)\n",
                head_id, upper_arm_id);
@@ -230,6 +233,9 @@ bool test_physics_drive_two_joints() {
 
     printf("\n  Neck target:      %.4f rad, final %.4f (err %.4f / budget %.4f)\n",
            NECK_TARGET, neck_final, neck_final_err, NECK_FINAL_BUDGET);
+    // The ids after the run: strata streaming swap-pops indices (the
+    // callback above follows them); a canary must use these.
+    printf("  [ids-final] head P%d  shoulder P%d  upper_arm P%d\n", head_id, shoulder_id, upper_arm_id);
     printf("  Neck hold max:    %.4f (budget %.4f)\n", neck_max_hold_err, NECK_HOLD_BUDGET);
     printf("  Shoulder target:  %.4f rad, final_err %.4f (budget %.4f)\n",
            SHOULDER_MAG, shoulder_final_err, SHOULDER_FINAL_BUDGET);
