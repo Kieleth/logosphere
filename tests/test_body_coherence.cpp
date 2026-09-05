@@ -14,6 +14,8 @@
 #include "../src/core/engine.h"
 #include "logosphere/dynamics/particle_dynamics_system.h"
 #include "../src/core/entity_telemetry.h"
+#include "generated/physics_constants.h"
+#include <algorithm>
 #include "logosphere/physics/physics_system.h"
 #include "logosphere/worldgen/humanoid_generator.h"
 #include "../src/test_context.h"
@@ -107,6 +109,11 @@ bool test_body_coherence(TestContext& /* ctx */) {
     // Track horizontal floor contacts
     std::unordered_set<unsigned int> tile_set(tile_ids.begin(), tile_ids.end());
     int floor_horizontal = 0;
+    // Night 2026-09-04 (iteration 4): a row is a seam catch only if it carries force.
+    struct HeavyRow { float impulse; float friction; float pen; float nx, ny, nz; unsigned f, a, b; };
+    std::vector<HeavyRow> heavy;
+    float floor_h_impulse_max = 0.0f;
+    double floor_h_impulse_sum = 0.0;
 
     for (int frame = 0; frame < 180; frame++) {
         engine.update(dt);
@@ -154,6 +161,11 @@ bool test_body_coherence(TestContext& /* ctx */) {
             for (const auto& c : f->contacts) {
                 if (c.is_horizontal && (tile_set.count(c.particle_a) || tile_set.count(c.particle_b))) {
                     floor_horizontal++;
+                    floor_h_impulse_sum += std::fabs(c.normal_impulse);
+                    floor_h_impulse_max = std::max(floor_h_impulse_max, std::fabs(c.normal_impulse));
+                    heavy.push_back({std::fabs(c.normal_impulse), c.tangent_impulse, c.penetration,
+                                     c.normal_x, c.normal_y, c.normal_z,
+                                     (unsigned)f->frame_number, c.particle_a, c.particle_b});
                 }
             }
         }
@@ -173,10 +185,22 @@ bool test_body_coherence(TestContext& /* ctx */) {
            body_intact ? "PASS" : "FAIL", max_separation * 1000.0f, separation_violations);
 
     bool no_horizontal = (floor_horizontal == 0);
+    // INV-12 by force (the same line as test_tile_sticking): the rows the count
+    // sees, weighed by the impulse the solver gave them, against the solver's
+    // own bar for 'an impulse that is nothing' (ABSOLUTE_THRESHOLD, INV-29).
+    std::sort(heavy.begin(), heavy.end(), [](const HeavyRow& x, const HeavyRow& y) { return x.impulse > y.impulse; });
+    for (size_t i = 0; i < heavy.size() && i < 3; ++i)
+        printf("    heaviest horizontal floor row #%zu: f%u P%u<->P%u n=(%.2f,%.2f,%.2f) pen=%.4f m impulse=%.5f N s friction=%.5f N s\n",
+               i + 1, heavy[i].f, heavy[i].a, heavy[i].b, heavy[i].nx, heavy[i].ny, heavy[i].nz,
+               heavy[i].pen, heavy[i].impulse, heavy[i].friction);
+    bool no_horizontal_force = floor_h_impulse_max < PhysicsV4::ABSOLUTE_THRESHOLD;
+    printf("    %s: INV-12 horizontal floor rows carry no impulse (max %.5f N s < %.2f, sum %.5f over %d rows)\n",
+           no_horizontal_force ? "PASS" : "FAIL", floor_h_impulse_max, PhysicsV4::ABSOLUTE_THRESHOLD,
+           floor_h_impulse_sum, floor_horizontal);
     printf("    %s: No horizontal floor contacts (%d found)\n",
            no_horizontal ? "PASS" : "FAIL", floor_horizontal);
 
-    bool pass = body_intact && no_horizontal;
+    bool pass = body_intact && no_horizontal && no_horizontal_force;
     printf("\n%s: Body coherence\n", pass ? "PASS" : "FAIL");
     return pass;
 }

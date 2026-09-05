@@ -251,3 +251,76 @@ same force line (its count red is the same nineteen-inert-rows story
 until measured); then G-73 with this lens - the AABB path's touching
 side row that carried 15 N s is the same class (a separated or
 touching pair given a non-face axis by a metric).
+
+## 4. test_body_coherence (INV-12): the same question, the third witness
+
+TARGET. test_body_coherence, known-open 'single:seam-normals': 5
+horizontal floor rows per run after iteration 3 (12 before, 29 when
+the instrument recorded per substep). Its count law is the same count
+law; it has no force line.
+
+HYPOTHESIS. The five rows are inert speculative side rows (max
+impulse under ABSOLUTE_THRESHOLD), as tile_sticking's twelve are. If
+one carries force, it is a second catch with coordinates and the next
+canary; if none does, three witnesses agree that INV-12's count
+wording counts bookkeeping.
+
+CHANGE (one). The same force line as iteration 2: weigh the floor rows
+by |normal_impulse|, print the heaviest three, assert the max under
+ABSOLUTE_THRESHOLD; the count line stays. Written after the sweep for
+iterations 1-3 finishes (no compiled edits while it runs).
+
+RUN 3b (the sweep, alone): MOLES 44 (new-red 1, gone-green 0,
+unaudited 43). The red: test_oscillation_diagnostic, final max speed
+0.104858 m/s against a 0.1 bar. Alone, A/B on the same binary:
+SEAM_OBB_FACES_FIRST=0 gives 0.093793, =1 gives 0.104858; on
+fix/tree-bonds it read 0.056459, and on fix/born-with-material it
+failed once under the sweep and passed alone three times. Read
+plainly: a gluoned 2 x 2 brick stack on the turtle that never settles
+below 0.09 m/s is not at rest, the bar 0.1 is where 'damping working'
+was declared years ago, and the axis rule moved the residual 11 %.
+Not a regression in kind; a standing oscillation that has been living
+under a bar. VERDICT 3 stands (faces-first on); the diagnostic is
+booked expect-fail with both numbers, and the oscillation is iteration
+5's INV-test. Less is more would say: find why the stack jitters, not
+where to put the bar.
+
+RUN 4. test_body_coherence: 5 horizontal floor rows; four inert, one
+carries 1.94480 N s (frame 65, P14<->P3, n = (0, 0.98, -0.21), depth
+-3.8 mm). test_tile_sticking unchanged (12 rows, max 0.00000). So the
+hypothesis was half right: a second catch, and it survived
+faces-first, which means its axis IS a face - the moving part's own
+tilted front face, against a tile it is passing. Canary before any
+conclusion.
+
+RCA 4 (canary P14, physics frame 260 = telemetry frame 65). P14 is a
+foot part, 0.07 x 0.10 x 0.08 m, pitched -0.21 rad, centre z 0.15;
+its lowest corner sits ~1 mm above tile P3's top (0.10), and its
+front face is 3.81 mm short of the tile's edge plane at y = 5.00. The
+oriented SAT returns n = (0, -0.98, 0.21) - the foot's OWN tilted
+front face, corner = 1, one point at (0.08, 5.00, 0.10) - and the
+speculative row on it fires 1.94 N s backward and up. Frame 261: the
+same foot is over the tile with a clean face contact, n = (0, 0, -1),
+four points. Faces-first let this through because the front face IS a
+face axis, and among face axes 'most separated' picked it (3.81 mm)
+over z (~1 mm at the corner).
+
+THE RULE THE THREE SYMPTOMS SHARE. A speculative row (gap or touch)
+along an axis is a prediction that the pair will meet along that
+axis. The prediction is false whenever another axis still separates
+the pair at that moment: the foot passes over the edge with 1 mm to
+spare (here), the tile 2 mm above its diagonal neighbour never lands
+on it (journal 0, the AABB gap-beats-touch), the tile hanging over
+the crossed edges of two boxes meets a face first (iteration 3). One
+predicate: a separated-or-touching row is valid only if EVERY OTHER
+face axis overlaps by more than SLOP; a penetrating row is the
+separating-axis theorem's business as before. Cross axes qualify only
+when all six face axes overlap (a pair separated by its crossed edges
+alone - the legitimate edge-edge case). This subsumes faces-first
+(iteration 3) and the opt-in face-has-area rule (SEAM_FACE_AREA, whose
+Eden cost came from applying the bar to PENETRATING rows too). Less is
+more: one rule, one lever, both narrow phases.
+
+VERDICT 4. KEEP the force line (red with coordinates); commit. NEXT:
+iteration 5, the one rule in narrow_phase_obb first, measured on the
+family, the ladder, the jammed twin; then the AABB path.
