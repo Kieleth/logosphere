@@ -1606,3 +1606,13 @@ OWNER RULINGS OWED (in the order I would take them):
      F-CROWN, A+B, refusal of unnamed births, Eden game-layer items,
      merge order #166 -> #168 -> #169 -> #170 -> #171 -> #172 -> #173,
      #167 parked; night/2026-09-04 on top of #173.
+
+SWEEP alone after 17 (5285032): SWEEP_VERDICT: MOLES 43 (new-red 0,
+  gone-green 0, unaudited 43). Clean; the promise test sits as
+  KNOWN-OPEN by its booking.
+
+## 18. Census: five expect-fail rows with no finding
+  test_branch_placement_ladder, test_gluon_tree_v34, test_grass_natures,
+  test_physics_experiment_01, test_rotation_ladder carry expect: fail
+  and an empty known_open. A red without a finding is a mole in
+  waiting. One run each, its FAIL lines read and booked.
