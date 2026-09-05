@@ -1183,3 +1183,57 @@ RCA 15 (canary at f300, both bodies; AUTHORITY_DEBUG on both).
   world-axis rows). One change for 16, behind a lever: the drive
   builds its three rows. Instrument kept: DRIVE_FRAMES, and the
   per-frame line now prints both omegas.
+
+RUN 15e (omegas printed, 480 frames): the signature resolved. At every
+printed frame end from f200 to f470, wA = (0.00, 0.00, 0.00) exactly
+(A on the turtle) and wB = (+0.88..+1.09, -0.25..+0.15, -0.25) - B
+spins about +X at about 1 rad/s, steadily, while its orientation is
+held by repair (error 0.020-0.024). Committed 02541d1.
+
+## 16. The drive's three rows (INV-13, INV-24), behind DRIVE_ROWS=3
+
+HYPOTHESIS: the standing spin survives because the quaternion drive is
+one row along e; a spin perpendicular to e meets no row. Three
+world-axis rows (bias ANGULAR_BETA * e_k / dt each, clamped at
+MAX_ANGULAR_BIAS_VELOCITY per axis, inertia about each axis, budget
+(k |e_k| + c |w_k|) dt when force-bounded) damp and correct the whole
+relative angular velocity. The split law is untouched: unbounded rows
+send their bias to the position pass and damp in velocity; springs
+keep theirs in velocity.
+CHANGE 16 (engine, lever DRIVE_ROWS=3, default 1 byte-identical):
+v4.cpp, the quat branch, before the one-row block. Expected under the
+lever: the default 120 unchanged bit for bit; at 480 frames wB -> 0,
+the nail stops creeping, the pair sleeps; the one-axis drive test (13)
+still converges. If the pair settles, 16 is the mechanism and the
+booking's 'settling band' question closes on it; then a sweep alone
+with the lever OFF (no ships) and a paired Eden A/B before anything
+is called shippable - every live humanoid drive goes through this
+branch.
+
+RUN 16 (provenance: 'lever patched', default rerun first).
+  Default (DRIVE_ROWS unset), 120: max hold 0.1412, band 0.1392 -
+  BIT-IDENTICAL to 15. The lever off is the old binary.
+  DRIVE_ROWS=3, 120: free flight identical (0.0021 at f20, spins 0);
+  strike at f61 as before; f70 |q_err| 0.0069, f80 0.0110, then
+  0.0037 flat from f100 with wA = wB = 0 and vzA 0: ASLEEP. Post
+  impact the pair yaws as one body (wA = wB = (0,0,+0.38..+0.60) at
+  f70-f80, |w_rel| 0.016) and the turtle's friction stops it by f100.
+  Max hold 0.0110 (budget 0.0785), BAND 0.0089, final 0.0037,
+  |w_rel| last frame 0.0000, nail 0.2893 m (no creep). Every assert
+  PASS: convergence, HOLD, nail hygiene, no pair spin in flight, G-21
+  coherence. The test is GREEN under the lever.
+  DRIVE_ROWS=3, 480: f120..f470 every number constant (0.0037, 0.2893,
+  all spins 0). Settled, sleeping, for six seconds.
+  DRIVE_ROWS=3, the one-axis drive test (13): 0.7830 / 0.0024, PASS,
+  identical to its default.
+
+VERDICT 16: MECHANISM CONFIRMED BY INTERVENTION. The standing spin, the
+  creeping nail and the 'settling band' question were one defect: a
+  driven joint's damping acting on the projection of its relative
+  angular velocity onto the error axis. Three world-axis rows, which
+  the code's own comment described, close it: the pair sleeps. Less
+  is more: no new law, no new constant, no damping patch; the row
+  count matches the DOF count. Kept behind DRIVE_ROWS=3, default off,
+  because every live humanoid drive goes through this branch: the
+  jury is the sweep under the lever (alone) and a paired Eden A/B on
+  one binary; the flip of the default is the owner's ruling.

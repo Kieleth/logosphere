@@ -2997,6 +2997,56 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     if (q2.w < 0.0f) { ex = -ex; ey = -ey; ez = -ez; }
                     e_mag = std::sqrt(ex*ex + ey*ey + ez*ez);
                 }
+                // DRIVE_ROWS=3 (night 2026-09-04, journal 16; default 1 keeps
+                // the one row along e, byte-identical): the drive damps and
+                // corrects the WHOLE relative angular velocity - three
+                // world-axis rows, each carrying its component of the
+                // Rodrigues error as bias and sized by the inertia about its
+                // own axis - which is what the comment above this branch
+                // describes. With one row along e, any relative spin
+                // perpendicular to e is touched by nothing: measured on the
+                // 3-axis drive's post-impact cantilever, B spinning at 1 rad/s
+                // for 300 frames while the angle was held by position repair.
+                static const int drive_rows = [] {
+                    const char* e = std::getenv("DRIVE_ROWS");
+                    return (e && e[0] == '3' && e[1] == '\0') ? 3 : 1;
+                }();
+                if (drive_rows == 3) {
+                    const float ecomp[3] = {ex, ey, ez};
+                    const float wcomp[3] = {pa.omega_x - pb.omega_x,
+                                            pa.omega_y - pb.omega_y,
+                                            pa.omega_z - pb.omega_z};
+                    for (int k = 0; k < 3; ++k) {
+                        Constraint c_k = c_ang;
+                        c_k.angular_axis_x = (k == 0) ? 1.0f : 0.0f;
+                        c_k.angular_axis_y = (k == 1) ? 1.0f : 0.0f;
+                        c_k.angular_axis_z = (k == 2) ? 1.0f : 0.0f;
+                        c_k.angular_axis_vec_len = 1.0f;
+                        const float Ia3 = (pa.solver_mode == ParticleSolverMode::KINEMATIC)
+                            ? 0.0f : pa.GetInertiaAboutAxis(c_k.angular_axis_x, c_k.angular_axis_y, c_k.angular_axis_z);
+                        const float Ib3 = (pb.solver_mode == ParticleSolverMode::KINEMATIC)
+                            ? 0.0f : pb.GetInertiaAboutAxis(c_k.angular_axis_x, c_k.angular_axis_y, c_k.angular_axis_z);
+                        float inv3 = 0.0f;
+                        if (Ia3 > 0.0f) inv3 += 1.0f / Ia3;
+                        if (Ib3 > 0.0f) inv3 += 1.0f / Ib3;
+                        if (inv3 > 0.0f) c_k.effective_inertia = 1.0f / inv3;
+                        const float bk = ANGULAR_BETA * ecomp[k] / dt;
+                        c_k.angular_bias = std::max(-PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY,
+                                                    std::min(PhysicsV4::MAX_ANGULAR_BIAS_VELOCITY, bk));
+                        if (gluon->force_bounded()) {
+                            const float tb = (gluon->angular_stiffness * std::fabs(ecomp[k]) +
+                                              gluon->angular_damping * std::fabs(wcomp[k])) * dt;
+                            c_k.min_angular_impulse = -tb;
+                            c_k.max_angular_impulse = tb;
+                        } else {
+                            c_k.min_angular_impulse = -std::numeric_limits<float>::infinity();
+                            c_k.max_angular_impulse = std::numeric_limits<float>::infinity();
+                        }
+                        c_k.accumulated_angular_impulse = 0.0f;
+                        constraints.push_back(c_k);
+                    }
+                    continue;  // quaternion path handled, three rows
+                }
                 if (e_mag > 1e-6f) {
                     float inv_mag = 1.0f / e_mag;
                     Constraint c_axis = c_ang;
