@@ -822,10 +822,12 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
     // ---- 6 face axes ----
     float best_face_overlap = std::numeric_limits<float>::max();
     int best_face_body = -1, best_face_axis = -1;
+    float face_ov[6];   // kept for the speculative predicate below
     for (int body = 0; body < 2; ++body) {
         const OBB& box = (body == 0) ? a : b;
         for (int i = 0; i < 3; ++i) {
             const float ov = overlap_on(box.axis[i]);
+            face_ov[body * 3 + i] = ov;
             if (ov < -margin) return false;
             if (ov < best_face_overlap) {
                 best_face_overlap = ov;
@@ -866,22 +868,60 @@ bool narrow_phase_obb(const OBB& a, const OBB& b,
     // frame to frame. An edge axis wins only when clearly smaller (1 mm,
     // the SLOP scale) — sign-safe, unlike a relative factor, because
     // speculative overlaps can be negative.
-    // A SEPARATED PAIR MEETS A FACE (night 2026-09-04, journal entry 3).
-    // With every overlap negative, 'smallest' means 'most separated', and a
-    // cross axis that separates the pair by 20 mm beat the face axis that
-    // separated it by 10 mm: a swinging foot part crossing a tile's edge got
-    // n = (0, -0.92, 0.40) for one frame and a 1.28 N s speculative shove
-    // (test_tile_sticking, physics frame 140). Two boxes approaching from a
-    // distance meet on a face; the cross axes are for penetration, where the
-    // separating-axis theorem is the rule. SEAM_OBB_FACES_FIRST=0 restores the
-    // old choice for A/B.
+    // THE SPECULATIVE PREDICATE (night 2026-09-04, journal entries 3-5).
+    // When the pair penetrates on every axis, the separating-axis theorem
+    // chooses the normal (least overlap, faces preferred). When some axis
+    // still separates the pair (or merely touches), the row is a PREDICTION
+    // that they will meet along the chosen axis - and that prediction is
+    // false whenever another face axis still separates them at that moment:
+    // a foot 1 mm above a tile's top does not hit the tile's side 3.8 mm
+    // ahead, it passes over the edge (test_body_coherence, physics frame
+    // 260, 1.94 N s); a foot part crossing an edge meets the tile's face,
+    // not a crossed-edge axis 20 mm out (test_tile_sticking, frame 140,
+    // 1.28 N s). So a separated-or-touching row exists only on the ONE face
+    // axis that does not overlap while every other face axis overlaps by
+    // more than SLOP; a cross axis only when all six face axes overlap (the
+    // pair is held apart by its crossed edges alone). SEAM_SPECULATIVE_FACE=0
+    // restores the original choice for A/B.
+    // PARKED (night 2026-09-04, journal 5a): the predicate below is an
+    // experiment kept with its numbers, OFF by default. It refuted itself:
+    // it built a row in free flight (ladder R2/R3 lost spin), moved case D's
+    // admitted tile, and at a seam it grants the next tile's side face to a
+    // foot 0.9 mm into the floor - a row that is geometrically honest about
+    // an artifact the surface-continuity merge exists to remove. The right
+    // formulation needs the relative motion (the last face axis to close);
+    // the narrow phase has no velocities. SEAM_SPECULATIVE_FACE=1 enables.
+    static const bool speculative_face = [] {
+        const char* v = std::getenv("SEAM_SPECULATIVE_FACE");
+        return v && v[0] == '1';
+    }();
+    // A SEPARATED PAIR MEETS A FACE (iteration 3, default on): for a
+    // separated pair the cross axes are ineligible; the separating-axis
+    // theorem chooses among cross axes only once the face axes penetrate.
+    // SEAM_OBB_FACES_FIRST=0 restores the original choice for A/B.
     static const bool faces_first = [] {
         const char* v = std::getenv("SEAM_OBB_FACES_FIRST");
         return !(v && v[0] == '0');
     }();
-    const bool use_edge = (best_ea >= 0) &&
-                          (!faces_first || best_face_overlap > 0.0f) &&
-                          (best_edge_overlap + EDGE_TOL < best_face_overlap);
+    const float min_overlap = (best_ea >= 0) ? std::min(best_face_overlap, best_edge_overlap)
+                                             : best_face_overlap;
+    bool use_edge;
+    if (speculative_face && min_overlap <= 0.0f) {
+        int loose = 0;
+        for (int k = 0; k < 6; ++k) if (face_ov[k] <= PhysicsV4::SLOP) ++loose;
+        if (loose == 0) {
+            if (best_ea < 0) return false;
+            use_edge = true;                       // held apart by crossed edges alone
+        } else if (loose == 1) {
+            use_edge = false;                      // the one loose axis is the face
+        } else {
+            return false;                          // two axes still separate them: no meeting here
+        }
+    } else {
+        use_edge = (best_ea >= 0) &&
+                   (!faces_first || best_face_overlap > 0.0f) &&
+                   (best_edge_overlap + EDGE_TOL < best_face_overlap);
+    }
 
     if (use_edge) {
         // ---- edge-edge: single point between the two closest edges ----

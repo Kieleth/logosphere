@@ -324,3 +324,118 @@ more: one rule, one lever, both narrow phases.
 VERDICT 4. KEEP the force line (red with coordinates); commit. NEXT:
 iteration 5, the one rule in narrow_phase_obb first, measured on the
 family, the ladder, the jammed twin; then the AABB path.
+
+## 5. One predicate for speculative rows (oriented path first)
+
+TARGET. The two force lines (tile_sticking max 0.00000 already under
+faces-first, body_coherence max 1.94480), the ladder and the jammed
+twin as the guard, the oscillation diagnostic as the borderline
+witness.
+
+HYPOTHESIS. Rule (journal 4): a separated-or-touching row is valid
+only if every other face axis overlaps by more than SLOP; a cross axis
+qualifies only when all six face axes overlap; penetrating pairs keep
+the separating-axis theorem. body_coherence's 1.94 N s row has two
+separating face axes (the foot's front, 3.81 mm; z at the corner,
+~1 mm) and gets no row - the foot passes over the edge, as it did in
+frame 261 anyway. tile_sticking's f140 row keeps its face (z is the
+only loose face axis there once the cross axis is out). Nothing that
+penetrates changes, so the ladder's edge landings and the jammed
+twin's stacks read the same.
+
+CHANGE (one). narrow_phase_obb: the six face overlaps kept; when the
+minimum overlap over all axes is <= 0 the speculative predicate
+decides the row (face, edge, or none); otherwise the old preference.
+Lever SEAM_SPECULATIVE_FACE=0 restores the original SAT (the
+faces-first lever of iteration 3 is subsumed and removed - its
+behaviour is this rule's special case).
+
+## 5b. The same predicate in the axis-aligned path
+
+TARGET. G-73's born-red: test_jammed_sleep case G's four edge tiles
+3 mm deep (17 red on the shipped default), the touching side row that
+carried 15 N s with a 126 um hair of z-overlap; and the opt-in
+face-has-area rule's 250 ms per Eden steady frame.
+
+HYPOTHESIS. The opt-in rule was the right predicate applied to the
+wrong rows: it barred PENETRATING rows whose footprint overlapped by
+less than SLOP too, and a body pressed into a tile's corner region
+lost its row (the cost, and possibly chatter at the bar). Applied to
+gap-or-touch rows only - a separated-or-touching row along one axis
+exists only if the other two overlap by more than SLOP - it removes
+the diagonal support rows and the hair-thin side row (G green) while
+every penetrating row keeps its normal from the metric as before. The
+Eden bill should not return, because penetrating rows are untouched.
+
+CHANGE (one). narrow_phase_aabb: the face-has-area block becomes the
+speculative predicate, gated on `penetration <= 0`, under the same
+lever SEAM_SPECULATIVE_FACE (default on); SEAM_FACE_AREA is subsumed
+and removed. Measured on the jammed twin (G), the ladder, the seam
+family, and Eden alone against the 621 / 872 ms steady tails.
+
+RUN 5a. REFUTED. tile_sticking: 3 floor rows but max 1.35555 N s
+(back from 0.00000), f65 P14<->P3 n = (0, 0.98, -0.22), gap 4.6 mm.
+body_coherence: 6 rows, max 2.55474 (was 1.94480). falling cube green.
+A/B on the guards (SEAM_SPECULATIVE_FACE 0 / 1): ladder 2 -> 4 failures
+(R2 'spin SURVIVES flight' and R3 'torque-free flight conserves
+angular momentum' turn red: a body with NO contact lost spin, so the
+predicate built a row in free flight), jammed twin 17 -> 18 (case D's
+admitted tile beside the stone moved at 0.041 m/s), oscillation
+diagnostic 0.0938 -> 0.0464 (fewer speculative rows, less jitter in
+the brick stack: a clue for that target, not a reason to keep this).
+
+RCA. Canary at the walker's f260 under the predicate: the foot P14 is
+0.88 mm INTO tile P2 (a clean four-point z contact) sliding at 2.0 m/s
+in +y toward tile P3, 4.6 mm short of P3's edge plane. Against P3 the
+z overlap is a hair over SLOP and the front-face axis is the one loose
+face axis, so the predicate grants the front-face row - and it is
+geometrically honest: a foot 0.9 mm below the top plane meets the next
+tile's side as a 0.9 mm wall. The row is real; the WALL is the
+artifact, and the artifact is the seam. That is what the surface-
+continuity merge exists for (two tiles are one surface), and my own
+precondition on the seam branch (footprint overlap > ADJ_EPS) switches
+the merge off for exactly this crossing: 4.6 mm before the edge the
+footprints do not overlap yet. The predicate also mis-handles free
+flight (loose == 0 with a cross axis: an edge row for a tumbling cube
+near a slab) - two loose axes is not 'no row' when one of them is
+closing, and the right formulation is time-to-impact: the speculative
+normal is the LAST face axis to close under the relative motion, and
+no row when any loose axis never closes. That needs velocities the
+narrow phase does not see today. Parked as a design, not as code.
+
+VERDICT 5a. PARK. The predicate stays in the tree behind
+SEAM_SPECULATIVE_FACE, default OFF, with these numbers; faces-first
+(iteration 3) returns as the default under SEAM_OBB_FACES_FIRST. NEXT:
+iteration 6 - the merge's precondition becomes 'the body rests on the
+surface' (its bottom at the tile's top plane, and not a coplanar
+sibling), which restores the merge for a foot crossing a seam and for
+G's diagonal supports while keeping H's sibling phantom out.
+
+## 6. The merge's premise, stated right: a body ON the surface
+
+TARGET. The walker's seam catch (a foot 0.9 mm into tile P2 meeting
+tile P3's side as a 0.9 mm wall), the same crossing in body_coherence,
+and G-73's supports - all under one precondition for the
+surface-continuity merge; H's sibling phantom must stay out.
+
+HYPOTHESIS. The merge is right when the body is ON the surface the
+neighbours form, wrong when the body is PART of it. Footprint overlap
+with j alone (my precondition of 2026-09-02) says 'on j', which loses
+the foot 4.6 mm before j's edge and G's diagonal supports. Stated
+right: merge iff (a) the body's bottom is at j's top plane, within the
+contact margin (resting, landing, embedded by error), (b) the body is
+not a coplanar sibling of j (its z-extent differs), and (c) the body's
+footprint overlaps the MERGED footprint (j with its coplanar sleeping
+neighbours) by more than ADJ_EPS - it is somewhere on that surface.
+H: the centre dirt tile rests on the thinner l11, which is not in the
+l00 family's surface, and its footprint only touches that family's
+footprint (overlap 0): no merge, no phantom lift. The foot: over P2,
+which is in P3's family: merge, z contact, no wall. G's edge tile
+landing: over b10, in b00's family, 2 mm above: merge, the diagonal
+support rows return (G was green with them).
+
+CHANGE (one). physics_system_v4.cpp: compute the merged box first,
+then decide with (a)(b)(c) whether to use it. Same lever
+SEAM_MERGE_PRECONDITION=0 (unconditional merge) for A/B. Measured on
+the two force lines, the jammed twin (G and H), the ladder, the
+oscillation diagnostic.
