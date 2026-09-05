@@ -1668,3 +1668,52 @@ under B1 alone, 20 kg, 196 N static. If organic bonds tear below their
 declared strength, every tree's crown is in it (F-CROWN's 3 torn / 18
 taut at frame zero). Baseline: the test's own lines around the break,
 then the bond's derived law for the pair.
+20a BASELINE (harness): 'UNEXPECTED: Broke with only B1!' - the test's
+  break is 'B1's centre fell 0.3 m within 60 frames'; no engine line
+  says a bond was removed (removal prints nothing).
+RCA 20 (canary P5 = B1, P4 = T3, whole run; physics at 1/30 s, four
+  substeps of 1/120):
+  - T3 asleep from F43 (vel 0, at_rest 1). B1 born at F61 at z 2.9.
+  - The nail's rows exist F61..F72 and vanish at F73: removed by the
+    break rule (force >= 0.99 breaking for 12 consecutive frames,
+    v4.cpp:5825) - the bond DID break, silently, after exactly 12
+    frames. From F77 B1 is in free fall (vz -0.48 -> -1.76) and swings
+    about Y (omega_y 6.1 rad/s by F112, q rotated 74 deg).
+  - WHY 500 N: the z row's accumulated impulse sits at its cap
+    -4.16667 N s on every frame F61..F72; 4.1667 = 500 N x (1/120 s).
+    Holding a 20 kg body needs 196 N x (1/120) = 1.63 N s. The row is
+    asked for three times the weight and is still short: v_rel 0.061
+    m/s unresolved at the last iteration.
+  - The nail's angular row is the SCALAR-Z path ('ANGROW-Z': angle
+    about Z only, budget inf, limit pi): yaw. Nothing constrains the
+    branch's rotation about Y - on plain bodies a NailGluon is a hinge
+    about X and Y, and a cantilever pivots down. The full angular row
+    (the quaternion path) exists only for quat-driven, PHYSICS-owned
+    bodies (G-39's gate): the same ruled-world seam as iteration 13.
+  - The z row is priced at eff = 100 for a 20 kg body against a
+    sleeping trunk (a stiffness-derived pricing, str 1e8; formula
+    read below). The reaction force of a weld carrying a cantilever is
+    its weight; the moment is the angular row's. Here the linear row
+    carries what the missing angular rows leave.
+CHANGE 20 (test-only, same move as 13/14): B1 and the trunk segments
+  quat-driven and PHYSICS-owned, so the nail builds its full angular
+  row. If the nail then holds 196 N under 500 N, the legacy law stands
+  and the fixture was pre-ruled; if the z row still saturates, the
+  pricing (eff 100) is the finding.
+RUN 20 (ruled world; provenance 'v34 fixture moved to the ruled world'):
+  STEP 1 'Result: HOLDING (as expected)'; the z row at F61 reads acc
+  -2.04 N s (245 N at 1/120 s: the weight plus the settling), v_rel
+  resolved to 1e-4; B1's omega_y 0.16 rad/s and falling. The nail's
+  angular row is still the scalar-Z path (a nail has no drive), so
+  what holds the cantilever is G-39's anchor torque: the linear rows
+  of quat-driven, PHYSICS-owned bodies measure omega x r and apply
+  r x J. The eff formula: effective_mass = 1/k of the row's summed
+  inverse terms (v4.cpp at the ROWBUILD print).
+  The test PASSES - with a hollow second step: 'B2: id=-1', the door
+  refuses B2's birth (it overlaps B1 as placed), so 'B1+B2 BROKE' is
+  not the staged strike. Booked in the audit row; the staging of B2 is
+  a follow-up.
+VERDICT 20: KEEP (test-only). The legacy law was right; its fixture
+  predated the ruled world (the fourth of the night: 13, 14, the
+  3-axis booking, 20). Not swept alone tonight (test-only + audit; the
+  morning's sweep covers it).

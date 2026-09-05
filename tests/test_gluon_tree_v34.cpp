@@ -124,6 +124,8 @@ bool test_gluon_tree_v34() {
     t1.width = 0.6f; t1.height = 0.6f; t1.thickness = 0.8f;
     t1.r = 0.5f; t1.g = 0.35f; t1.b = 0.2f;
     t1.SetMaterial(Materials::Type::WOOD_HARD);
+    t1.is_quat_driven = true;
+    t1.owner = ParticleOwner::PHYSICS;
     int t1_id = engine.add_particle(t1);
 
     // T2: 10kg - middle of trunk (on T1)
@@ -134,6 +136,8 @@ bool test_gluon_tree_v34() {
     t2.width = 0.55f; t2.height = 0.55f; t2.thickness = 0.8f;
     t2.r = 0.5f; t2.g = 0.35f; t2.b = 0.2f;
     t2.SetMaterial(Materials::Type::WOOD_HARD);
+    t2.is_quat_driven = true;
+    t2.owner = ParticleOwner::PHYSICS;
     int t2_id = engine.add_particle(t2);
 
     // T3: 10kg - top of trunk (on T2)
@@ -144,6 +148,8 @@ bool test_gluon_tree_v34() {
     t3.width = 0.5f; t3.height = 0.5f; t3.thickness = 0.8f;
     t3.r = 0.5f; t3.g = 0.35f; t3.b = 0.2f;
     t3.SetMaterial(Materials::Type::WOOD_HARD);
+    t3.is_quat_driven = true;
+    t3.owner = ParticleOwner::PHYSICS;
     int t3_id = engine.add_particle(t3);
 
     std::cout << "  Floor: id=" << floor_id << " (kinematic)" << std::endl;
@@ -169,6 +175,14 @@ bool test_gluon_tree_v34() {
     b1_config.width = 0.5f; b1_config.height = 0.5f; b1_config.thickness = 0.5f;
     b1_config.r = 0.2f; b1_config.g = 0.6f; b1_config.b = 0.2f;
     b1_config.SetMaterial(Materials::Type::WOOD_HARD);
+    // THE RULED WORLD (night 2026-09-04, journal 20): a nail's full angular
+    // row (the quaternion path) exists only for quat-driven, PHYSICS-owned
+    // bodies (G-39's gate); a plain body gets the scalar-Z row, i.e. a hinge
+    // about X and Y, and a cantilevered branch pivots down. Same move as
+    // iterations 13/14. Measured before this: z row saturated at 500 N from
+    // the first frame, the branch swinging at 6 rad/s about Y.
+    b1_config.is_quat_driven = true;
+    b1_config.owner = ParticleOwner::PHYSICS;
 
     auto weak_nail = std::make_unique<NailGluon>();
     weak_nail->offset_a = Vec3(0.25f, 0.0f, 0.7f);  // Much higher to prevent contact with T3
