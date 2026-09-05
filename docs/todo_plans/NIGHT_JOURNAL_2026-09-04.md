@@ -1717,3 +1717,24 @@ VERDICT 20: KEEP (test-only). The legacy law was right; its fixture
   predated the ruled world (the fourth of the night: 13, 14, the
   3-axis booking, 20). Not swept alone tonight (test-only + audit; the
   morning's sweep covers it).
+
+CORRECTION 20 (read from the door's own line, minutes after the
+commit): B1 is 100 kg, not 20 - a 0.5 m WOOD_HARD cube (the material
+prices the mass, INV-38's world; the test's '20 kg / 196 N' is a
+comment). Its weight is 981 N on a 500 N nail. In the ruled world the
+nail carries 245 N because the branch is NOT hanging: it pivots about
+the anchor at 0.16 rad/s (END omega_y 0.163, vz -0.04 = 0.16 x 0.25),
+dropping 0.08 m in the test's window, under its 0.3 m bar. 'HOLDING'
+is a slow pivot; a nail on quat-driven bodies is still a hinge about
+X and Y (its only angular row is the scalar-Z path; a NailGluon has
+no drive, so the quaternion row is never built) - the anchor torque
+of G-39 damps the pivot, nothing stiffens it. Companion to
+GEDANKEN-75 (rows = DOFs): a nail that says 'skeleton' should carry
+three angular rows or a rigid quaternion row at its rest pose.
+Step 2: B2 refused at the door (103.6 mm into the rotated B1).
+VERDICT 20, corrected: the test is hollow on both steps and legacy
+(status legacy in the audit); it passes by its bars. Kept expect pass
+so the sweep does not count a coincidence as a mole, with the
+hollowness named; retire or restage is the owner's. The night's
+lesson stands in a sharper form: a fixture's comment is not a
+measurement - the door printed the mass, the test printed a story.
