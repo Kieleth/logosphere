@@ -380,7 +380,16 @@ angular velocity in the ledger are its writer's deltas, before any row
 is priced; rows then price the true relative velocity. Experiments
 G-77 (the moving platform) and G-78 (the turning post), written and
 predicted before the test; `test_writers_motion` (+ `_visual`) born red.
-The mechanism is owed behind `KINEMATIC_LEDGER`. This law retires the
+**MECHANISM LANDED behind `KINEMATIC_LEDGER` (same day): the ledger derived at
+the top of update() from the writer's deltas, bonded partners and touching
+sleepers woken (INV-18). G-78 green under it; G-77 needed a second law:
+G-79, touching is geometric, not a sign - the friction gate read 'touching'
+from the bias sign, and under the single law every seated body has a
+negative bias, so no body had friction against the box it rests on (the
+turtle exempt). Behind `FRICTION_TOUCH_GEOMETRIC`; the die's spin
+preserved (drop ladder R2/R3), the ramp race moves 1 %. Both levers are
+OWNER RULINGS for the flip, after the sweep under them and a paired Eden
+A/B.** This law retires the
 night's scope 'three rows only when both endpoints are DYNAMIC' (G-75)
 and answers G-38's velocity half: the writer's motion is read from what
 it wrote, not from a flag.

@@ -74,6 +74,14 @@ struct Particle {
     // no-op.
     logosphere::Quat rotation_q = logosphere::Quat::identity();
     float omega_x = 0.0f, omega_y = 0.0f;   // Stage 1: unintegrated
+    // INV-39 (a body moved from outside carries its motion): the state a
+    // KINEMATIC body's writer left last frame, so the solver can derive the
+    // writer's motion (v = dx/dt, omega from dq/dt) before it prices a single
+    // row against that body. Written by PhysicsSystem::derive_kinematic_motion
+    // only; travels with the body through swaps. Valid after the first frame.
+    float prev_x = 0.0f, prev_y = 0.0f, prev_z = 0.0f;
+    logosphere::Quat prev_q = logosphere::Quat::identity();
+    bool  prev_valid = false;
     float torque_x = 0.0f, torque_y = 0.0f; // Stage 1: unaccumulated
     float inertia_x = 0.0f, inertia_y = 0.0f;  // 0 = compute on demand
 

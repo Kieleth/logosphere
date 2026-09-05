@@ -180,9 +180,14 @@ struct Scene {
         // station A
         const float slip = std::fabs((C->x - cube_x0) - (S->x - slab_x0));
         if (slip > slip_max) slip_max = slip;
-        const float gap = (C->z - CUBE * 0.5f) - (S->z + SLAB_THK * 0.5f);
-        if (gap < seat_gap_min) seat_gap_min = gap;
-        if (gap > seat_gap_max) seat_gap_max = gap;
+        // The seat is a claim about the RIDE, not the staging: the cube is
+        // born 2 cm up and lands during the hold (its bounce read 18 mm in
+        // the first run). Latched from the moment the slab may move.
+        if (frame >= HOLD_FRAMES) {
+            const float gap = (C->z - CUBE * 0.5f) - (S->z + SLAB_THK * 0.5f);
+            if (gap < seat_gap_min) seat_gap_min = gap;
+            if (gap > seat_gap_max) seat_gap_max = gap;
+        }
         // station B
         const float sep = argus.separation(post, arm);
         if (sep0 < 0.0f) sep0 = sep;

@@ -1806,3 +1806,79 @@ RUN (increment 1, first measurement, build fresh): 5 of 7 RED.
   green for both. The nail transmits none of the turn - not even the
   scalar-Z row's lag: the arm is silent. That silence is the mechanism
   increment's first read (is the row built against a KINEMATIC 'a'?).
+
+INCREMENT 2 (the mechanism, behind KINEMATIC_LEDGER, default off):
+  Particle::prev_x/y/z, prev_q, prev_valid; PhysicsSystem::
+  derive_kinematic_motion at the top of update(), before the sleeper
+  judge: v = dx/dt, omega from the shortest arc of q prev_q^-1 over dt
+  (the integrator's convention), then wake bonded partners and touching
+  sleepers (bounding spheres within SLOP) through the one wake path.
+  Both integrators skip KINEMATIC bodies, so the ledger is read by the
+  rows and never spent on the body.
+RUN (both modes, one binary; provenance: BUILD_RC 0 after two failed
+  builds - a joined anchor, then an alias declared later in the file -
+  each caught before its numbers were read):
+  DEFAULT: bit-identical to the born-red run (slip 1.2542, yaw err
+  1.5000, 5 failures).
+  LEVER: the post's ledger reads omega_z 0.50 rad/s from frame 61; the
+  arm turns with it - spin steady [0.4972, 0.5006], yaw error 0.0061
+  rad, separation constant, no ringing: G-78 GREEN, 4 of 7 green.
+  The slab's ledger reads vx 0.25 -> 0.50 m/s, and the cube still sits
+  at x 0.000: asleep from frame 61 through 240 (canary), rows P0<->P1
+  built with accumulated 0. The wake for touching sleepers does not
+  hold. Reading which sleep site re-sleeps it, with a debug line.
+RCA of G-77's remaining red, one number at a time (all under the lever):
+  - the cube IS woken every frame the slab moves ([KIN LEDGER] lines);
+    my first canary window was in the wrong clock (the canary counts
+    solver substeps, four per test frame).
+  - at substep 400 (test frame 100): cube awake, four contact rows,
+    normal impulse 1.633 N s per row (right), slab ledger 0.333 m/s
+    (right, the ramp's value), END velocity 0 in x.
+  - a friction canary added to the row: t2 = (1,0,0) along the motion,
+    v_rel = 0.333 (the slab's velocity read correctly), eff 40,
+    normal_acc 1.633, LIMIT 0 on every iteration.
+  - the limit: physics_system_v4.cpp:4654-4666, 'friction acts only
+    through a touching contact' (G-36), with touching read as
+    c.bias >= 0; and c.bias = BETA (penetration - SLOP) / dt (:1347),
+    so a seated body - held by the single law at penetration ~0, never
+    a full SLOP inside - has a negative bias by construction and NO
+    FRICTION against the box it rests on. Only the turtle is exempt.
+  THE FINDING: every body resting on a box surface in this engine is
+  frictionless unless pressed a millimetre into it. G-46's red (the
+  sphere ends behind the cube) is this: a frictionless cube out-slides
+  a rolling sphere. The right predicate is geometric: within SLOP the
+  normal impulse is transmitted force and carries friction; wider, it
+  is capture (G-36's die keeps its spin). Registered as GEDANKEN-79
+  BEFORE the lever, with its predictions.
+INCREMENT 3 (one line behind FRICTION_TOUCH_GEOMETRIC, default off):
+  capture_only = touch_geometric ? penetration < -SLOP : bias < 0.
+  Measured next: the platform under both levers; the ramp race and the
+  drop ladder under the friction lever alone; the defaults unchanged.
+RUN (increment 3; defaults first, byte-identical: platform 5 red with
+  the same numbers; ramp race 7.306 / 6.500 m):
+  platform, KINEMATIC_LEDGER + FRICTION_TOUCH_GEOMETRIC: the cube rides -
+  x 0.060/0.250/0.500/1.250 against the slab's 0.065/0.254/0.504/1.254,
+  slip max 0.0044 m (bar 0.010), steady velocity error 0.0000; the arm
+  turns with the post; 6 of 7 green. The red left is my fixture: the
+  seat band latched the birth drop (18 mm at the bounce); latched from
+  the held phase now, remeasured next.
+  ramp race under the friction lever: cube 7.229 m, sphere 6.433 m,
+  peak speeds 6.42 / 6.53: a 1 % change; the sphere still ends behind.
+  MY INFERENCE THAT G-79 EXPLAINS G-46 IS WITHDRAWN: the sliding cube
+  is pressed past SLOP under load and already had friction; the sign
+  gate denies friction to SEATED bodies, which the race never measures.
+  drop ladder under the friction lever: R2 (spin survives flight,
+  retention 0.9996, the floor brakes it) and R3 pass - G-36's die keeps
+  its spin in the cushion; R5/R6 red as before.
+VERDICT (increments 2-3): INV-39's mechanism is landed behind
+  KINEMATIC_LEDGER and G-79's predicate behind FRICTION_TOUCH_GEOMETRIC;
+  together they make both experiments green with no new constant. Two
+  flips for the owner, after the sweep under both levers (alone) and a
+  paired Eden A/B - every FK bone of every humanoid carries its motion
+  into the rows from now on under the first lever, and every seated
+  body gets its friction under the second.
+RUN (seat latched from the held phase; three modes, one binary):
+  default 4 of 7 red (seat +0.0002 both ends, green); ledger alone 2
+  red (the platform's friction); both levers 0 red: THE SOLVER READS
+  THE WRITERS' MOTION. Committing; then the sweep under both levers,
+  alone, as the jury for the flips.

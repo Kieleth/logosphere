@@ -752,6 +752,11 @@ private:
     // sleep only if something holds it. Implementation note above the
     // definition in physics_system_v4.cpp.
     void admit_declared_sleepers(ParticleSystem::WriteView& particles);
+    // INV-39: derive every KINEMATIC body's velocity and angular velocity from
+    // what its writer changed since last frame, before any row is priced;
+    // wake what a moving fixture holds (bonds) or carries (touching sleepers).
+    // Lever KINEMATIC_LEDGER (default off until owner QA); see the definition.
+    void derive_kinematic_motion(ParticleSystem::WriteView& particles, float dt);
     // INV-2's instrument: the solved rows of every tracked body, every frame.
     void record_row_telemetry(ParticleSystem::WriteView& particles,
                               const std::vector<PhysicsV4::Constraint>& constraints, int phys_frame);

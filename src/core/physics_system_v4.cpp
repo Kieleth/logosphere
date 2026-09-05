@@ -330,6 +330,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     // A sleeper declared from outside the law (a chunk restored from the
     // store, a tile born at rest) is judged before anything else sees it
     // (G-72): asleep in the air is not a state, it is a photograph of a fall.
+    derive_kinematic_motion(particles, dt);   // INV-39, behind KINEMATIC_LEDGER
     admit_declared_sleepers(particles);
 
     // ==========================================================================
@@ -623,6 +624,89 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
 // sleeper with nothing under it is woken, loudly, and falls to its support
 // like any other body; a supported one is booked as earned and never
 // judged again.
+// ============================================================================
+// INV-39: A BODY MOVED FROM OUTSIDE CARRIES ITS MOTION (registered 2026-09-05,
+// G-77 the moving platform, G-78 the turning post; born red, measured: a slab
+// slid 1.254 m under a cube that never moved, a post turned 1.5 rad above an
+// arm that never turned).
+//
+// A KINEMATIC body is a body of infinite mass with PRESCRIBED motion: its
+// writer owns its position and orientation, and that motion is state the
+// solver must know when it prices relative velocity. Nothing wrote the
+// velocity ledger of such a body, so every row against it read zero: a
+// contact held a cube against a floor that was sliding away; a nail damped
+// an arm against a post that was turning; a drive's rows welded an arm to a
+// forearm read as still (G-75). One missing state, many symptoms.
+//
+// The derivation, in one place, before any row exists: v = dx/dt, omega from
+// the shortest-arc axis-angle of q * prev_q^-1 over dt (the integrator's own
+// convention: q_new = from_axis_angle(w_hat, |w| dt) * q_old). The momentum
+// door is untouched (INV-7: KINEMATIC takes no impulse); the integrators skip
+// KINEMATIC bodies, so the ledger is read by the rows and never spent on the
+// body. A writer's jump is a velocity the law makes visible (INV-11).
+//
+// INV-18, the coherence contract of sleep: a support that moves invalidates
+// the equilibrium of what rests on it or hangs from it. A moving KINEMATIC
+// body therefore wakes its bonded partners and every sleeper it touches
+// (bounding spheres within SLOP), through the one wake path.
+//
+// Lever KINEMATIC_LEDGER: default OFF, byte-identical to the old world, until
+// the owner's QA. No new constant: SLOP and ANGULAR_SLOP are the engine's own
+// bars for 'error, not motion'.
+// ============================================================================
+void PhysicsSystem::derive_kinematic_motion(ParticleSystem::WriteView& particles, float dt) {
+    static const bool ledger_on = std::getenv("KINEMATIC_LEDGER") != nullptr;
+    if (!ledger_on || dt <= 0.0f) return;
+    const size_t count = particles.size();
+    for (size_t i = 0; i < count; ++i) {
+        Particle& k = particles[i];
+        if (k.solver_mode != ParticleSolverMode::KINEMATIC) continue;
+        bool moved = false;
+        if (k.prev_valid) {
+            k.vx = (k.x - k.prev_x) / dt;
+            k.vy = (k.y - k.prev_y) / dt;
+            k.vz = (k.z - k.prev_z) / dt;
+            const logosphere::Quat dq = (k.rotation_q * k.prev_q.conjugate()).normalized();
+            float ax = 0.0f, ay = 0.0f, az = 1.0f, th = 0.0f;
+            dq.to_axis_angle(ax, ay, az, th);
+            if (th > 3.14159265f) th -= 6.28318531f;   // the shortest arc
+            const float rate = th / dt;
+            k.omega_x = ax * rate; k.omega_y = ay * rate; k.omega_z = az * rate;
+            const float dx = k.x - k.prev_x, dy = k.y - k.prev_y, dz = k.z - k.prev_z;
+            moved = (dx*dx + dy*dy + dz*dz > PhysicsV4::SLOP * PhysicsV4::SLOP) ||
+                    (std::fabs(th) > PhysicsV4::ANGULAR_SLOP);
+        }
+        k.prev_x = k.x; k.prev_y = k.y; k.prev_z = k.z;
+        k.prev_q = k.rotation_q;
+        k.prev_valid = true;
+        if (!moved) continue;
+        // What it holds: the other end of every bond.
+        for (const GluonConstraintBase* g : get_gluons_for_particle(i)) {
+            if (!g) continue;
+            const size_t other = (g->particle_a == i) ? g->particle_b : g->particle_a;
+            if (other < count && particles[other].is_at_rest &&
+                particles[other].solver_mode != ParticleSolverMode::KINEMATIC)
+                wake_particle_with_propagation(other, particles, 0.0f);
+        }
+        // What it carries: every sleeper within SLOP of its bounding sphere.
+        const float rk = 0.5f * std::sqrt(k.width*k.width + k.height*k.height + k.thickness*k.thickness);
+        for (size_t j = 0; j < count; ++j) {
+            if (j == i) continue;
+            const Particle& s = particles[j];
+            if (!s.is_at_rest || s.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+            const float rs = 0.5f * std::sqrt(s.width*s.width + s.height*s.height + s.thickness*s.thickness);
+            const float ddx = s.x - k.x, ddy = s.y - k.y, ddz = s.z - k.z;
+            const float reach = rk + rs + PhysicsV4::SLOP;
+            if (ddx*ddx + ddy*ddy + ddz*ddz <= reach * reach) {
+                wake_particle_with_propagation(j, particles, 0.0f);
+                static const bool dbg = std::getenv("KINEMATIC_LEDGER_DEBUG") != nullptr;
+                if (dbg) std::printf("[KIN LEDGER] P%zu (v %.3f,%.3f,%.3f) woke sleeper P%zu; at_rest now %d\n",
+                                     i, k.vx, k.vy, k.vz, j, (int)particles[j].is_at_rest);
+            }
+        }
+    }
+}
+
 void PhysicsSystem::admit_declared_sleepers(ParticleSystem::WriteView& particles) {
     // The kill switch (INV-36's pattern): SLEEPER_JUDGE=0 restores the old
     // behaviour - a declared sleeper is taken at its word - for A/B only.
@@ -4578,7 +4662,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // N*s of phantom friction across four corners, three
                 // frames before the surfaces met. A real die keeps its
                 // spin until the face touches.
-                if (c.is_contact && !c.is_turtle_contact && c.bias < 0.0f)
+                // G-79 (2026-09-05): TOUCHING IS GEOMETRIC, NOT A SIGN. Under the
+                // single law a seated body sits at penetration under SLOP with
+                // a negative bias by construction (bias = BETA (pen - SLOP) / dt),
+                // so the sign gate below denies friction to every body resting
+                // on a box: measured on G-77's platform (normal 1.633 N s,
+                // v_rel 0.333, limit 0) and behind G-46's red. Under the lever
+                // the gate is the gap itself: within SLOP the normal impulse is
+                // transmitted force and carries friction; wider, it is capture.
+                static const bool touch_geometric = std::getenv("FRICTION_TOUCH_GEOMETRIC") != nullptr;
+                const bool capture_only = touch_geometric
+                    ? (c.penetration < -PhysicsV4::SLOP)
+                    : (c.bias < 0.0f);
+                if (c.is_contact && !c.is_turtle_contact && capture_only)
                     friction_limit = 0.0f;
 
                 // Determine tangent directions from normal (Jacobian)
@@ -4734,6 +4830,18 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 c.friction_impulse_t1 = std::max(-friction_limit,
                                         std::min(friction_limit, old_f1 + friction_impulse_1));
                 friction_impulse_1 = c.friction_impulse_t1 - old_f1;
+                // CANARY: the friction row as priced and spent (INV-39's G-77 read).
+                if (canary_active &&
+                    ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
+                    std::cout << "[CANARY F" << phys_frame << " FRIC1 I" << iter << "] P" << c.body_a << "<->P" << c.body_b
+                              << " t1=(" << t1x << "," << t1y << "," << t1z << ")"
+                              << " v_rel=" << v_rel_t1 << " eff=" << tt1.eff
+                              << " limit=" << friction_limit << " dJ=" << friction_impulse_1
+                              << " acc=" << c.friction_impulse_t1
+                              << " inv_ma=" << inv_ma << " inv_mb=" << inv_mb
+                              << " va=(" << pa.vx << "," << pa.vy << "," << pa.vz << ")"
+                              << " vb=(" << pb.vx << "," << pb.vy << "," << pb.vz << ")" << std::endl;
+                }
 
                 if (energy_ledger_on() && friction_impulse_1 != 0.0f) {
                     // Work removed along this tangent: J * v_rel plus the
@@ -4821,6 +4929,15 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 c.friction_impulse_t2 = std::max(-limit_t2,
                                         std::min(limit_t2, old_f2 + friction_impulse_2));
                 friction_impulse_2 = c.friction_impulse_t2 - old_f2;
+                if (canary_active &&
+                    ((int)c.body_a == canary_pid || (int)c.body_b == canary_pid)) {
+                    std::cout << "[CANARY F" << phys_frame << " FRIC2 I" << iter << "] P" << c.body_a << "<->P" << c.body_b
+                              << " t2=(" << t2x << "," << t2y << "," << t2z << ")"
+                              << " v_rel=" << v_rel_t2 << " eff=" << tt2.eff
+                              << " limit=" << friction_limit << " dJ=" << friction_impulse_2
+                              << " acc=" << c.friction_impulse_t2 << " normal_acc=" << c.accumulated_impulse
+                              << " vb=(" << pb.vx << "," << pb.vy << "," << pb.vz << ")" << std::endl;
+                }
 
                 if (energy_ledger_on() && friction_impulse_2 != 0.0f) {
                     const double inv_sum = double(inv_ma) + double(inv_mb);
