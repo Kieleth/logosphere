@@ -1904,3 +1904,16 @@ ATTRIBUTION (two red tests, each lever alone, one binary):
   the solver a state it would never have produced; INV-39 makes such
   states visible instead of silent. Measuring the bones' derived
   velocities and the wakes during a walk next.
+G-80 THE PLANTED FOOT HAS A VELOCITY (measured, registered after the
+  fact and saying so). P1500, the lowest KINEMATIC bone at the floor's
+  height, in contact with the tiles it wakes: swing at 2.0 m/s, plant
+  at 0, then a 0.375 s stance in which the foot slides 0.73 m at
+  1.2-1.7 m/s the other way, then a planted phase written with
+  0.1-1.3 m/s jitter. Under the old world that foot's ledger read
+  zero whatever FK did; under INV-39 the floor feels a foot sliding
+  through it at walking speed. The law is right and it indicts the
+  writer (INV-30). The friction lever alone passes the walking tests.
+  RULING OWED, in chat: writers own the velocity ledger (the
+  derivation dies) or the derivation stays and the slide is the
+  humanoid front's next red. test_walk_through_grass went green under
+  the levers; why is unread.

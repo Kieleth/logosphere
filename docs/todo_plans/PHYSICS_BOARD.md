@@ -389,7 +389,15 @@ negative bias, so no body had friction against the box it rests on (the
 turtle exempt). Behind `FRICTION_TOUCH_GEOMETRIC`; the die's spin
 preserved (drop ladder R2/R3), the ramp race moves 1 %. Both levers are
 OWNER RULINGS for the flip, after the sweep under them and a paired Eden
-A/B.** This law retires the
+A/B.** SWEEP UNDER BOTH (same day): MOLES 55, new-red 9, gone-green 3 (the
+two new tests and test_walk_through_grass). The reds are the ledger's, not
+the friction lever's: G-80 - THE PLANTED FOOT HAS A VELOCITY. Eva's stance
+foot, KINEMATIC and 'glued', is written by FK sliding through the floor at
+1.2-1.7 m/s for 0.375 s per step and the tiles now feel it (walk_forward
+2.786 of 5 m, 51 backward frames). The law told the truth about the writer.
+RULING OWED: (a) writers maintain the velocity ledger and the delta
+derivation dies (G-38's fold), or (b) the derivation stays and the
+stance-foot slide is the humanoid front's next red. This law retires the
 night's scope 'three rows only when both endpoints are DYNAMIC' (G-75)
 and answers G-38's velocity half: the writer's motion is read from what
 it wrote, not from a flag.
