@@ -669,7 +669,7 @@ void PhysicsSystem::derive_kinematic_motion(ParticleSystem::WriteView& particles
             const logosphere::Quat dq = (k.rotation_q * k.prev_q.conjugate()).normalized();
             float ax = 0.0f, ay = 0.0f, az = 1.0f, th = 0.0f;
             dq.to_axis_angle(ax, ay, az, th);
-            if (th > 3.14159265f) th -= 6.28318531f;   // the shortest arc
+            if (th > static_cast<float>(M_PI)) th -= 2.0f * static_cast<float>(M_PI);   // the shortest arc
             const float rate = th / dt;
             k.omega_x = ax * rate; k.omega_y = ay * rate; k.omega_z = az * rate;
             const float dx = k.x - k.prev_x, dy = k.y - k.prev_y, dz = k.z - k.prev_z;

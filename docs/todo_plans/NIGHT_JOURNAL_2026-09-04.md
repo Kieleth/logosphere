@@ -1882,3 +1882,25 @@ RUN (seat latched from the held phase; three modes, one binary):
   red (the platform's friction); both levers 0 red: THE SOLVER READS
   THE WRITERS' MOTION. Committing; then the sweep under both levers,
   alone, as the jury for the flips.
+SWEEP under BOTH levers, alone (5998c2b): SWEEP_VERDICT: MOLES 55
+  (new-red 9, gone-green 3, unaudited 43).
+  gone-green: test_writers_motion, its window, and test_walk_through_grass.
+  new-red: test_inv29_constants_gate (mine: two pi literals at
+  v4.cpp:672 - fixed next through M_PI), test_humanoid_strata_integrity
+  (HUNG at the 300 s deadline), test_idle_pose_stability,
+  test_physics_drive_full_idle / walk_legs / walk_legs_fast /
+  walk_upper_body, test_strafe_progress, test_walk_forward_progress.
+ATTRIBUTION (two red tests, each lever alone, one binary):
+  FRICTION_TOUCH_GEOMETRIC alone: walk_forward PASS, drive_walk_legs
+  PASS. KINEMATIC_LEDGER alone: walk_forward FAIL (forward 2.786 of
+  5.000 m, 51 backward frames), drive_walk_legs FAIL (48 backward
+  frames). The ledger breaks walking; the friction lever is clean here.
+  The physics before the measurement: Eva's bones are KINEMATIC and
+  written by FK every frame, and FK's writes include corrections that
+  are not motion (ground correction, snaps, IK rebuilds - the tracer's
+  own site list). Under the law a correction is a velocity, the floor
+  feels a planted foot as a moving one, and a moving bone wakes every
+  tile it touches every frame. INV-30's domain: a writer may not hand
+  the solver a state it would never have produced; INV-39 makes such
+  states visible instead of silent. Measuring the bones' derived
+  velocities and the wakes during a walk next.
