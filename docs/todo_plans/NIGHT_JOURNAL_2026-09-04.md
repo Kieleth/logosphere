@@ -901,3 +901,13 @@ Eden cost claim needs a PAIRED A/B, back-to-back, one binary, lever
 off then on; absolute numbers across hours compare nothing. Running
 that pair now for SEAM_FAMILY_AWAKE. SWEEP alone with 11 parked:
 MOLES 43 (new-red 0, gone-green 0, unaudited 43) - clean.
+
+PAIRED A/B, one binary, back-to-back, alone - SEAM_FAMILY_AWAKE:
+off: steady 720.0 ms (median 723, p90 933, p99 1167), all-frames 836.8,
+end state 9113 / 160 / 59. on: steady 1159.8 (median 1131, p90 1443,
+p99 1887), all-frames 1112.8, end state 9027 / 223 / 79. The end
+states are bit-identical to the earlier runs of each setting - the
+physics is deterministic; only the wall clock drifted (705 / 720 /
+1006 for the same physics). The cost of the coplanar family is 440 ms
+per steady frame, measured. VERDICT 11 stands: parked, and now for a
+reason that was measured rather than assumed.
