@@ -728,6 +728,22 @@ static bool wake_resolver_on() {
     return on;
 }
 
+// An axis-aligned box as an OBB: the merged surface of a tile family handed
+// to the oriented narrow phase (night 2026-09-04, journal 8).
+static inline OBB obb_of_aabb(const AABB6& b) {
+    OBB o;
+    o.c[0] = 0.5f * (b.min_x + b.max_x);
+    o.c[1] = 0.5f * (b.min_y + b.max_y);
+    o.c[2] = 0.5f * (b.min_z + b.max_z);
+    o.axis[0][0] = 1.0f; o.axis[0][1] = 0.0f; o.axis[0][2] = 0.0f;
+    o.axis[1][0] = 0.0f; o.axis[1][1] = 1.0f; o.axis[1][2] = 0.0f;
+    o.axis[2][0] = 0.0f; o.axis[2][1] = 0.0f; o.axis[2][2] = 1.0f;
+    o.half[0] = 0.5f * (b.max_x - b.min_x);
+    o.half[1] = 0.5f * (b.max_y - b.min_y);
+    o.half[2] = 0.5f * (b.max_z - b.min_z);
+    return o;
+}
+
 static inline float inv_mass_momentum(const Particle& p) {
     if (p.solver_mode == ParticleSolverMode::KINEMATIC) return 0.0f;
     if (p.is_at_rest && !wake_resolver_on()) return 0.0f;
@@ -1727,7 +1743,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     const char* v = std::getenv("SEAM_MERGE_PRECONDITION");
                     return v && v[0] == '0';
                 }();
-                if (pj.is_at_rest && !oriented_pair) {
+                // THE SURFACE REACHES THE ORIENTED PATH (night 2026-09-04, journal
+                // 8): a walking foot is a rotated box, so its pairs take the
+                // oriented narrow phase, and until now the merge lived only in the
+                // axis-aligned branch - a foot 0.9 mm into one tile met the next
+                // tile's side as a 0.9 mm wall (test_body_coherence, 1.94 N s).
+                // The tile under a foot is unrotated: its family's surface is
+                // built and judged here for any i, and the oriented SAT below
+                // receives it as an axis-aligned OBB in place of the tile's own.
+                // PARKED (night 2026-09-04, journal 9): handing the strip to the
+                // oriented SAT refuted itself - the oriented path takes the most
+                // separated FACE axis, a strip has ends, and a foot 30 mm past a
+                // tile's edge saw the strip's end as a wall (2.49 N s; the walker
+                // 0.000 -> 2.36 N s). The oriented path's speculative axis is the
+                // open question (journal 5a). SEAM_MERGE_ORIENTED=1 enables.
+                static const bool merge_oriented = [] {
+                    const char* v = std::getenv("SEAM_MERGE_ORIENTED");
+                    return v && v[0] == '1';
+                }();
+                if (pj.is_at_rest && !obb_j) {
                     // A STRIP, NEVER AN L'S BOUNDING BOX (night 2026-09-04,
                     // journal 8): widened along one axis at a time, the merged
                     // box is a union of tiles; the bounding box of an L covers
@@ -1795,7 +1829,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // identity axes, so mixed pairs are exact too.
                     have_contact = narrow_phase_obb(
                         obb_i ? obb_i_box : obb_of_box_particle(pi, z_predicted[i]),
-                        obb_j ? obb_j_box : obb_of_box_particle(pj, z_predicted[j]),
+                        obb_j ? obb_j_box
+                              : (merge_oriented ? obb_of_aabb(aabb_j)     // the family's strip when merged
+                                                : obb_of_box_particle(pj, z_predicted[j])),
                         i, j, CONTACT_MARGIN, manifold);
                 } else if (both_box) {
                     have_contact = narrow_phase_aabb(aabb_i, aabb_j, i, j,

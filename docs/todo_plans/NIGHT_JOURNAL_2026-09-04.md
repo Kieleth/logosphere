@@ -578,3 +578,45 @@ mechanism (its 15 N s row was a strip-less union's phantom against the
 diagonal bedrock; the exact row was not re-traced tonight, the stage
 that carried it is green). Eden's compaction is the next thing to
 measure with this merge, after the sweep.
+
+## 9. The strip reaches the oriented path
+
+TARGET. body_coherence's 1.94480 N s (a pitched foot's front face
+against the next tile 3.8 mm before its edge), and every seam a
+walking humanoid meets: a rotated foot's pairs take the oriented SAT,
+which has seen only the tile's own box until now.
+
+HYPOTHESIS. The strip (iteration 8) judged for any body over an
+unrotated sleeping tile, handed to the oriented SAT as an axis-aligned
+OBB, gives the foot one surface across P2 -> P3: z contact, no side
+face, no catch. tile_sticking stays at 0.00000; G/H, the ladder (one
+slab, no family), the diagnostic do not move.
+
+CHANGE (one). physics_system_v4.cpp: the merge block judges for any i
+when j is unrotated; the oriented call receives obb_of_aabb(aabb_j)
+for an unrotated j. Lever SEAM_MERGE_ORIENTED=0 keeps the tile's own
+box for A/B.
+
+RUN 9. REFUTED (A/B on the same binary, SEAM_MERGE_ORIENTED 0 / 1).
+body_coherence: 5 rows max 1.94480 -> 6 rows max 2.49020 (f35
+P10<->P2, n = (0, 1, 0), a gap of 29.9 mm). tile_sticking: 12 rows max
+0.00000 -> 6 rows max 2.36245, sticking frames 0 -> 1. jammed twin 0
+either way, ladder 2 either way, diagnostic 0.104858 -> 0.105654.
+
+RCA. The strip is a union of tiles in the axis-aligned path because
+the AABB metric reads containment: a body inside the strip's footprint
+gets z. The oriented SAT reads no containment - it takes the most
+separated FACE axis (iteration 3) - and a strip has ends: a foot 30 mm
+beyond a tile's y-edge, over the next tile, still within the x-strip's
+x-range, sees the strip's y-end as its most separated face and gets a
+wall 30 mm ahead. Against the tile alone that face lost to another
+axis; against the strip it wins. The oriented path's speculative axis
+is the question (journal 5a: the last face axis to close under the
+relative motion), and until it is answered no box we hand it can be
+'the surface'. The AABB path does not have this problem because
+containment is a rule about being over something.
+
+VERDICT 9. PARK behind SEAM_MERGE_ORIENTED (default OFF), code and
+numbers kept. The night's real result stands at iteration 8. NEXT:
+the sweep alone for iterations 6-8, then Eden alone: the steady tail
+against 621 ms and whether the floor still compacts.
