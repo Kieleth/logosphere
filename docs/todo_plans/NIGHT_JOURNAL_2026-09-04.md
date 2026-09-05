@@ -1646,3 +1646,25 @@ CHANGE 19 (engine + test): an endpoint at or beyond live + pending is
 refused with its own line and not created (like the door: a refusal,
 not an abort; counted for tests); a test bonds P0 to SIZE_MAX (refused)
 and P0 to a still-pending promise (accepted, live after the flush).
+RUN 19 (provenance: 'guard removed from add_particle_with_gluon_to;
+  kept in add_gluon_between' - the first entry point already refused a
+  stranger on its own and returns -1; my block there was redundant and
+  would not compile). tests/test_bond_to_nothing_is_refused: 4 of 4
+  green (P0<->P(-1) refused, refusals 0 -> 1, gluons 0 -> 0; a bond to
+  the pending promise P1 accepted at promise range 2 / live 1; P1 live
+  at z 10.10 after the flush). test_branch_placement_ladder now says
+  '[PHYSICS REFUSED] bond P0<->P18446744073709551615: an endpoint lies
+  beyond the promise range (live + pending = 1)' - three times, one per
+  rung's refused branch - instead of INV-22's second-live-bond line.
+VERDICT 19: KEEP (d2777c5). A refusal now names its reason. The
+  ladder's own red is unchanged (F-CROWN's junction). Sweep alone in
+  flight.
+SWEEP alone after 19 (d2777c5): SWEEP_VERDICT: MOLES 43 (new-red 0,
+  gone-green 0, unaudited 43). Clean.
+
+## 20. A bond holds a load below its strength? (from 18's census)
+TARGET: test_gluon_tree_v34 (legacy): a 'WEAK 500 N' gluon breaks
+under B1 alone, 20 kg, 196 N static. If organic bonds tear below their
+declared strength, every tree's crown is in it (F-CROWN's 3 torn / 18
+taut at frame zero). Baseline: the test's own lines around the break,
+then the bond's derived law for the pair.
