@@ -620,3 +620,33 @@ VERDICT 9. PARK behind SEAM_MERGE_ORIENTED (default OFF), code and
 numbers kept. The night's real result stands at iteration 8. NEXT:
 the sweep alone for iterations 6-8, then Eden alone: the steady tail
 against 621 ms and whether the floor still compacts.
+
+## Where the night stands (written while the sweep for 6-9 runs alone)
+
+Shipped on night/2026-09-04, each its own commit, DCO, no merge:
+  1. the contact telemetry records the solved rows, once per frame,
+     with impulses (test_falling_cube green: its red was the instrument);
+  2. tile sticking weighs its floor rows by force (19 inert, 1 catch);
+  3. a separated pair meets a face in the oriented SAT (the catch: 0);
+  4. body coherence weighs its rows (a second catch, named);
+  6. the merge judged after it is built - a body ON the surface;
+  7. coplanar means within SLOP (registry);
+  8. the merged surface is a strip, never an L's bounding box -
+     test_jammed_sleep all eight cases green, the face-area rule unused,
+     G-69 closed on its stage, G-73 answered by mechanism.
+Parked behind levers, default off, code and numbers kept:
+  5a. one-predicate speculative rows (SEAM_SPECULATIVE_FACE=1): built a
+      row in free flight, granted a real 0.9 mm wall;
+  9.  the strip in the oriented path (SEAM_MERGE_ORIENTED=1): a strip's
+      end is a wall to 'most separated face'.
+Open, with coordinates: body_coherence's 1.94 N s (a pitched foot's
+front face, oriented path); the count laws' wording (INV-12: count vs
+force, owner ruling); the oscillation diagnostic on its bar (0.105 vs
+0.100; 0.046 under 5a - the brick stack's jitter is fed by speculative
+rows); the oriented path's speculative axis (the last face axis to
+close under the relative motion) as the design the two parked
+experiments point at.
+Owner rulings owed, unchanged from the day: the face rule's default on
+#171 (now unneeded on this branch's evidence), F-CROWN, A+B, refusal of
+unnamed births, the Eden game-layer items, merge order #166..#173, and
+whether this night branch becomes a PR on top of #173.
