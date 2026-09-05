@@ -404,6 +404,9 @@ public:
 
     // Total gluon count (useful for worldgen cross-checks and instrumentation)
     size_t get_total_gluon_count() const { return gluon_constraints_v2_.size(); }
+    // Bonds refused at add_gluon_between because an endpoint lay beyond the
+    // promise range (a refused birth's -1, an unborn body): counted for tests.
+    size_t bonds_refused() const { return bonds_refused_; }
     // Indexed access for a census (tests, audits): the i-th registered bond,
     // in registration order, or nullptr past the end.
     const GluonConstraintBase* gluon_at(size_t i) const {
@@ -624,6 +627,7 @@ private:
     Engine* engine_;
     ParticleSystem* particle_system_;
     bool quat_truth_ = true;    // DEFAULT ON, owner ruling 2026-08-19; see set_quat_truth
+    size_t bonds_refused_ = 0;  // add_gluon_between: endpoint beyond the promise range
     PhysicsConfig config_;
     bool is_initialized_;
 

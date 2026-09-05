@@ -1633,3 +1633,16 @@ RUN 18 (one run each, harness, readings booked in TEST_AUDIT):
     joint-block class, untouched by the night.
 VERDICT 18: five reds have findings; none is the night's; two are stale
   laws (13/14's class), two are owner fronts, one is the block solver's.
+
+## 19. A bond to nothing is refused by name (from 18's ladder)
+
+TARGET: add_gluon_between (v4.cpp:7071) accepts any pair of ids: a
+refused birth's -1 (SIZE_MAX) is bonded silently - get_particle_copy
+of a stranger, the row skipped forever by the solver's range guard -
+and only a SECOND such bond trips INV-22's 'second live bond' line,
+the wrong refusal. Generators bond by PROMISED ids (live + pending),
+so the range is the promise range, not the live count.
+CHANGE 19 (engine + test): an endpoint at or beyond live + pending is
+refused with its own line and not created (like the door: a refusal,
+not an abort; counted for tests); a test bonds P0 to SIZE_MAX (refused)
+and P0 to a still-pending promise (accepted, live after the flush).

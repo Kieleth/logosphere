@@ -213,6 +213,13 @@ public:
         std::shared_lock<std::shared_mutex> lock(particles_mutex_);
         return particles.size();
     }
+    // The PROMISE RANGE: live bodies plus the queue's pending ones. A
+    // queued birth's predicted index lies in it (queue_particle_addition);
+    // anything at or beyond it is nobody (a refused birth's -1 included).
+    size_t promised_count() const {
+        std::shared_lock<std::shared_mutex> lock(particles_mutex_);
+        return particles.size() + pending_particles.size();
+    }
 
     bool empty() const {
         std::shared_lock<std::shared_mutex> lock(particles_mutex_);

@@ -7087,6 +7087,24 @@ void PhysicsSystem::add_gluon_between(
     }
 
     // Setup gluon between existing particles
+    // A BOND NAMES TWO BODIES (night 2026-09-04, journal 19). A refused
+    // birth returns -1; as size_t that is a stranger the solver skips forever,
+    // and only a second such bond used to trip INV-22's 'second live bond'
+    // line - the wrong refusal. The range is the PROMISE range (live +
+    // pending), because generators bond by predicted indices before the
+    // flush. Refused like the door refuses: named, counted, not created.
+    {
+        const size_t promised = particle_system_->promised_count();
+        if (particle_a_id >= promised || particle_b_id >= promised) {
+            std::fprintf(stderr,
+                "[PHYSICS REFUSED] bond P%zu<->P%zu: an endpoint lies beyond the "
+                "promise range (live + pending = %zu) - a refused or unborn body "
+                "cannot be bonded. The bond was NOT created.\n",
+                particle_a_id, particle_b_id, promised);
+            ++bonds_refused_;
+            return;
+        }
+    }
     gluon->particle_a = particle_a_id;
     gluon->particle_b = particle_b_id;
     gluon->id = next_gluon_id_++;

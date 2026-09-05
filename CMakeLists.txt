@@ -794,6 +794,7 @@ if(LOGOSPHERE_FULL)
     add_engine_at(test_leg_geometry_choreography)
     add_engine_at(test_born_with_material)          # INV-38 (G-74): every generator names a material on every body it births # Eden playtest repro: legs fold under walk/stop/turn transitions
     add_engine_at(test_queued_promise_kept)         # GEDANKEN-76: a queued birth's predicted index vs a direct birth before the flush (born red; the contract is an owner ruling)
+    add_engine_at(test_bond_to_nothing_is_refused)  # INV-22 / G-76: an endpoint beyond the promise range is refused by name; a promise is bondable before the flush
     add_engine_at(at_ai_bike_invisible_outside_cone)
     add_engine_at(test_cinematic_pause)
     add_engine_at(test_camera_director)
