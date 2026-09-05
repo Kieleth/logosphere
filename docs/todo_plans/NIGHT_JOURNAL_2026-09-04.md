@@ -911,3 +911,120 @@ physics is deterministic; only the wall clock drifted (705 / 720 /
 1006 for the same physics). The cost of the coplanar family is 440 ms
 per steady frame, measured. VERDICT 11 stands: parked, and now for a
 reason that was measured rather than assumed.
+
+RUN 13a (the measurement). test_gluon_angular_drive_converges: b_rot
+0.0000 and rel 0.0000 at every printed frame, err 0.7854 (the whole
+target) from f0 to the end; final rel 0.0000. And a_z falls 5.000 ->
+0.716 over 55 frames: the 'two particles floating in space, no gravity
+effect' scene is under full gravity. The drive is not under-damped; it
+never engages. The booking ('the PD drives leaned on the dead drag
+constant') describes a ringing row; there is no row. Reading the row's
+build condition before anything else.
+
+RUN 13b (canary on B, frames 1-3). The angular row IS built every
+frame: ANGROW-Z P0<->P1 angle_diff -0.785398, bias -4 (ANGULAR_BETA
+times the error over dt, clamped at MAX_ANGULAR_BIAS_VELOCITY),
+effective inertia 0.00208, budget [-inf, inf], drive 1. And every
+frame the solve exits after ONE iteration with the relative rotation
+unchanged. A row that is built and never applied: the apply site must
+be skipping it. Reading that gate.
+
+RCA 13 (the apply gates, physics_system_v4.cpp ~4230 and ~4428, G-39's
+rule). A contact row spins a body iff it is DYNAMIC; a NON-contact
+row - a gluon's angular row - spins a body iff `is_quat_driven &&
+owner == PHYSICS`, and measures its rotation on the same predicate.
+The test's two boxes are neither quat-driven nor PHYSICS-owned (both
+default false), so the drive's row is built, priced (bias -4, effI
+0.00208) and never spent: omega stays (0,0,0), q stays identity, rel
+stays 0.0000. Every live drive (entity_manager, humanoid_locomotion x4)
+sets use_quat_target = true; the scalar-Z target the test uses has no
+user but the test. The booking 'under-damped since the drag constant
+died' described a ringing this test cannot have shown for as long as
+its bodies stood outside the rotational-DOF world - the same stale-law
+shape as test_particle_quat_euler_sync's note. VERDICT: the test is
+rewritten to the ruled world (bodies quat-driven and PHYSICS-owned, a
+quaternion target); its first honest numbers decide whether a damping
+question exists at all.
+
+CHANGE 13 (one, the test's). Both bodies quat-driven and PHYSICS-owned
+(the rotational-DOF world's predicate), the gluon given a quaternion
+target (pi/4 about z) alongside the scalar one, use_quat_target on -
+the same three settings every live drive carries. Nothing in the
+engine moves. The settle and hold numbers that follow are the drive's
+first honest measurement since the flip.
+
+RUN 13c (provenance: NOT the change). The patch's second anchor did
+not match, the script stopped before writing, and the numbers are
+bit-identical to 13a. Re-patched on single-line anchors.
+
+RUN 13c (the change applied; provenance: the three settings grep at
+lines 60/71/87 of the test). THE DRIVE ENGAGES.
+  f0  rel  0.0000     a  0.0000  b  0.0000
+  f5  rel -0.4000     a +0.2000  b -0.2000
+  f10 rel -0.6667     a +0.3333  b -0.3333
+  f15 rel -0.7830     a +0.3915  b -0.3915
+  f20..f55 rel -0.7830, flat, forty frames.
+  Final rel -0.7830 (target +0.7854). Max settle err 1.5684, max hold
+  err 1.5684 (budget 0.0785). Both asserts red.
+
+RCA 13c.
+  1. Convergence: monotonic, met at frame 15 (0.25 s), zero overshoot,
+     held flat for the whole hold phase. Magnitude 0.7830 against
+     0.7854: 0.3 %. Equal inertias split the turn equally (+0.39/-0.39).
+     There is NO damping question. The booking's story ("under-damped
+     since ANGULAR_DRAG died") was never a measurement: the drive had
+     not engaged since G-39's apply gate, and a flat zero was read as
+     ringing by nobody, for a month.
+  2. The sign. The engine's law (physics_system_v4.cpp:2779) is
+     q_b = target * q_a, error q_err = q_b * q_a^-1 * target^-1, nulled.
+     Standalone computation (scratchpad quat_rt.cpp, src/math/quat.h
+     alone) with the MEASURED rotations:
+       to_euler_zyx(from_axis_angle(+Z, +0.7854)).z = -0.7854
+       q_b * q_a^-1 for the measured pair: euler z = -0.7830
+       q_err = (w +1.0000, z -0.0012): identity.
+     THE DRIVE IS MET. quat.h:296/305: to_euler_zyx outputs CW Z
+     (`out_z = -atan2`), which is rotation_z's convention (CLAUDE.md:
+     compass CW viewed from +Z); from_axis_angle is standard CCW;
+     from_euler (quat.h:319-324) negates Z between the two. The test
+     built its target with the CCW constructor and read the CW field
+     expecting the same sign. Two conventions in one fixture.
+  3. Live producers of target_relative_q: entity_manager.cpp:142 (rest
+     pose = qb * qa^-1 measured), humanoid_locomotion.cpp:1269/2575/6365
+     (composed quaternions), the plastic-yield site (FA(axis,-yield) *
+     rel measured). All build the target in quaternion space from
+     measured quaternions; none hand-builds a Z angle. The seam is the
+     test's alone. No engine change.
+
+CHANGE 13d (test-only, one line): the target through the engine's own
+bridge, Quat::from_euler(0, 0, +pi/4), so target and reading share the
+CW convention. Expected: rel +0.783, err 0.0024 < 0.039 (5 %), hold
+err within 0.0785. Build + run in flight.
+
+RUN 13d (provenance: from_euler at test line 91). GREEN.
+  f5 rel +0.4000, f10 +0.6667, f15 +0.7830, flat through f55.
+  Final rel +0.7830 (err 0.0024). Max settle err 0.7854 (frame 0's
+  own), max hold err 0.0024 (budget 0.0785). Both asserts PASS.
+
+VERDICT 13: KEEP (test-only, two changes of fixture, no engine change).
+  INV-13's angular drive converges monotonically in 15 frames with no
+  overshoot and holds. The residual 0.0024 rad (0.3 % of the target)
+  is standing and flat: a stopping bar of the row, not a load (free
+  flight, no torque on the pair). Named, not chased. The audit row's
+  'under-damped since ANGULAR_DRAG died' is retired: it described a
+  drive that had never engaged.
+  Less-is-more note: the engine keeps two rotation conventions (CW
+  rotation_z, CCW quaternions) bridged at exactly one place, quat.h's
+  from_euler/to_euler_zyx. The class of error is a hand-built Z
+  quaternion carrying a rotation_z-meaning angle. Census below.
+  Census of the class (from_axis_angle about +Z outside quat.h): five
+  engine sites bridge by hand with a minus each (physics_system_v4.cpp
+  7776 `-parent.rotation_z`; humanoid_locomotion.cpp 2488 `-sign *
+  target_z_rotation`, 5875 `-facing`, 5944 `-parent_p.rotation_z`,
+  6355 `-cascade_dz`); test_reverse_leg_chain's five are joint-space.
+  All five engine signs are right. Less-is-more candidate for the
+  owner, not tonight: from_euler(0, 0, z) equals from_axis_angle(0, 0,
+  1, -z) exactly (qx, qy identity), so the five hand negations could
+  become one named bridge with zero behaviour change. Booked here only.
+
+NEXT 14: test_particle_quat_euler_sync, the same seam's own test (its
+  law 'B.rotation_z (legacy, must stay 0)' predates the flip).

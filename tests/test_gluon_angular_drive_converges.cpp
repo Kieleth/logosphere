@@ -52,6 +52,13 @@ bool test_gluon_angular_drive_converges() {
     a.r = 0.7f; a.g = 0.4f; a.b = 0.4f; a.a = 1.0f;
     a.SetMaterial(Materials::Type::STONE);
     a.is_at_rest = false;
+    // THE RULED WORLD (night 2026-09-04, journal 13): a gluon's angular row
+    // spins a body only if it is quat-driven and PHYSICS-owned (G-39's apply
+    // gate); outside that predicate the drive's row is priced and never spent,
+    // which this test measured as 'never converges' for a month. Every live
+    // drive carries these settings.
+    a.is_quat_driven = true;
+    a.owner = ParticleOwner::PHYSICS;
     int a_id = engine.add_particle(a);
 
     Particle b = {};
@@ -61,6 +68,8 @@ bool test_gluon_angular_drive_converges() {
     b.r = 0.4f; b.g = 0.7f; b.b = 0.4f; b.a = 1.0f;
     b.SetMaterial(Materials::Type::STONE);
     b.is_at_rest = false;
+    b.is_quat_driven = true;
+    b.owner = ParticleOwner::PHYSICS;
     int b_id = engine.add_particle(b);
 
     // Gluon between them with the PD drive enabled. Target 45°.
@@ -73,6 +82,15 @@ bool test_gluon_angular_drive_converges() {
     gluon->angular_damping   = 12.0f;    // critical-ish damping at this stiffness
     gluon->max_relative_rotation = 3.14f;  // effectively unlimited
     gluon->target_relative_rotation = static_cast<float>(M_PI) / 4.0f;  // 45°
+    // rotation_z is CW viewed from +Z (to_euler_zyx, src/math/quat.h) and
+    // from_axis_angle is standard CCW; from_euler is the engine's own bridge
+    // between them. A target of +45 deg IN rotation_z is from_euler(0,0,+pi/4).
+    // Built with from_axis_angle(+Z,+pi/4) this fixture read rel -0.7830 with
+    // the engine's own q_err at identity (night journal 2026-09-04, 13c): the
+    // drive met its target; the test measured it in the other convention.
+    gluon->target_relative_q = logosphere::Quat::from_euler(0.0f, 0.0f,
+                                                            static_cast<float>(M_PI) / 4.0f);
+    gluon->use_quat_target = true;   // the target every live drive uses since the flip
     gluon->angular_drive_enabled = true;
 
     physics.add_gluon_between(a_id, b_id, std::move(gluon));
