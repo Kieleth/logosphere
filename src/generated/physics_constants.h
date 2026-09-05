@@ -219,10 +219,15 @@ constexpr float    EDGE_TOL = 0.001f;   // unit: m
 // Clip-polygon capacity: 4 original + up to 4 from clipping.
 constexpr int      MAX_CLIP_VERTICES = 8;   // unit: 1
 
-// Tile-merge coplanarity tolerance: same Z extent within 5 mm lets
-// resting tiles merge into one effective surface so interior seams
-// stop producing horizontal normals.
-constexpr float    COPLANAR_EPS = 0.005f;   // unit: m
+// Tile-merge coplanarity tolerance: same Z extent within the engine's
+// own geometric error (SLOP, 1 mm) lets resting tiles merge into one
+// effective surface so interior seams stop producing horizontal
+// normals. Was 5 mm until 2026-09-04: a body on the lower of two tiles
+// 5 mm apart was lifted onto the neighbours' plane (test_jammed_sleep
+// case H, +3 mm against INV-2's 2 mm). Tile families are generated at
+// one z and the sleeper judge lands them within SLOP, so no real
+// family is lost.
+constexpr float    COPLANAR_EPS = 0.001f;   // unit: m
 
 // Adjacency tolerance (10 mm): tiles touching or aligned within this
 // merge into a continuous surface; also the static-pair adjacency test

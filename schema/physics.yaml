@@ -1132,12 +1132,17 @@ classes:
           Clip-polygon capacity: 4 original + up to 4 from clipping.
       COPLANAR_EPS:
         range: float
-        ifabsent: float(0.005)
+        ifabsent: float(0.001)
         unit: { ucum_code: m }
         description: >-
-          Tile-merge coplanarity tolerance: same Z extent within 5 mm
-          lets resting tiles merge into one effective surface so
-          interior seams stop producing horizontal normals.
+          Tile-merge coplanarity tolerance: same Z extent within the
+          engine's own geometric error (SLOP, 1 mm) lets resting tiles
+          merge into one effective surface so interior seams stop
+          producing horizontal normals. Was 5 mm until 2026-09-04: a
+          body on the lower of two tiles 5 mm apart was lifted onto the
+          neighbours' plane (test_jammed_sleep case H, +3 mm against
+          INV-2's 2 mm). Tile families are generated at one z and the
+          sleeper judge lands them within SLOP, so no real family is lost.
       ADJ_EPS:
         range: float
         ifabsent: float(0.01)

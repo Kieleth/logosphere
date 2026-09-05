@@ -467,3 +467,57 @@ VERDICT 6. KEEP. Commit. NEXT: 7 - COPLANAR_EPS from 5 mm to SLOP in
 the registry (schema/physics.yaml, regenerated), H as the assert, G and
 the family as guards. Then 8 - the merge reaches the oriented path (an
 unrotated sleeping tile widened by its family before the OBB SAT).
+
+## 7. Coplanar means 'within the engine's own error': COPLANAR_EPS to SLOP
+
+TARGET. H's 3 mm (test_jammed_sleep, one red), and the merge's
+tolerance in general.
+
+HYPOTHESIS. The merge treats tiles whose z-extents agree within 5 mm
+as one plane; a body on the lower of two such tiles is lifted by the
+difference, up to 5 mm, against INV-2's 2 mm. Tile families are
+generated at one z and the sleeper judge lands them within SLOP, so
+'coplanar' can mean 'within SLOP' without losing a real family, and
+H's 5 mm step stops being one plane. G stays green (its layers are
+exactly coplanar), the walker's numbers do not move (its tiles are one
+z), the ladder and the diagnostic do not move.
+
+CHANGE (one). schema/physics.yaml: COPLANAR_EPS 0.005 -> 0.001 (the
+value of SLOP, named as such in the description); regenerated.
+
+## 8. The surface reaches the oriented path
+
+TARGET. body_coherence's catch (1.94480 N s, a pitched foot's front
+face against the next tile 3.8 mm before its edge), and every seam a
+walking humanoid meets: a foot is a rotated box, so its pairs take the
+oriented narrow phase, and the merge lives only under `!oriented_pair`.
+
+HYPOTHESIS. The tile under a foot is unrotated; its merged box (the
+family's surface, judged as in iteration 6) can be handed to the
+oriented SAT as an axis-aligned OBB in place of the tile's own. The
+foot 0.9 mm into P2 approaching P3 then sees one surface, meets it on
+z, and no side face exists to catch on. tile_sticking stays green, the
+ladder (rotated cubes on ONE floor slab, no families) does not move,
+G and H do not move (unrotated pairs keep the AABB branch).
+
+CHANGE (one). physics_system_v4.cpp: build and judge the merged box
+whenever j is an unrotated sleeping tile (rotated i included); in the
+oriented branch, when j is unrotated, the OBB passed to the SAT is the
+merged box's. Same lever SEAM_MERGE_PRECONDITION for the judgement.
+
+RUN 7a (provenance: NOT the change). generate_ontology.py exited 2 and
+the generated header still read 0.005; the build and every number that
+followed were the iteration-6 baseline again (H 0.498, the rest
+identical). Booked as such; the generator's failure is read before a
+second attempt.
+
+RUN 7b (the change; regenerated through the repo's conda env, 18
+schemas). test_jammed_sleep still 1 red: H's centre tile at 0.497
+against 0.495 (was 0.498 at 5 mm coplanarity, 0.516 unconditional).
+Everything else identical: tile_sticking 12 / 0.00000, body_coherence
+5 / 1.94480, ladder 2, diagnostic 0.104858, cube green. The constant
+did what it should - l11 no longer joins the family 5 mm above it -
+and a 2 mm lift remains from another source. Canary before guessing.
+
+VERDICT 7. KEEP: coplanar now means within the engine's own error, the
+registry carries the rationale, no test moved but the one it aimed at.
