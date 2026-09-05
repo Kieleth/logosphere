@@ -707,3 +707,27 @@ VERDICT 10. KEEP the instrument (the three fastest bodies named). The
 target is now a mechanism question: what pushes a bonded stone cluster
 at a steady 0.105 m/s. NEXT: canary on P4643 at the end of the run -
 rows, normals, impulses.
+
+RUN 10b (canary on P4643, the last physics frame, 1200). One contact
+row: P4643<->P418 (a floor tile), n = (0, 0, 1), depth -37.79 mm - the
+stone hangs 37.8 mm ABOVE the floor. Position unchanged across frames
+(0.2931 at the end, 0.2937 in the test's print); velocity -0.186 m/s
+at the start of the solve, -0.105 after it, iters = 32. A stone held
+off the floor by its three bonds to the two resting stones of its
+cluster: gravity pulls it every frame, the bond rows pull it back, and
+the solve leaves 0.105 m/s of unconverged velocity that the position
+pass undoes. The diagnostic's 'oscillation' is a velocity residual on a
+stiff bonded cantilever - stiff since the rock was born STONE (E 6e10;
+as FLESH those bonds were a thousand times softer and converged, which
+is why this number moved between branches and sits on the bar). This
+is the class the joint block solver branch exists for (rows of one
+joint solved simultaneously; open on rung 4), not a seam and not a
+night fix: booked with its mechanism.
+
+RUN 10c (level-2 trace, the whole run): 1199 of 1200 substeps exit by
+iteration_budget_exhausted (32); the end-of-run dissatisfaction census
+names stone rocks with 2-6 bonds held by gluon strain (P4546, P4547,
+P4549, P4550, mat 4 = STONE). The scene never converges because its
+rock clusters' stiff bonds never converge. VERDICT 10. Booked with the
+mechanism; the joint block solver branch owns it. The instrument
+(three fastest bodies) stays.
