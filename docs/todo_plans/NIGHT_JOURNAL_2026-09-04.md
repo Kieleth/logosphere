@@ -1616,3 +1616,20 @@ SWEEP alone after 17 (5285032): SWEEP_VERDICT: MOLES 43 (new-red 0,
   test_physics_experiment_01, test_rotation_ladder carry expect: fail
   and an empty known_open. A red without a finding is a mole in
   waiting. One run each, its FAIL lines read and booked.
+RUN 18 (one run each, harness, readings booked in TEST_AUDIT):
+  branch_placement_ladder: rung 1 red because the branch is never born
+    (the door refuses it: centre at the parent's top plane, half inside
+    the trunk - F-CROWN's junction), then the test bonds the refused
+    id: P1<->P18446744073709551615 (-1) under INV-22's message. The
+    wrong refusal for the right reason. Guard candidate: a bond
+    endpoint out of range is refused by name (19).
+  gluon_tree_v34: legacy law - a 'WEAK 500 N' gluon breaks under 196 N
+    static; breaking semantics moved to the force-bounded bond law.
+  grass_natures: TRANSLATE ONLY (A+B, the owner's ruling); the rest ok.
+  physics_experiment_01: cases 2-3 red; case 3 expects a fall to
+    z = -42 m, below the turtle - pre-turtle law; case 2's cause unread.
+  rotation_ladder: rungs 1-2 green, 3-4 red with today's numbers (seg
+    rot 10.6 deg, joint gap 124 mm; BENT fin 0.04 need > 0.4): the
+    joint-block class, untouched by the night.
+VERDICT 18: five reds have findings; none is the night's; two are stale
+  laws (13/14's class), two are owner fronts, one is the block solver's.
