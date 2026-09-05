@@ -888,3 +888,16 @@ merge should produce ONE row per body per surface, which is a
 different design (a surface as its own contact target) and the
 morning's question, not the night's. Eden re-measured alone after the
 park, then the sweep alone.
+
+EDEN with 11 parked, alone: steady 1006.5 ms (median 989, p90 1216,
+p99 1390), all-frames 1064.8; end state 9061 / 216 / 85. The same
+physics read 704.6 ms steady earlier tonight. An hour and several
+builds apart, the bench moves 40 % on its own (thermal state after a
+build, whatever else the laptop does), and the 410 ms I charged to
+iteration 11 was two binaries at two hours - NOT established. The
+verdict's mechanism (one row per member) is a reading, not a
+measurement. Rule for the rest of the night, and for the morning: an
+Eden cost claim needs a PAIRED A/B, back-to-back, one binary, lever
+off then on; absolute numbers across hours compare nothing. Running
+that pair now for SEAM_FAMILY_AWAKE. SWEEP alone with 11 parked:
+MOLES 43 (new-red 0, gone-green 0, unaudited 43) - clean.
