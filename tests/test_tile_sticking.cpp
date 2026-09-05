@@ -15,6 +15,8 @@
 #include "../src/core/engine.h"
 #include "logosphere/dynamics/particle_dynamics_system.h"
 #include "../src/core/entity_telemetry.h"
+#include "generated/physics_constants.h"
+#include <algorithm>
 #include "logosphere/physics/narrow_phase.h"
 #include "logosphere/worldgen/humanoid_generator.h"
 #include "../src/test_context.h"
@@ -136,6 +138,11 @@ bool test_tile_sticking(TestContext& /* ctx */) {
     // Check: scan ALL tracked particles for horizontal contacts with floor tiles
     int floor_horizontal = 0;
     int total_horizontal = 0;
+    // Night 2026-09-04: a row is a seam catch only if it carries force.
+    struct HeavyRow { float impulse; float friction; float pen; float nx, ny, nz; unsigned f, a, b; };
+    std::vector<HeavyRow> heavy;
+    double floor_h_impulse_sum = 0.0;
+    float  floor_h_impulse_max = 0.0f;
     int sticking_frames = 0;
 
     std::unordered_set<unsigned int> tile_set(tile_ids.begin(), tile_ids.end());
@@ -167,6 +174,11 @@ bool test_tile_sticking(TestContext& /* ctx */) {
                     // Check if either particle in the contact is a tile
                     if (tile_set.count(c.particle_a) || tile_set.count(c.particle_b)) {
                         floor_horizontal++;
+                        floor_h_impulse_sum += std::fabs(c.normal_impulse);
+                        floor_h_impulse_max = std::max(floor_h_impulse_max, std::fabs(c.normal_impulse));
+                        heavy.push_back({std::fabs(c.normal_impulse), c.tangent_impulse, c.penetration,
+                                         c.normal_x, c.normal_y, c.normal_z,
+                                         (unsigned)frame->frame_number, c.particle_a, c.particle_b});
                         if (floor_horizontal <= 5) {
                             printf("    HORIZONTAL FLOOR CONTACT f%d: P%u↔P%u normal=(%.2f,%.2f,%.2f) corner=%d pen=%.3f\n",
                                    frame->frame_number, c.particle_a, c.particle_b,
@@ -259,6 +271,18 @@ bool test_tile_sticking(TestContext& /* ctx */) {
     bool no_floor_horizontal = (floor_horizontal == 0);
     printf("    %s: No horizontal floor contacts (%d found)\n",
            no_floor_horizontal ? "PASS" : "FAIL", floor_horizontal);
+    // INV-12, by force: the rows the count sees, weighed by the impulse the
+    // solver gave them. ABSOLUTE_THRESHOLD is the solver's own bar for 'an
+    // impulse that is nothing' (INV-29 registry, ConvergenceExits).
+    std::sort(heavy.begin(), heavy.end(), [](const HeavyRow& x, const HeavyRow& y) { return x.impulse > y.impulse; });
+    for (size_t i = 0; i < heavy.size() && i < 3; ++i)
+        printf("    heaviest horizontal floor row #%zu: f%u P%u<->P%u n=(%.2f,%.2f,%.2f) pen=%.4f m impulse=%.5f N s friction=%.5f N s\n",
+               i + 1, heavy[i].f, heavy[i].a, heavy[i].b, heavy[i].nx, heavy[i].ny, heavy[i].nz,
+               heavy[i].pen, heavy[i].impulse, heavy[i].friction);
+    bool no_floor_horizontal_force = floor_h_impulse_max < PhysicsV4::ABSOLUTE_THRESHOLD;
+    printf("    %s: INV-12 horizontal floor rows carry no impulse (max %.5f N s < %.2f, sum %.5f over %d rows)\n",
+           no_floor_horizontal_force ? "PASS" : "FAIL", floor_h_impulse_max,
+           PhysicsV4::ABSOLUTE_THRESHOLD, floor_h_impulse_sum, floor_horizontal);
 
     // 2. Eva walked at least 3m (didn't get stuck)
     bool moved = distance > 3.0f;
@@ -270,7 +294,7 @@ bool test_tile_sticking(TestContext& /* ctx */) {
     printf("    %s: < 30 sticking frames (%d)\n",
            few_sticks ? "PASS" : "FAIL", sticking_frames);
 
-    bool pass = no_floor_horizontal && moved && few_sticks;
+    bool pass = no_floor_horizontal && no_floor_horizontal_force && moved && few_sticks;
     printf("\n%s: Tile boundary sticking\n", pass ? "PASS" : "FAIL");
     return pass;
 }

@@ -150,3 +150,54 @@ it anyway, because the question is right even when the walk is noisy.
 
 VERDICT 1. KEEP. Committed as one change: the telemetry reads the
 solved rows, after the solve, once per frame, with impulses.
+
+## 2. test_tile_sticking (INV-12): do the horizontal floor rows carry force?
+
+TARGET. test_tile_sticking, known-open 'single:seam-normals': 20
+horizontal rows between Eva and floor tiles per run (3446 horizontal
+rows in all, most of them Eva's own boxes against each other).
+
+HYPOTHESIS. A horizontal row on a flat floor is a seam catch only if it
+carries impulse; the rows the count sees are mostly speculative side
+rows at zero impulse, and the few that carry any are the sticking. If
+the max impulse over the 20 rows is below ABSOLUTE_THRESHOLD (0.01 N s,
+the solver's own 'an impulse under this is nothing'), the count law is
+counting bookkeeping and INV-12's statement should speak of force. If
+it is above, the heaviest row's frame, pair and depth are the next
+canary.
+
+CHANGE (one). The test sums and maxes |normal_impulse| over the floor
+rows it counts, prints the heaviest three (frame, pair, normal, depth,
+impulse, friction), and adds one law-tagged line: horizontal floor rows
+carry no impulse (max < ABSOLUTE_THRESHOLD). The count line stays as
+it is, so the two laws can disagree in the open.
+
+RUN 2 (twice, identical). 20 horizontal floor rows; their impulses:
+one row carries 1.27716 N s, the other nineteen sum to 0.00663 N s
+(the second heaviest 0.00663, the third 0.00000). The count law
+counts nineteen rows of bookkeeping and one catch. New line red:
+'INV-12 horizontal floor rows carry no impulse (max 1.27716 < 0.01)'.
+
+RCA (canary P11, physics frames 137-141; telemetry frame 35 is physics
+frame 140, four substeps). The catch: P11 is a 0.07 x 0.06 x 0.06 m
+foot part pitched -0.41 rad, at z 0.14 (bottom 0.11) over tile P2
+(4 x 2 x 0.10 m, top 0.10, edge at y = 3.00). Frame 140: the pair goes
+through the ORIENTED narrow phase and returns n = (0, -0.92, 0.40),
+one point at (-0.13, 2.99, 0.10), corner = 1, depth -20.21 mm. Frame
+141: the same pair returns n = (0, 0, 1), three points, depth -11 mm -
+a face contact. So for one frame, while the swinging foot part crossed
+the tile's edge 10 mm above its top, the SAT picked an edge-edge cross
+axis (an oblique normal with the LARGEST separation, 20 mm, over the
+face axis z with 10 mm) and the speculative row built on it fired
+1.28 N s backward-and-up into the foot. A separated pair does not meet
+on an edge-edge axis; it meets the face it is falling onto. This is
+the OBB-path twin of the AABB metric's 'a gap beats a touch' (journal
+entry 0): for SEPARATED pairs, 'least penetration' is not a rule for
+choosing a normal at all.
+
+VERDICT 2. KEEP the instrument line (red, with coordinates). The
+count law and the force law now disagree in the open: nineteen inert
+rows vs one catch. OWNER RULING owed on INV-12's wording (rows without
+force are bookkeeping; the law should speak of force). Iteration 3
+hunts the catch: in narrow_phase_obb, a separated pair chooses among
+FACE axes only; cross axes are for penetration. Behind a lever.
