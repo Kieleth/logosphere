@@ -1559,3 +1559,50 @@ VERDICT 17: KEEP. The detonations were never physics: an index promised
   directly, flush, and read what stands at the promised index - RED by
   the engine's contract today, expect-fail with its finding, green the
   day the contract is fixed either way.
+
+RUN 17h: tests/test_queued_promise_kept (standalone, add_engine_at).
+  Case A: the queued body's promise was P0; after a direct birth and
+  the flush, P0 holds the direct birth (x 5.0), breaks 1: two red, as
+  booked. Case B: flushed first, the promise P2 names its body, breaks
+  0: green. Committed 5285032 with the instrument, Eden's two flushes,
+  GEDANKEN-76 and the audit row (expect fail, born red by contract).
+  Sweep alone in flight.
+
+## STANDING SUMMARY FOR THE MORNING (final, after 17)
+
+Shipped on night/2026-09-04, defaults byte-identical unless said:
+  1-4, 6-8, 11 (seams: rows-with-impulses telemetry, faces-first,
+  the merge judged after it is built, COPLANAR_EPS at SLOP, the strip);
+  13, 14 (two tests moved to the ruled world); 15 (DRIVE_FRAMES,
+  omegas printed, three bookings corrected); 16d-f (the three-row
+  drive behind DRIVE_ROWS=3, scoped to both-DYNAMIC joints); 17 (the
+  promise-break census, Eden's flushes, the promise test).
+Parked behind levers: SEAM_SPECULATIVE_FACE, SEAM_MERGE_ORIENTED,
+  SEAM_FAMILY_AWAKE, DRIVE_ROWS=3, DRIVE_ROWS_DIAG_SKIP_KIN_B.
+Registered: GEDANKEN-75 (a joint row damps only what the solver sees),
+  GEDANKEN-76 (a queued birth promises an index it cannot keep).
+
+THE NIGHT IN THREE SENTENCES. Three reds were laws written before a
+ruling and never re-read after it. The drive's standing error was one
+row where three were owed, and completing it exposed that humanoids
+converge today because their rest-pose drives against FK bones are
+incomplete welds. Eden's detonations were never physics: a promised
+index taken by the world, five lights orbiting five trees.
+
+OWNER RULINGS OWED (in the order I would take them):
+  1. DRIVE_ROWS=3 as the default: right law, +24 % Eden steady frame
+     (paired, both orders). Pay, or damp only where a spin exists.
+  2. The queue's contract (G-76): drain-first, handle-at-flush, or a
+     loud guard. test_queued_promise_kept turns green with any of them.
+  3. The KINEMATIC write-contract (both ledgers, omega included): makes
+     the three-row scope moot and the humanoid's one-axis welds honest.
+  4. The 3-axis test's hold window (a crash test today; 16 makes a
+     free-flight hold + settled cantilever green).
+  5. test_ramp_race's G-46 asserts read travel that saturates at the
+     ramp's bottom; the race is in the peak speeds.
+  6. Five hand-negated Z quaternions -> one named bridge (from_euler).
+  7. INV-12's wording (count vs force), from iteration 3.
+  8. Unchanged from the day: face rule default (#171, unneeded now),
+     F-CROWN, A+B, refusal of unnamed births, Eden game-layer items,
+     merge order #166 -> #168 -> #169 -> #170 -> #171 -> #172 -> #173,
+     #167 parked; night/2026-09-04 on top of #173.
