@@ -650,3 +650,60 @@ Owner rulings owed, unchanged from the day: the face rule's default on
 #171 (now unneeded on this branch's evidence), F-CROWN, A+B, refusal of
 unnamed births, the Eden game-layer items, merge order #166..#173, and
 whether this night branch becomes a PR on top of #173.
+
+SWEEP (alone, after 9 parked): `SWEEP_VERDICT: MOLES 43 (new-red 0,
+gone-green 0, unaudited 43)`. Iterations 6-8 pass the gate;
+test_jammed_sleep's eight greens are audited expect-pass; the
+diagnostic's bar crossing is booked. Eden alone is running.
+
+## 10. The diagnostic on its bar: which body, and why (INV-31)
+
+TARGET. test_oscillation_diagnostic, red at 0.104858 m/s against 0.1.
+Its audit row says 'a gluoned 2x2 tile on the turtle'; headless it
+runs PHASE 11 - a 64 x 64 floor, 16 trees, 32 rocks, 8 fallen logs -
+and its verdict is the fastest body of that scene after ten seconds.
+The row is corrected to the truth.
+
+HYPOTHESIS. One body, not a stack, carries the 0.105 m/s: a tree
+part on a born-strained bond (F-CROWN) or a rock on a seam. Naming it
+turns a threshold into a mechanism. The rows-with-impulses telemetry
+can then say what pushes it.
+
+CHANGE (one). The test prints its three fastest bodies at the end
+(id, speed, z, dims, material, asleep, bonds) alongside its verdict.
+Built after Eden finishes, so the bench is not contaminated.
+
+EDEN (alone, level-1 trace, 300 frames) on the shipped night state:
+all-frames avg 813.5 ms (median 764, p90 1201, p99 1693); steady tail
+avg 704.6 (median 706, p90 907, p99 1146). For the record: door 751,
+sleeper 749, seam precondition-only 621, seam with the face rule
+872/891. End state 9113 of 9301 asleep, 160 quiet, 59 dissatisfied -
+the quietest end state measured (precondition-only: 9037 / 234 / 69;
+face rule: 9104 / 162 / 66). 478 woken at start, 0 unnamed. The
++84 ms over the precondition-only tail is either the strip's extra
+work per sleeping pair or run spread (the seam runs read 2 % apart);
+an A/B with SEAM_MERGE_PRECONDITION=0 on this binary decides. The
+compaction canary is not in the census; the end state is suggestive,
+not proof.
+
+RUN 10. The diagnostic's three fastest bodies at ten seconds: P4643
+0.104858 m/s at (0.78, -12.81, 0.29), P4642 0.104701 at (0.73, -12.48,
+0.30), P4641 0.104370 at (0.83, -12.06, 0.40) - stone, ~0.3 x 0.27 x
+0.3 m, three bonds each, all awake, all at the same speed. Not a stack
+jittering: a bonded stone cluster creeping as one body across the
+tiled floor. The flip's born-red (test_physics_rock, a bonded rock
+drifting 0.165 m; green since the rock was born STONE) is this class
+on a seamless floor; phase 11's floor is 64 x 64 tiles.
+
+EDEN A/B on the same binary, alone: SEAM_MERGE_PRECONDITION=0 (the old
+union) steady 973.3 ms (median 928, p90 1365, p99 1718), all-frames
+1173.7, end state 9089 asleep / 185 quiet / 75 dissatisfied; the strip
+(default) steady 704.6, all-frames 813.5, 9113 / 160 / 59. The strip is
+268 ms per steady frame cheaper than the union and ends quieter. The
++84 ms against the old 621 figure was a different binary, not the
+strip's work.
+
+VERDICT 10. KEEP the instrument (the three fastest bodies named). The
+target is now a mechanism question: what pushes a bonded stone cluster
+at a steady 0.105 m/s. NEXT: canary on P4643 at the end of the run -
+rows, normals, impulses.

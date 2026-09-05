@@ -1177,10 +1177,25 @@ bool test_oscillation_diagnostic() {
 
     // Check if oscillating (velocity > 0.1 m/s after 5 seconds)
     float final_max_vel = 0.0f;
+    // Night 2026-09-04 (journal 10): a threshold names nothing; the three
+    // fastest bodies at the end name the mechanism.
+    struct Fast { float v; int pid; };
+    std::vector<Fast> fastest;
     for (int pid : pids) {
         const Particle& p = particles[pid];
         float vel = std::sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
         final_max_vel = std::max(final_max_vel, vel);
+        fastest.push_back({vel, pid});
+    }
+    std::sort(fastest.begin(), fastest.end(), [](const Fast& a, const Fast& b) { return a.v > b.v; });
+    for (size_t k = 0; k < fastest.size() && k < 3; ++k) {
+        const Particle& p = particles[fastest[k].pid];
+        std::cout << "  fastest #" << (k + 1) << ": P" << fastest[k].pid
+                  << " v=" << fastest[k].v << " m/s at (" << p.x << ", " << p.y << ", " << p.z << ")"
+                  << " dims=(" << p.width << "x" << p.height << "x" << p.thickness << ")"
+                  << " material=" << Materials::GetName(p.material_type)
+                  << " asleep=" << (int)p.is_at_rest
+                  << " bonds=" << physics.get_gluons_for_particle((size_t)fastest[k].pid).size() << "\n";
     }
 
     std::cout << "\n";
