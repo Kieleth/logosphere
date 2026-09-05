@@ -1728,7 +1728,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     return v && v[0] == '0';
                 }();
                 if (pj.is_at_rest && !oriented_pair) {
-                    AABB6 merged = aabb_j;
+                    // A STRIP, NEVER AN L'S BOUNDING BOX (night 2026-09-04,
+                    // journal 8): widened along one axis at a time, the merged
+                    // box is a union of tiles; the bounding box of an L covers
+                    // the corner cell where a lower tile may sit, and lifts
+                    // whatever stands there (case H's centre tile, 5.17 mm rows
+                    // from four diagonal tiles it is not over).
+                    AABB6 strip_x = aabb_j, strip_y = aabb_j, merged = aabb_j;
                     for (int cand_k : candidates) {
                         size_t k = static_cast<size_t>(cand_k);
                         if (k == i || k == j) continue;
@@ -1747,6 +1753,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         // Same extent on the non-touching axis (forms a continuous surface)
                         bool x_aligned = std::abs(kx_min - min_xj) < ADJ_EPS && std::abs(kx_max - max_xj) < ADJ_EPS;
                         bool y_aligned = std::abs(ky_min - min_yj) < ADJ_EPS && std::abs(ky_max - max_yj) < ADJ_EPS;
+                        if (x_touch && y_aligned) {
+                            strip_x.min_x = std::min(strip_x.min_x, kx_min);
+                            strip_x.max_x = std::max(strip_x.max_x, kx_max);
+                        }
+                        if (y_touch && x_aligned) {
+                            strip_y.min_y = std::min(strip_y.min_y, ky_min);
+                            strip_y.max_y = std::max(strip_y.max_y, ky_max);
+                        }
                         if ((y_touch && x_aligned) || (x_touch && y_aligned)) {
                             merged.min_x = std::min(merged.min_x, kx_min);
                             merged.max_x = std::max(merged.max_x, kx_max);
@@ -1757,10 +1771,20 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     const bool on_top   = std::fabs(min_zi - max_zj) <= CONTACT_MARGIN;
                     const bool sibling  = std::fabs(min_zi - min_zj) <= COPLANAR_EPS &&
                                           std::fabs(max_zi - max_zj) <= COPLANAR_EPS;
-                    const bool on_surface =
-                        std::fmin(max_xi, merged.max_x) - std::fmax(min_xi, merged.min_x) > ADJ_EPS &&
-                        std::fmin(max_yi, merged.max_y) - std::fmax(min_yi, merged.min_y) > ADJ_EPS;
-                    if (merge_precondition_off || (on_top && !sibling && on_surface)) aabb_j = merged;
+                    // On the x-strip: overlapping it along x and j's own y-range
+                    // (every member shares that range), so a member is under i.
+                    const float ox_j = std::fmin(max_xi, max_xj) - std::fmax(min_xi, min_xj);
+                    const float oy_j = std::fmin(max_yi, max_yj) - std::fmax(min_yi, min_yj);
+                    const float ox_s = std::fmin(max_xi, strip_x.max_x) - std::fmax(min_xi, strip_x.min_x);
+                    const float oy_s = std::fmin(max_yi, strip_y.max_y) - std::fmax(min_yi, strip_y.min_y);
+                    const bool on_strip_x = ox_s > ADJ_EPS && oy_j > ADJ_EPS;
+                    const bool on_strip_y = oy_s > ADJ_EPS && ox_j > ADJ_EPS;
+                    if (merge_precondition_off) {
+                        aabb_j = merged;                       // the old union, for A/B
+                    } else if (on_top && !sibling && (on_strip_x || on_strip_y)) {
+                        // The strip the body overlaps more is the seam it straddles.
+                        aabb_j = (on_strip_x && (!on_strip_y || ox_s >= oy_s)) ? strip_x : strip_y;
+                    }
                 }
 
                 ContactManifold manifold;

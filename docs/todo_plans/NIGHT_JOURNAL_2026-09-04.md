@@ -521,3 +521,60 @@ and a 2 mm lift remains from another source. Canary before guessing.
 
 VERDICT 7. KEEP: coplanar now means within the engine's own error, the
 registry carries the rationale, no test moved but the one it aimed at.
+
+RCA 7 (canary on H's centre tile, frame 1). Against its true support
+l11 (top 0.445) the tile reads a 0.17 mm z-row - resting. Against the
+four DIAGONAL layer-2 tiles (l00, l20, l02, l22, tops 0.450) it reads
+z-rows of 5.17 mm each, and it is over none of them: they touch its
+footprint at one corner. Each diagonal's coplanar family is an L (the
+tile with one x-neighbour and one y-neighbour), the merge widens the
+tile's box to the L's BOUNDING BOX, and that box covers the corner
+cell where l11 sits - 5 mm lower. Judged 'on the surface' by footprint
+overlap with the merged box, the L passes (c) while no member of the
+L is under the tile. So the residual is not a tolerance; it is the
+merge's geometry: the union of an L is not a rectangle, and handing
+the SAT a rectangle over a hole lifts whatever stands in the hole.
+Eden's compaction canary (a dirt tile that fell 7 mm, then read 94 mm
+along z from a neighbour) is this exact shape: the fallen tile is the
+hole in its neighbours' L.
+
+## 8. The merged surface is a strip, never an L's bounding box
+
+HYPOTHESIS. Widening along one axis at a time keeps the merged box a
+rectangle that IS a union of tiles: the x-strip (j with its x-adjacent
+y-aligned family) or the y-strip. A body is on the x-strip iff its
+footprint overlaps the strip along x and overlaps j's own y-range; it
+is on the y-strip symmetrically. Choose the strip the body overlaps
+more. H: the centre tile overlaps neither strip of any diagonal
+(their strips run away from it), so no diagonal row - it rests on l11
+alone. G: the edge tile landing on b10 overlaps b00's x-strip
+(b00-b10-b20) along x and b00's y-range? No - b00's y-range is
+[-6,-2], the tile's is [-6,-2]: yes, it is over b10 which is in the
+strip: the diagonal support row survives as a strip row. The foot
+crossing P2 -> P3: on P3's x-strip? The tiles run along y there: the
+y-strip P2-P3-P4, the foot overlaps it along y and P3's x-range: yes.
+
+CHANGE (one). physics_system_v4.cpp: two strips built in the merge
+loop, the on-surface test per strip, the chosen strip becomes aabb_j.
+Same lever SEAM_MERGE_PRECONDITION=0 for the unconditional union.
+
+RUN 8. test_jammed_sleep: EVERY CASE ANSWERS ITS LAW (0 failures) -
+all eight cases green on the shipped default, no face-area rule: G's
+edge tiles land exact with strip supports, H's centre tile rests on
+l11 with no diagonal row. tile_sticking 12 / 0.00000, body_coherence
+5 / 1.94480, ladder 2, diagnostic 0.104858, cube green: untouched.
+
+RCA. The merge's defect was never its premise; it was its geometry.
+'Two adjacent tiles are one surface' is true of a row of tiles and
+false of the bounding box of an L. Three days of symptoms - the 95 mm
+containment phantom, the diagonal supports, the touching side row that
+carried 15 N s, Eden's 94 mm canary - were bodies standing in the hole
+of an L's bounding box. A strip is a union of tiles; the bounding box
+of an L is not. Less is more: the face-area rule (opt-in, 250 ms per
+Eden frame) is no longer needed for anything measured tonight.
+
+VERDICT 8. KEEP. G-69 closed on its stage; G-73's born-red answered by
+mechanism (its 15 N s row was a strip-less union's phantom against the
+diagonal bedrock; the exact row was not re-traced tonight, the stage
+that carried it is green). Eden's compaction is the next thing to
+measure with this merge, after the sweep.
