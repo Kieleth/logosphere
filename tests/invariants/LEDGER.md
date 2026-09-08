@@ -3113,3 +3113,33 @@ not) and pin_gluon_lifecycle (the foot 1.57 m from its anchor after a
 walk) sit with the prover's nails line in G-85's family, unread beyond
 their numbers; neck_yaw's 0.184 is booked. Next: the sweep alone under
 both levers; then the owner rules on the flip and on the bounded drive.
+
+## 2026-09-08 (late) - BOTH LEVERS: the command is not the ledger
+
+Sweep alone under INV40_STEP=4 + KINEMATIC_LEDGER=1 after G-86: MOLES
+47 (new-red 4, gone-green 0, unaudited 43 standing). The eight earlier
+reds are booked known_open and read: swap_integrity PASS, the G-85
+family still FAIL, animation_layering FAIL again (the ledger's
+walking reds), and four new: strafe_progress (two of five directions
+REVERSED, -133 % and -225 % of intent, 206 and 220 backward frames;
+the ledger alone only slows them to 72 % / 67 %), walk_forward
+(3.642 m, 32 backward), turn_in_place (drift 0.264 m), face_tracks_head
+(a feature pi radians off the head).
+
+Read, then predicted, then measured. The hips' velocity field was two
+things: the controller's command, which hips_integrate integrates, and
+the ledger, which INV-39's derivation overwrites at the top of every
+physics step; a correction on the rail read back as the controller's
+'current velocity' and the controller accelerated from it. The
+harness now keeps its command in its own state (harness_vx/vy) in the
+lever world: the controller reads and writes it, the rail integrates
+it, and the hips' field carries it as the stated velocity for the rows,
+which the derivation then agrees with. The riders' nails also rotate
+their offsets explicitly. Measured under both levers: strafe 5 of 5
+green (91.5-106.1 %, 0-4 backward), walk_forward 0 backward frames,
+turn_in_place drift 0.021 m, the face 0.000 rad off the head (not
+attributed between the two changes; rotate_offsets was already the
+default), the prover's walk 5.052 m and the drive walk 4.927 m, both
+0 backward. vz keeps the same collision (the writer's gravity model
+integrates the hips' vz field): residual, booked. Next: the sweep
+under both levers once more, then the rulings.

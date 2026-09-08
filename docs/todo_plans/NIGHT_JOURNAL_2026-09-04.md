@@ -2050,3 +2050,9 @@ LEVER SWEEP (INV40_STEP=4): MOLES 52 (8 new reds, 1 gone-green).
   (INV-39 angular half). G-85 family: strata_integrity, movement_
   instrumented, headless, pin_lifecycle, the nails line. Sweep under
   both levers next; rulings: the flip, the bounded drive.
+BOTH LEVERS: MOLES 47 (4 new: strafe reversed in two directions,
+  walk_forward 32 backward, turn drift 0.264, face pi off). Cause:
+  the hips' velocity field = command AND ledger. The harness now
+  keeps its command in its own state (harness_vx/vy, lever world);
+  riders' nails rotate offsets. All four green; prover 5.052 m,
+  drive walk 4.927 m. Sweep again under both levers next.

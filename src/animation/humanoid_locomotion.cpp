@@ -2171,6 +2171,8 @@ static void apply_riders_as_parts_init(
             g->angular_stiffness = RIDER_ANG_STIFFNESS;
             g->angular_damping = RIDER_ANG_DAMPING;
             g->max_relative_rotation = 3.14159f;
+            // A part's attachment point turns with the body it is nailed to.
+            g->rotate_offsets = true;
             ++welded;
         }
         parts.physics_drive_children.insert(pid);
@@ -4559,8 +4561,11 @@ void HumanoidLocomotion::update_locomotion(HumanoidParts& parts, double delta_ti
     Particle& hips = particles_view[parts.hips];
 
     // 1. Get current velocity from hips
-    float vx = hips.vx;
-    float vy = hips.vy;
+    // INV-40 / G-83: in the lever world the harness's command is its own
+    // state; the hips' field is the ledger (the derivation overwrites it).
+    const bool harness_state = inv40_step() >= 3;
+    float vx = harness_state ? parts.harness_vx : hips.vx;
+    float vy = harness_state ? parts.harness_vy : hips.vy;
     float current_speed = std::sqrt(vx * vx + vy * vy);
 
 
@@ -4605,6 +4610,7 @@ void HumanoidLocomotion::update_locomotion(HumanoidParts& parts, double delta_ti
     // 7. Calculate new velocity
     float new_vx = vx + dvx;
     float new_vy = vy + dvy;
+    if (harness_state) { parts.harness_vx = new_vx; parts.harness_vy = new_vy; }
 
     // 8. Apply to ALL entity particles (key insight!)
     // INV-40 / G-81: on a drive child this is a hand on a muscle's velocity
@@ -5398,8 +5404,17 @@ void HumanoidLocomotion::maintain_entity_shape(
     // constraint (stance foot pinned at anchor_world) is enforced AFTER
     // FK runs, by shifting the whole body so the stance foot lands at the
     // anchor. See the root_constraint_shift block in update_post_physics().
-    hips.x += hips.vx * dt;
-    hips.y += hips.vy * dt;
+    // INV-40 / G-83: the rail integrates its COMMAND (its own state) in the
+    // lever world; the hips' field is the ledger the rows read.
+    if (inv40_step() >= 3) {
+        hips.x += parts.harness_vx * dt;
+        hips.y += parts.harness_vy * dt;
+        hips.vx = parts.harness_vx;   // stated for the rows (the derivation, if on, agrees)
+        hips.vy = parts.harness_vy;
+    } else {
+        hips.x += hips.vx * dt;
+        hips.y += hips.vy * dt;
+    }
     hips.z += hips.vz * dt;
     TRACE_POS_WRITE(shape_tracer, static_cast<int>(parts.hips),
                     "shape.hips_integrate",

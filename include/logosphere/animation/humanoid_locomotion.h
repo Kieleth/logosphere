@@ -208,6 +208,12 @@ struct HumanoidParts {
     // INV40_STEP >= 3 the ground correction and the on-ground decision
     // measure the hips against this, never the muscles.
     float harness_rest_height = 0.0f;
+    // INV-40 / G-83: the harness's commanded velocity is its own state,
+    // not the hips' ledger field (which INV-39's derivation overwrites each
+    // physics step). From INV40_STEP >= 3 the controller reads and writes
+    // this, hips_integrate integrates it, and the hips' vx/vy carry it as
+    // the rail's stated velocity for the rows.
+    float harness_vx = 0.0f, harness_vy = 0.0f;
 
     // NOTE: Particle ownership is tracked directly on Particle.owner (see particle.h)
     // At registration: all particles set to ParticleOwner::DYNAMICS
