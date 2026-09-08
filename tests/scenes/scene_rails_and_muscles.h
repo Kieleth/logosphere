@@ -209,7 +209,11 @@ struct Scene {
 
         // Eva, born with her feet on the organic layer (INV-37).
         auto& hgen = engine.get_worldgen_system().get_humanoid_generator();
-        eva = hgen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP, -1, HumanoidSpec::eva(), false);
+        // Diagnostic staging: RAILS_DROP=<m> births Eva that much above the
+        // floor (the idle stage's condition: 0.45 m), so the harness must
+        // lower her to the ground.
+        const float drop = std::getenv("RAILS_DROP") ? static_cast<float>(std::atof(std::getenv("RAILS_DROP"))) : 0.0f;
+        eva = hgen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP + drop, -1, HumanoidSpec::eva(), false);
         auto& kg = engine.get_kg();
         eva.create_kg_entities(kg, "Human", 180.0f, 800.0f);
         humanoid.register_humanoid_direct(

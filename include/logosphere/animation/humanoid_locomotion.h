@@ -203,6 +203,11 @@ struct HumanoidParts {
     // Used by maintain_entity_shape() to restore relative positions
     struct RestOffset { float x, y, z, rotation_z; };  // rotation_z = particle's rest rotation relative to hips
     std::vector<RestOffset> rest_offsets;
+    // INV-40 / G-86: the harness's standing height above its own foot
+    // bottom, cached once at first use (the rig is born coherent). From
+    // INV40_STEP >= 3 the ground correction and the on-ground decision
+    // measure the hips against this, never the muscles.
+    float harness_rest_height = 0.0f;
 
     // NOTE: Particle ownership is tracked directly on Particle.owner (see particle.h)
     // At registration: all particles set to ParticleOwner::DYNAMICS

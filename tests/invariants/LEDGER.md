@@ -3076,3 +3076,40 @@ written after the measurement and saying so: the bounded drive, named
 at INV-40's registration as the step after this law, is now on the
 critical path. Next: the sweep alone under INV40_STEP=4, so the flip
 has a verdict; then the ruling on the flip and on the bounded drive.
+
+## 2026-09-08 - THE LEVER WORLD: sweep under INV40_STEP=4, the idle collapse, G-86 landed
+
+Sweep alone under INV40_STEP=4: MOLES 52 (new-red 8, gone-green 1,
+unaudited 43 standing). The eight: eva_movement (3 of 4 cases, a 365x
+energy jump), humanoid_movement_instrumented (47 jitter violations),
+humanoid_strata_integrity (foot-shin 0.3-0.5 m), idle_pose_stability
+(feet 3.8 m up, 0.4 m per-frame jumps), joint_hierarchy_swap_integrity
+(hips-neck 0.6 m), physics_drive_full_idle (head 0.45 m, feet 0.4 m),
+humanoid_headless (hips-abdomen +0.6 m), pin_gluon_lifecycle (foot 1.57
+m off its anchor). Gone green: animation_layering.
+
+Attributed, not guessed. The idle reds are green at step 2 and red from
+step 3; with INV40_KEEP putting one hand back at a time, only the
+ground correction restores them. The prover's RAILS_DROP staging with
+the harness probe: the ground correction wrote the hips' z every frame
+from a gap measured at the FEET, the hips fell 2.25 -> 0.94 m in six
+frames while the feet hung, climbed back to 2.5 m, and the hips<>spine
+nail opened a metre - a loop with delay and unit gain, once no hand
+moved the feet with the hips. G-86, the harness reads the ground, not
+its feet: written after the measurement and saying so; landed under
+step 3 (harness_rest_height cached at first use; both ground blocks
+measure the hips' column against it). Measured: the drop staging
+settles at 1.532 m with nails at 2-3 cm; idle_pose_stability green at
+step 3 (at step 4 the right foot sits 0.097 m forward against the
+stage's 0.08 twisted-legs budget); full_idle green at 3 and 4;
+eva_movement 4 of 4 green; walk 4.839 m (prover) / 4.906 m (drive
+walk), 0-1 backward.
+
+The rest of the lever reds, read: swap_integrity goes green with
+KINEMATIC_LEDGER=1 (the rail's spin in the ledger, INV-39's angular
+half: the two levers belong together); strata_integrity, movement_
+instrumented, headless (a torn hips-abdomen bone in a turn, ledger or
+not) and pin_gluon_lifecycle (the foot 1.57 m from its anchor after a
+walk) sit with the prover's nails line in G-85's family, unread beyond
+their numbers; neck_yaw's 0.184 is booked. Next: the sweep alone under
+both levers; then the owner rules on the flip and on the bounded drive.

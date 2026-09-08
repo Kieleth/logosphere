@@ -70,6 +70,24 @@ int main() {
     const bool diag = std::getenv("RAILS_DIAG") != nullptr;
     for (int f = 0; f < RUN_FRAMES; ++f) {
         scene.step(engine, f);
+        if (diag && f < 40) {                          // the harness and a foot: height, velocity, hands
+            auto& tracer = engine.get_particle_tracer();
+            const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];
+            float hz = 0, hvz = 0, fz = 0, fvz = 0;
+            {
+                auto v = engine.get_particle_system().lock_particles_for_read();
+                hz = v[scene.hips].z; hvz = v[scene.hips].vz;
+                if (foot >= 0) { fz = v[foot].z; fvz = v[foot].vz; }
+            }
+            std::string hh, fh;
+            for (const auto& r : tracer.records()) {
+                if (!Scene::is_state_field(r.field)) continue;
+                if (r.particle_id == scene.hips) { hh += " "; hh += r.site; hh += ":"; hh += r.field; }
+                else if (r.particle_id == foot) { fh += " "; fh += r.site; fh += ":"; fh += r.field; }
+            }
+            std::printf("  [harness f%2d] hips z %.3f vz %+.3f hands:%s | l_foot z %.3f vz %+.3f hands:%s\n",
+                        f, hz, hvz, hh.empty() ? " none" : hh.c_str(), fz, fvz, fh.empty() ? " none" : fh.c_str());
+        }
         if (diag && f < 120 && f % 5 == 0) {           // the head: rows, contacts, hands, motion
             auto& tracer = engine.get_particle_tracer();
             auto& physics = engine.get_physics_system();

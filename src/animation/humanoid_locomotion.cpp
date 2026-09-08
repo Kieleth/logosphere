@@ -5173,6 +5173,24 @@ void HumanoidLocomotion::apply_entity_gravity(
         max_y = std::max(max_y, foot.y + half_size);
         foot_bottom_z = std::min(foot_bottom_z, foot.z - foot.thickness * 0.5f);
     }
+    // INV-40 / G-86: the harness measures ITSELF. A rail's trajectory is
+    // prescribed from the world under it, never copied from the state of
+    // the bodies it carries: a controller that measured the feet and moved
+    // the hips, once no hand moved the feet with the hips, was a loop with
+    // delay and unit gain (the hips left their own spine by a metre; the
+    // idle stage's feet reached 3.8 m). From step 3 the gap and the
+    // on-ground decision key on the hips' column and the hips' height
+    // minus the standing height; the correction moves the rail and the
+    // rows carry the rest.
+    if (inv40_step() >= 3 && foot_bottom_z < 1e8f) {
+        const Particle& harness = particles[parts.hips];
+        if (parts.harness_rest_height <= 0.0f)
+            parts.harness_rest_height = harness.z - foot_bottom_z;
+        foot_bottom_z = harness.z - parts.harness_rest_height;
+        const float half = 0.5f * std::max(harness.width, harness.height);
+        min_x = harness.x - half; max_x = harness.x + half;
+        min_y = harness.y - half; max_y = harness.y + half;
+    }
 
     // Expand footprint slightly to catch nearby support
     const float FOOTPRINT_MARGIN = 0.1f;  // 10cm margin
@@ -5777,6 +5795,24 @@ void HumanoidLocomotion::maintain_entity_shape(
         min_y = std::min(min_y, foot.y - half_size);
         max_y = std::max(max_y, foot.y + half_size);
         foot_bottom_z = std::min(foot_bottom_z, foot.z - foot.thickness * 0.5f);
+    }
+    // INV-40 / G-86: the harness measures ITSELF. A rail's trajectory is
+    // prescribed from the world under it, never copied from the state of
+    // the bodies it carries: a controller that measured the feet and moved
+    // the hips, once no hand moved the feet with the hips, was a loop with
+    // delay and unit gain (the hips left their own spine by a metre; the
+    // idle stage's feet reached 3.8 m). From step 3 the gap and the
+    // on-ground decision key on the hips' column and the hips' height
+    // minus the standing height; the correction moves the rail and the
+    // rows carry the rest.
+    if (inv40_step() >= 3 && foot_bottom_z < 1e8f) {
+        const Particle& harness = particles[parts.hips];
+        if (parts.harness_rest_height <= 0.0f)
+            parts.harness_rest_height = harness.z - foot_bottom_z;
+        foot_bottom_z = harness.z - parts.harness_rest_height;
+        const float half = 0.5f * std::max(harness.width, harness.height);
+        min_x = harness.x - half; max_x = harness.x + half;
+        min_y = harness.y - half; max_y = harness.y + half;
     }
 
     if (foot_bottom_z > 1e8f) return;  // No feet

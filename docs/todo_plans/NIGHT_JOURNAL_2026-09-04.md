@@ -2042,3 +2042,11 @@ STEP 4 LANDED behind the lever (INV40_STEP_MUSCLES_WEIGH in the
   5.063 / 0 backward; drive walk 4.951 / 0. NINE OF TEN under
   INV40_STEP=4; the nails line (~10 cm) is the last red: G-85, the
   bounded drive on the critical path. Sweep under the lever next.
+LEVER SWEEP (INV40_STEP=4): MOLES 52 (8 new reds, 1 gone-green).
+  Idle collapse attributed to the ground correction (INV40_KEEP);
+  drop staging showed the harness reading its feet. G-86 LANDED (the
+  harness measures itself): idle, full_idle, eva_movement green;
+  walk 4.839 / drive walk 4.906. swap_integrity green with the ledger
+  (INV-39 angular half). G-85 family: strata_integrity, movement_
+  instrumented, headless, pin_lifecycle, the nails line. Sweep under
+  both levers next; rulings: the flip, the bounded drive.
