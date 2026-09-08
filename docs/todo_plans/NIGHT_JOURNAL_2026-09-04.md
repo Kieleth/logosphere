@@ -2024,3 +2024,11 @@ THE BODY LINES (owner ask): every nail within 10 SLOP; every bone
   opens 5 mm/frame (1.46 m by f299); walking head probe: inner eyes
   overlap the head 14-19 mm every frame, normal forward, head pinned
   at the broadcast's 1 m/s. G-84 in the walk. Gauge had hidden both.
+G-84 RULED (a) ("head ends up like 5 meters behind the body"; "ok,
+  continue in headless mode and lets start fixing"). Landed under
+  INV40_STEP>=2: riders DYNAMIC, nails hold the rest relation, head-
+  snap hand off. Walk: worst nail 0.079 m (was 1.461 m spine-neck),
+  whole, 4.952 m; driven idle head drift 3.838 -> 0.002 m. Regression
+  booked: neck stage yaw 0.412 -> 0.184 (eight welded riders on the
+  head vs a 200/12 drive; two_joints family). Step 3 prediction in
+  G-81 notes. Headless from here.

@@ -34,11 +34,34 @@ namespace logosphere::animation {
 // calls both to default-on the physics-drive path:
 //   legs       — Phase 5 (kinematic-root + pin-gluon foot plant + IK→gluon publish)
 //   upper body — Phase E (gluon angular drive on arms / spine / neck / head)
+// INV-40 (rails and muscles), the deletion sequence's lever. The value
+// is the number of steps applied, so each step is measurable against
+// the one before it on one binary and the flip is one ruling:
+//   >= 2  the shape pass keeps its placement hands off the drive
+//         children (entity translate, rest snap, angular integrate)
+//   >= 3  the velocity and ground hands come off them too (velocity
+//         broadcast, ground correction, vz zeroing)
+//   >= 4  gravity keyed on solver_mode alone (physics_system_v4.cpp)
+// Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
+static int inv40_step() {
+    static const int v = [] {
+        const char* e = std::getenv("INV40_STEP");
+        return e ? std::atoi(e) : 0;
+    }();
+    return v;
+}
+
 static void apply_physics_drive_legs_init(
     HumanoidParts& parts,
     ParticleSystem& ps,
     PhysicsSystem& physics);
 static void apply_physics_drive_upper_body_init(
+    HumanoidParts& parts,
+    ParticleSystem& ps,
+    PhysicsSystem& physics);
+// INV-40 / G-84 (owner ruling 2026-09-08): the bodies that ride the head
+// are PARTS of it, not rails. Behind INV40_STEP >= 2.
+static void apply_riders_as_parts_init(
     HumanoidParts& parts,
     ParticleSystem& ps,
     PhysicsSystem& physics);
@@ -727,13 +750,22 @@ void HumanoidLocomotion::update_post_physics(double delta_time) {
                 float cos_r = std::cos(head.rotation_z);
                 float sin_r = std::sin(head.rotation_z);
 
+                auto& rider_tracer = impl_->get_particle_tracer();
                 for (size_t i = 0; i < parts.head_child_particles.size(); i++) {
+                    const unsigned int rider = parts.head_child_particles[i];
+                    // INV-40 / G-84: a rider that is a part of the head is held
+                    // by its nail, not placed by hand.
+                    if (parts.physics_drive_children.count(rider)) continue;
                     const auto& off = parts.head_child_3d_offsets[i];
                     float rot_x = off.x * cos_r + off.y * sin_r;
                     float rot_y = -off.x * sin_r + off.y * cos_r;
-                    particles_view[parts.head_child_particles[i]].x = head.x + rot_x;
-                    particles_view[parts.head_child_particles[i]].y = head.y + rot_y;
-                    particles_view[parts.head_child_particles[i]].z = head.z + off.z;
+                    Particle& rp = particles_view[rider];
+                    const float ox = rp.x, oy = rp.y, oz = rp.z;
+                    rp.x = head.x + rot_x;
+                    rp.y = head.y + rot_y;
+                    rp.z = head.z + off.z;
+                    TRACE_POS_WRITE(rider_tracer, static_cast<int>(rider), "head.snap_riders",
+                                    ox, oy, oz, rp.x, rp.y, rp.z);
                 }
             }
 
@@ -1695,6 +1727,14 @@ void HumanoidLocomotion::register_humanoid_direct(
         dyn.humanoid_look_at_entities_.back(),
         impl_->get_particle_system(),
         impl_->get_physics_system());
+
+    // INV-40 / G-84: the riders (hair, ears, eyes) are parts of the head.
+    if (inv40_step() >= 2) {
+        apply_riders_as_parts_init(
+            dyn.humanoid_look_at_entities_.back(),
+            impl_->get_particle_system(),
+            impl_->get_physics_system());
+    }
 }
 
 void HumanoidLocomotion::register_humanoid_look_at(kg::EntityID entity_id) {
@@ -2060,6 +2100,75 @@ static void apply_physics_drive_upper_body_init(
         gluon->enable_angular_constraint = true;
         gluon->max_relative_rotation = 3.14159f;
     }
+}
+
+// INV-40 / G-84, owner ruling 2026-09-08 ("the riders are parts of the
+// head"). Eight bodies ride the head: two hairs, two ears, four eyes,
+// all KINEMATIC since registration and placed at head + offset by a hand
+// every frame. A trajectory copied from a muscle's state each frame is a
+// hand, not a rail; and the bonded-structure union keeps KINEMATIC bodies
+// out (an anchor is ground), so the inner eyes, nailed to the outer eyes,
+// formed contact rows against the head they ride: 14-19 mm socket
+// crossings every frame, the head held back at the neck while the chest
+// walked on (test_rails_and_muscles, the body lines). As DYNAMIC members
+// held by their nails they fall inside the head's structure under the
+// union that already exists, the crossing is internal geometry, and the
+// head-snap hand comes off (update_post_physics). Each rider's nail
+// carries orientation as a drive holding the rest relation - the
+// shoulder bridges' pattern (Phase E) - with the shipped profile. Hair
+// swinging freely is a later refinement (a position-only nail under
+// weight, step 4). Idempotent.
+static void apply_riders_as_parts_init(
+    HumanoidParts& parts,
+    ParticleSystem& ps,
+    PhysicsSystem& physics)
+{
+    if (parts.head_child_particles.empty()) return;
+    std::unordered_set<unsigned int> riders(parts.head_child_particles.begin(),
+                                            parts.head_child_particles.end());
+    const float RIDER_ANG_STIFFNESS = 2000.0f;
+    const float RIDER_ANG_DAMPING   = 60.0f;
+    int welded = 0;
+    auto view = ps.lock_particles_for_write();
+    for (unsigned int pid : parts.head_child_particles) {
+        if (pid == 0 || static_cast<size_t>(pid) >= view.size()) continue;
+        Particle& p = view[pid];
+        p.solver_mode = ParticleSolverMode::DYNAMIC;
+        p.is_at_rest = false;
+        p.frames_at_rest = 0;
+        p.is_quat_driven = true;
+        p.owner = ParticleOwner::DYNAMICS;
+        p.rotation_q = logosphere::Quat::from_euler(p.rotation_x, p.rotation_y, p.rotation_z);
+    }
+    for (unsigned int pid : parts.head_child_particles) {
+        for (const GluonConstraintBase* g0 : physics.get_gluons_for_particle(pid)) {
+            if (!g0) continue;
+            const unsigned int other = (g0->particle_a == pid) ? static_cast<unsigned int>(g0->particle_b)
+                                                               : static_cast<unsigned int>(g0->particle_a);
+            if (other != parts.head && !riders.count(other)) continue;   // its own nail into the head's structure
+            GluonConstraintBase* g = physics.get_gluon_mut(g0->particle_a, g0->particle_b);
+            if (!g) continue;
+            if (g->particle_a >= view.size() || g->particle_b >= view.size()) continue;
+            // The rest relation as it stands at registration: q_b = target * q_a
+            // (the solver's convention, world frame).
+            const Particle& pa = view[g->particle_a];
+            const Particle& pb = view[g->particle_b];
+            const logosphere::Quat qa = logosphere::Quat::from_euler(pa.rotation_x, pa.rotation_y, pa.rotation_z);
+            const logosphere::Quat qb = logosphere::Quat::from_euler(pb.rotation_x, pb.rotation_y, pb.rotation_z);
+            g->target_relative_q = (qb * qa.conjugate()).normalized();
+            g->use_quat_target = true;
+            g->angular_drive_enabled = true;
+            g->enable_angular_constraint = true;
+            g->angular_stiffness = RIDER_ANG_STIFFNESS;
+            g->angular_damping = RIDER_ANG_DAMPING;
+            g->max_relative_rotation = 3.14159f;
+            ++welded;
+        }
+        parts.physics_drive_children.insert(pid);
+        parts.physics_drive_static_targets.insert(pid);
+    }
+    std::cout << "[HumanoidLocomotion] INV-40: " << parts.head_child_particles.size()
+              << " riders are parts of the head (" << welded << " nails hold their rest relation)" << std::endl;
 }
 
 int HumanoidLocomotion::get_plant_anchor_particle_id(int hips_id) const {
@@ -5226,23 +5335,6 @@ void HumanoidLocomotion::apply_entity_gravity(
                           "airborne");
         }
     }
-}
-
-// INV-40 (rails and muscles), the deletion sequence's lever. The value
-// is the number of steps applied, so each step is measurable against
-// the one before it on one binary and the flip is one ruling:
-//   >= 2  the shape pass keeps its placement hands off the drive
-//         children (entity translate, rest snap, angular integrate)
-//   >= 3  the velocity and ground hands come off them too (velocity
-//         broadcast, ground correction, vz zeroing)
-//   >= 4  gravity keyed on solver_mode alone (physics_system_v4.cpp)
-// Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
-static int inv40_step() {
-    static const int v = [] {
-        const char* e = std::getenv("INV40_STEP");
-        return e ? std::atoi(e) : 0;
-    }();
-    return v;
 }
 
 void HumanoidLocomotion::maintain_entity_shape(

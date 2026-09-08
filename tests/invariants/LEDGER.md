@@ -3000,3 +3000,29 @@ the walk, with a designed 14 mm crossing instead of a gap. The gauge
 alone had hidden both worlds' defects. Reading (a) of G-84 (the riders
 are parts of the head) makes the crossing internal geometry under the
 existing union; the ruling stands owed.
+
+## 2026-09-08 - G-84 RULED (a): the riders are parts of the head. Landed under INV40_STEP>=2.
+
+Owner, watching step 2: "head ends up like 5 meters behind the body".
+Then: "ok, continue in headless mode and lets start fixing." Reading
+(a) taken: a trajectory copied from a muscle's state each frame is a
+hand, not a rail; the eight bodies that ride the head become DYNAMIC
+members held by their nails, each nail holding its rest relation as a
+quaternion drive with the shipped profile (the shoulder bridges'
+pattern), and the head-snap hand skips them (traced where it still
+runs: head.snap_riders). No solver change: as DYNAMIC members they fall
+inside the head's structure under the union that already exists, and
+the 14 mm socket crossing is internal geometry.
+
+Measured against step 2 on one binary. The walk: worst nail
+right_ankle<>right_knee 0.079 m (spine<>neck was 1.461 m and opening 5
+mm per frame), body whole (-0.091 m), 4.929 -> 4.952 of 5 m, 0
+backward; test_physics_drive_walk_legs 4.916 m, 0 backward. The driven
+idle head: neck stage drift 3.838 -> 0.002 m; in the prover's own
+staging the worst nail is an eye weld at 0.020 m and the body is whole.
+Not predicted, booked: the neck stage's yaw settles at 0.184 of 0.393
+(0.412 with the riders as rails) - the head now carries eight welded
+riders' inertia and rows against that stage's own weak 200/12 scalar
+drive; the two_joints family, INV-13's bounded-drive item. Hair
+swinging freely is a later refinement (a position-only nail under
+weight, step 4). Headless from here, at the owner's word; step 3 next.

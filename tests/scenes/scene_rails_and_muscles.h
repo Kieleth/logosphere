@@ -355,12 +355,14 @@ struct Scene {
         if (frame_hands) ++frames_with_hands;
 
         // hygiene: the engine's drive children must be the bodies its joints
-        // name, or the hands-off count above is a count over ghosts.
+        // name, or the riders it made parts of the head (G-84), or the
+        // hands-off count above is a count over ghosts.
         if (const logosphere::animation::HumanoidParts* parts = humanoid.get_humanoid_parts(hips)) {
             int stale = 0;
             for (unsigned int pid : parts->physics_drive_children) {
                 bool live = false;
                 for (const auto& j : parts->joint_hierarchy.joints) if (j.child_particle == pid) { live = true; break; }
+                for (unsigned int c : parts->head_child_particles) if (c == pid) { live = true; break; }
                 if (!live) ++stale;
             }
             muscles_stale = stale;
