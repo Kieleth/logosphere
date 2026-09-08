@@ -397,13 +397,58 @@ height and every joint row against an FK bone now prices them (walk_forward
 2.786 of 5 m, 51 backward frames; the ledger alone reproduces it with box
 friction still gated off, so the channel is the joint rows, not floor
 friction: G-80 corrected 2026-09-08). The law told the truth about the writer.
-OWNER PAUSED 2026-09-08 for a design pass on the animation/physics contract.
-RULING OWED: (a) writers maintain the velocity ledger and the delta
-derivation dies (G-38's fold), or (b) the derivation stays and the
-stance-foot slide is the humanoid front's next red. This law retires the
-night's scope 'three rows only when both endpoints are DYNAMIC' (G-75)
-and answers G-38's velocity half: the writer's motion is read from what
-it wrote, not from a flag.
+OWNER PAUSED 2026-09-08 for a design pass on the animation/physics contract,
+then RULED the same day: see RAILS AND MUSCLES below. The derivation stays
+(a rail's velocity IS its trajectory's derivative, INV-39); what changes is
+the writer: it declares its jumps and takes its hands off the muscles. This
+law retires the night's scope 'three rows only when both endpoints are
+DYNAMIC' (G-75) and answers G-38's velocity half: the writer's motion is
+read from what it wrote, not from a flag.
+
+## RAILS AND MUSCLES (owner ruling 2026-09-08) - INV-40, in INV-TDD
+
+**The ruling, in the owner's frame:** physics is the only originator;
+dynamics is the parts we cannot truly model (muscles, tendons); walking
+from physics is too complex to simulate, so the concession is named and
+made physical. Motion enters a world as a force or as a prescribed
+trajectory. Animation may hold a body only as a **rail** (KINEMATIC, one
+writer, velocity = the trajectory's derivative, a jump declared as a new
+rail) or act on it only as a **muscle** (a drive target on a DYNAMIC body).
+Eva is two rails (the pelvis harness, the stance clamp) and twenty
+muscles; the harness supplies the balance we cannot model. **The elegant
+solution adds nothing, it deletes:** the writer's teleport-then-clean
+loop (four hands on every physics limb after every solve:
+`shape.entity_translate`, `shape.snap_to_hips` kept ON for drive children
+by its own comment, `shape.ground_correct` + the vz zeroing, the cascade
+on whatever is left) is why the drives never held weight, why
+`DRIVE_ANCHOR_SNAP` failed ("two pose sources": there are five), and why
+the ledger broke walking (a snapped bone's delta is not motion).
+
+**Registered first (2026-09-08):** INV-40 `animation-is-a-rail-or-a-muscle`
+(aspirational); INV-1 REWRITTEN (KINEMATIC is a rail, never immobility:
+the audit's open question closed by the ruling); INV-35 amended to STATE,
+with its first prover; G-81 the harness, G-82 a muscle under weight, G-83
+a replanted foot is a new rail. The physics skill carries the contract.
+
+**Born red the same day:** `test_rails_and_muscles` (+ `_visual`), seven
+law-tagged asserts, Argus + the ParticleTracer as witnesses (the solver has
+no tracer sites, so every record on a drive child is an outside hand; the
+three untraced writer sites got their records). The deletion sequence,
+each step behind its own lever, the drive walk tests and this test as the
+gauge, in dependency order:
+
+| step | what | lands into | state |
+|---|---|---|---|
+| 1 | the hips rail states its motion; the anchors DECLARE their jumps (`rail.jump`) | G-83 | owed |
+| 2 | delete `shape.entity_translate` + `shape.snap_to_hips` on drive children | G-81 | owed |
+| 3 | delete `shape.ground_correct` + the vz zeroing on drive children | G-81 | owed |
+| 4 | gravity keyed on `solver_mode` alone; `is_quat_driven`'s last authority read dies | G-82 | owed |
+| 5 | the harness controller drains the refused-momentum book (KNOCKBACK) | test_humanoid_knockback (red since 2026-08-14) | owed, last |
+
+Residuals named at registration: the quaternion drive is a velocity-level
+constraint with a bias, not a torque law (an infinitely strong muscle);
+bounding it is the step AFTER this law. The walking tests are tuned to the
+teleport-and-clean model; every deletion is measured alone, never argued.
 
 ## ARGUS (landed 2026-08-19) + the assert-or-waive discipline
 
@@ -995,7 +1040,7 @@ fix, and until it lands every PR needs the same override.**
 
 | # | Decision | Blocks |
 |---|---|---|
-| R1 | **The 7 authority questions** — what a struck driven limb does (absorb / break authority / threshold, with the threshold option flagged INV-10-hostile); whether partial ragdoll must be expressible; per-particle vs per-entity authority (note: `EntityPhysicalState::apply_solver_authority` is built, tested bidirectionally, and has **zero callers**); rename the enum?; rename or derive `is_quat_driven`?; flip sequencing vs D4; is the interaction-profile filter under this law or scoped out | All of D1's slices |
+| R1 | **SUPERSEDED 2026-09-08 by the rails-and-muscles ruling (INV-40):** a struck driven limb is a muscle on a DYNAMIC body and takes the impulse; a struck rail refuses it into the book its writer drains (step 5); partial ragdoll is a muscle released (no drive, still DYNAMIC); authority is per body (rail or muscle), never per entity; `is_quat_driven` dies at step 4. Kept for the record: **The 7 authority questions** — what a struck driven limb does (absorb / break authority / threshold, with the threshold option flagged INV-10-hostile); whether partial ragdoll must be expressible; per-particle vs per-entity authority (note: `EntityPhysicalState::apply_solver_authority` is built, tested bidirectionally, and has **zero callers**); rename the enum?; rename or derive `is_quat_driven`?; flip sequencing vs D4; is the interaction-profile filter under this law or scoped out | All of D1's slices |
 | R2 | **The 6 rotation questions** — orientation truth (deferred twice now); gyroscopic scope; torsion timing; friction-basis ordering; INV-16's wording; the ladder's real state | All of D2's slices |
 | R3 | **The WAKE_RESOLVER flip** | INV-31 goes active; the machine's default reaches 5/10. Path is known: C3 + the `update_rest_state` KINEMATIC guard + re-baseline two tests whose greens encode the old quirk + flip. D4 is the residual risk you accept or clear first. |
 | R4 | **The seed→world sanitisation question** | `at_logogenesis_creation`, the last sweep mole: the app materialises `tree_height=999` as an 80 m crown and the gate's range door refuses it. Should the creation pipeline clamp seed-derived values to schema bounds, and should the test then assert the refusal? |

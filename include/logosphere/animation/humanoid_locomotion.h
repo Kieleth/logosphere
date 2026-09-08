@@ -522,6 +522,9 @@ public:
     // whose hips particle is hips_id. -1 when no plant is active.
     // Tests use this to assert pin-gluon lifecycle transitions.
     int get_plant_anchor_particle_id(int hips_id) const;
+    // The registered rig, read-only: which bones are drive children
+    // (muscles), which anchors exist (rails). nullptr if unregistered.
+    const HumanoidParts* get_humanoid_parts(int hips_id) const;
 
     // Volitional movement state. When true: friction disabled for
     // smooth walking. When false: passive drift, friction applies.

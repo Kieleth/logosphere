@@ -1645,6 +1645,24 @@ if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
+    # INV-40 made measurable: rails and muscles (G-81 the harness, G-82 a muscle
+    # under weight, G-83 a replanted foot is a new rail). Born red. Both halves
+    # link the engine: Eva's rig is registered only through it.
+    foreach(t test_rails_and_muscles test_rails_and_muscles_visual)
+        add_executable(${t} tests/${t}.cpp)
+        target_link_libraries(${t} PRIVATE
+            logosphere glfw
+            "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+            "-framework CoreGraphics" "-framework AppKit"
+            "-framework Foundation" "-framework QuartzCore"
+            "-framework Metal" "-framework MetalKit"
+            "-framework MetalPerformanceShaders")
+        target_include_directories(${t} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+        target_compile_features(${t} PRIVATE cxx_std_17)
+    endforeach()
     add_executable(test_writers_motion_visual tests/test_writers_motion_visual.cpp)
     target_link_libraries(test_writers_motion_visual PRIVATE
         logosphere glfw

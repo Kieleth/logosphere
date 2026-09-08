@@ -2795,3 +2795,73 @@ rock drifting 0.165 m against a 0.05 m bar, 'mechanism unknown'): born
 STONE its net displacement is 0.0001 m over 480 frames. The mechanism
 was the material - its bonds were priced from flesh's modulus. Booked
 expect-pass.
+
+## 2026-09-08 - RULING: RAILS AND MUSCLES (INV-40). The animation contract, restated as physics.
+
+Owner, pausing the night loop: "we've been operating in the principle
+that animations are very hard, extremely hard to create and control
+from physics, and that's why we allowed this dual system in which we
+have dynamics and physics and they should work together somehow. But
+ideally, physics should be the only originator and dynamics should be
+the simulated parts we cannot truly model, like muscles or tendons...
+but I think the level of simulation to allow to walk starts to get
+extremely complex. Can we stop and re-read what we had in this topic
+and re-evaluate this situation?" On the re-evaluation's three options:
+"I don't want to think on forks, I want to think in terms of 'what
+makes sense' that can 'provide an elegant solution to this problem'."
+On the model presented: "lets do this, Can we work in INV-TDD mode
+creating first the tests we expect to work in RED and then start
+changing the code bit by bit?"
+
+THE RULING. Motion enters a world in exactly two ways: a force, or a
+trajectory someone prescribes. A muscle is a force; a rail is a
+trajectory. The animation layer may hold a body only as a RAIL
+(KINEMATIC, one writer, velocity = the trajectory's derivative per
+INV-39, a discontinuity declared as a new rail, refused momentum booked
+and drained by the writer) or act on it only as a MUSCLE (a drive
+target on a DYNAMIC body: intent, never state). Nothing else exists: no
+writer outside the solver writes state on a DYNAMIC body (INV-35,
+amended to STATE), rails do not fall and muscles do (gravity keyed on
+solver_mode alone, INV-15), a muscle holds its pose under its own
+weight or sags by its budget (INV-13). Eva is two rails (the pelvis
+harness, the stance clamp) and twenty muscles; the harness IS the
+concession, made physical. The 2026-08-14 ruling stands (the clip
+publishes targets, the harness carries the pelvis); the motion-
+authority study's three regimes are rail / muscle / muscle without a
+drive; the F1 RCA's clause is INV-40's refusal sentence.
+
+REGISTERED FIRST: INV-40 (aspirational); INV-1 REWRITTEN (KINEMATIC is
+a rail, never immobility - the KINEMATIC audit's open question, closed);
+INV-35 amended; G-81 the harness, G-82 a muscle under weight, G-83 a
+replanted foot is a new rail. The physics skill carries the contract.
+The board carries the deletion sequence (five steps, each behind its
+own lever, the drive walk tests and the prover as the gauge).
+
+BORN RED, MEASURED THE SAME DAY: test_rails_and_muscles (+ _visual),
+eight law-tagged lines. Default: 3 of 8 red; KINEMATIC_LEDGER=1: 4 of 8.
+  G-82 as predicted: a DYNAMIC box wearing the drive children's flags
+    hovers (drop 0.000 of 2 m in 300 frames); the KINEMATIC box stays;
+    the driven arm holds (error 0.0000 rad, no weight on it).
+  G-83 as predicted: 6 replants, 0 declared; under the lever the ledger
+    reads each replant as 16.8-41.55 m/s (0.7 m in 1/60 s).
+  G-81 NOT as predicted, and the reason is the day's finding: 0 hands
+    on the drive children in 300 frames, both modes, because the
+    engine's physics_drive_children is a bag of BIRTH ids (3675-3703)
+    that notify_particle_swap never remaps, while the joint hierarchy's
+    ids do follow the swaps (1501-1549). After the settle-time chunk
+    flush (1350 particles at engine frame 13) no joint child is in the
+    set: FK writes and KINEMATIC-stamps every bone (live legs read
+    KIN/q0 at frames 0, 20, 60 under RAILS_DIAG), the per-frame target
+    publisher publishes to nobody, and the tracer watched ghosts. The
+    hygiene line 'the drive children are live bodies' is red, 20 of 20.
+    CONSEQUENCE, stated plainly: the Phase 5 / Phase E "physics-driven
+    skeleton" has been dead in every streaming world after its first
+    chunk flush, and test_physics_drive_walk_legs (same stage, same
+    flush) has been measuring FK-driven walking under the drive tests'
+    name (this harness: 4.779 of 5 m by default; 3.254 of 5 m with 44
+    backward frames under the ledger - the G-80 reds were on FK-written
+    bones). The night's DRIVE_ROWS=3 and DRIVE_ANCHOR_SNAP measurements
+    on Eva are to be re-read in that light.
+STEP 0, added to INV-40's sequence: the drive set follows the swaps.
+  Lands next, measured on the prover and on the drive walk tests before
+  and after; the G-81 hands are then counted on live bodies.

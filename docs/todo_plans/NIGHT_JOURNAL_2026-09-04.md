@@ -1917,3 +1917,70 @@ G-80 THE PLANTED FOOT HAS A VELOCITY (measured, registered after the
   derivation dies) or the derivation stays and the slide is the
   humanoid front's next red. test_walk_through_grass went green under
   the levers; why is unread.
+
+## 2026-09-08: THE DESIGN PASS. RAILS AND MUSCLES.
+
+The owner paused the loop: "we've been operating in the principle that
+animations are very hard... physics should be the only originator and
+dynamics should be the simulated parts we cannot truly model, like
+muscles or tendons... re-read what we had in this topic and re-evaluate."
+Then, on the re-evaluation's three options: "I don't want to think on
+forks, I want to think in terms of what makes sense, an elegant
+solution." Then: "lets do this, INV-TDD, tests first in RED, then the
+code bit by bit."
+
+WHAT THE RECORD SAID (read, not remembered): the 2026-08-14 ruling
+  (KINEMATIC transient, "driving complex animations via physics is just
+  insane for us"); the motion-authority study's three regimes (EXTERNAL
+  holder / SOLVER / released), its refused-momentum ledger and S5b "the
+  FK rig holds what it writes and drains its book"; the F1 RCA's clause
+  never registered; none of D1's seven slices landed; the quaternion
+  ruling with the flag still at 34 reads; G-38's writer duty asked for
+  orientation and never for velocity. THE ENGINE: Phase 5 + E put all
+  twenty joint children on drives (DYNAMIC); the hips rail and the two
+  plant anchors are the only KINEMATIC bodies left; and after every
+  solve the writer still moves every drive child by hand: entity
+  translate, rest snap (kept ON for drive children by its own comment:
+  "without it, walking leaves them behind"), ground correction + vz
+  zeroing, the cascade on the rest. Teleport, one solver step, repeat.
+  The solver never accumulates state on a limb. That one fact explains
+  the drives never holding weight (the study's warning), DRIVE_ANCHOR_
+  SNAP's "two pose sources" (there are five), and the ledger breaking
+  walking (a snapped bone's delta is not motion). The snap's own reason
+  is the INV-39 gap: the rail carried no velocity, so the rows had
+  nothing to follow.
+
+WHAT MAKES SENSE: motion enters a world as a force or a prescribed
+  trajectory. A muscle is a force; a rail is a trajectory. Animation
+  holds a body only as a rail (KINEMATIC, one writer, v = derivative,
+  jumps declared) or acts on it only as a muscle (a drive target on a
+  DYNAMIC body). Eva = two rails + twenty muscles; the pelvis harness IS
+  the concession, made physical. The elegant solution adds nothing: it
+  deletes the hands. One bit (a declared jump) and, last, the harness's
+  drain of the refused book.
+
+REGISTERED FIRST: INV-40 animation-is-a-rail-or-a-muscle (aspirational);
+  INV-1 rewritten (KINEMATIC is a rail, never immobility); INV-35 amended
+  to state; G-81 the harness, G-82 a muscle under weight, G-83 a
+  replanted foot is a new rail. The physics skill carries the contract.
+  The board carries the five-step deletion sequence.
+
+BORN RED: test_rails_and_muscles (+ _visual). Witnesses: Argus and the
+  ParticleTracer (the solver has no tracer sites, so every record on a
+  drive child is an outside hand; the three untraced writer sites got
+  records: shape.ground_vz_zero, cascade.rotation_z, FK.kinematic_stamp).
+  Seven law-tagged asserts: hands off the muscles; the walk gauge; the
+  flagged box falls; the rail stays; the driven arm holds; every replant
+  declared; the ledger quiet on a replant (a KINEMATIC_LEDGER=1 claim,
+  vacuous by default and saying so).
+MEASURED (both modes): default 3 of 8 red, ledger 4 of 8. G-82 and G-83
+  as predicted (the flagged box hovers; 6 replants, 0 declared, 41.55
+  m/s in the ledger). G-81 NOT as predicted: 0 hands on the drive
+  children, because the engine's physics_drive_children keeps the
+  birth ids (3675-3703) while the joint hierarchy follows the swaps
+  (1501-1549): after the settle-time chunk flush FK writes and
+  KINEMATIC-stamps every bone, the publisher publishes to nobody, and
+  the tracer watched ghosts. Hygiene line added, red 20 of 20. The
+  "physics-driven skeleton" has been dead after the first chunk flush
+  in every streaming world, and the drive walk tests measured
+  FK-driven walking. Step 0 of the sequence: the set follows the swaps.

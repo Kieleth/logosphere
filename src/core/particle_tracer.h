@@ -154,6 +154,18 @@ public:
         return (total_written_ < capacity_) ? static_cast<size_t>(total_written_) : capacity_;
     }
 
+    // The live records, oldest first (the order dump() prints). A test
+    // that asks "who wrote this body this frame" reads them directly
+    // instead of parsing the dump (INV-35's prover).
+    std::vector<Record> records() const {
+        std::vector<Record> out;
+        if (capacity_ == 0 || total_written_ == 0) return out;
+        out.reserve(record_count());
+        const uint64_t start = (total_written_ > capacity_) ? (total_written_ - capacity_) : 0;
+        for (uint64_t i = start; i < total_written_; ++i) out.push_back(buffer_[i & (capacity_ - 1)]);
+        return out;
+    }
+
 private:
     // Trace set: particle_id → label. Lookup is the fast-path gate.
     std::unordered_map<int, std::string> traced_;

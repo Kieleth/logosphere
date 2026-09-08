@@ -2072,6 +2072,15 @@ int HumanoidLocomotion::get_plant_anchor_particle_id(int hips_id) const {
     return -1;
 }
 
+const HumanoidParts* HumanoidLocomotion::get_humanoid_parts(int hips_id) const {
+    if (!impl_->initialized) return nullptr;
+    auto& dyn = impl_->get_dynamics_system();
+    for (const auto& parts : dyn.humanoid_look_at_entities_) {
+        if (static_cast<int>(parts.hips) == hips_id) return &parts;
+    }
+    return nullptr;
+}
+
 // Phase 4b — drain pending_pin_ops. The post-physics loop accumulates
 // ENGAGE / DISENGAGE ops while the ParticleSystem write lock is held;
 // this runs after that lock is released and is safe to take its own.
@@ -3559,10 +3568,14 @@ void HumanoidLocomotion::apply_yaw_cascade_rotations(
 
     size_t n = particles.size();
     const auto& drive_set = parts.physics_drive_children;
+    auto& cascade_tracer = impl_->get_particle_tracer();
     auto set_rot = [&](unsigned int pid, float yaw) {
         if (pid == 0 || pid >= n) return;
         if (drive_set.count(pid)) return;  // physics owns rotation_z on this particle
+        const float old_rz = particles[pid].rotation_z;
         particles[pid].rotation_z = yaw;
+        TRACE_WRITE(cascade_tracer, static_cast<int>(pid),
+                    "cascade.rotation_z", "rotation_z", old_rz, yaw);
     };
 
     // Spine: head/neck at head_yaw, chest/torso/abdomen at torso_yaw,
@@ -5770,7 +5783,12 @@ void HumanoidLocomotion::maintain_entity_shape(
 
             // Always stop downward velocity when on ground (even in dead zone)
             for (unsigned int pid : parts.all_particle_indices) {
-                if (particles[pid].vz < 0) particles[pid].vz = 0;
+                if (particles[pid].vz < 0) {
+                    const float old_vz = particles[pid].vz;
+                    particles[pid].vz = 0;
+                    TRACE_WRITE(shape_tracer, static_cast<int>(pid),
+                                "shape.ground_vz_zero", "vz", old_vz, 0.0f);
+                }
             }
         } else if (shape_ground_frame % 30 == 0 || gap < -1.0f) {
             // DIAG: gap out of correction range — body in free-fall
@@ -6203,6 +6221,14 @@ void HumanoidLocomotion::apply_fk_transforms(HumanoidParts& parts_ref, ParticleS
         // the row believed itself satisfied and the shoulder held a hard
         // 0.456 rad standing error, forever (measured). FK teleports this
         // bone per frame; its honest velocity state is zero.
+        {
+            auto& stamp_tracer = impl_->get_particle_tracer();
+            const float old_spin = std::sqrt(child.omega_x * child.omega_x +
+                                             child.omega_y * child.omega_y +
+                                             child.omega_z * child.omega_z);
+            TRACE_WRITE(stamp_tracer, static_cast<int>(joint.child_particle),
+                        "FK.kinematic_stamp", "omega", old_spin, 0.0f);
+        }
         child.omega_x = child.omega_y = child.omega_z = 0.0f;
         child.torque_x = child.torque_y = child.torque_z = 0.0f;
         }

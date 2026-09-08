@@ -119,6 +119,63 @@ Four rules, non-negotiable:
   immovable, no gravity assumptions, no springs as patches, no
   if-statement edge fixes) are in the repo `CLAUDE.md` and bind here.
 
+## THE ANIMATION CONTRACT: RAILS AND MUSCLES (owner ruling, 2026-09-08)
+
+Owner: *"physics should be the only originator and dynamics should be the
+simulated parts we cannot truly model, like muscles or tendons... the
+level of simulation to allow to walk starts to get extremely complex."*
+And, on how to decide it: *"I don't want to think on forks, I want to
+think in terms of what makes sense, an elegant solution."* The law is
+INV-40 (`tests/invariants/INVARIANTS.jsonl`); this section is its
+procedure.
+
+**Motion enters a world in exactly two ways: a force, or a trajectory
+someone prescribes.** A muscle is a force. A rail is a trajectory. The
+animation layer may therefore do exactly two things to a body:
+
+- **Hold it as a RAIL.** `solver_mode == KINEMATIC`: infinite mass, ONE
+  writer that prescribes position and orientation. Its velocity and
+  angular velocity are that trajectory's derivatives (INV-39, the
+  `KINEMATIC_LEDGER` derivation): not a duty the writer "maintains", a
+  definition. A discontinuity (a replanted foot) is a NEW rail the writer
+  DECLARES, never a velocity the ledger reads (G-83). A rail refuses
+  momentum into the refused-momentum book, and its writer drains it and
+  decides what a push means (the KNOCKBACK policy lives there, in the
+  game layer). Standing still is a trajectory; a KINEMATIC stamp used to
+  freeze scenery is a debt (INV-1, rewritten by this ruling).
+- **Act on it as a MUSCLE.** A drive target on a `DYNAMIC` body: intent,
+  never state. The solver produces the motion. A muscle weighs, and holds
+  its pose under its own weight or sags by its budget (INV-13).
+
+**Nothing else exists.** No writer outside the solver writes position,
+velocity, orientation or angular velocity on a DYNAMIC body (INV-35, now
+STATE not just position). Gravity is keyed on `solver_mode` alone: rails
+do not fall, muscles do (INV-15). The humanoid is two rails (the pelvis
+harness, the stance clamp) and twenty muscles. **The harness IS the
+concession:** balance we cannot model is what a pelvis harness supplies,
+and a treadmill rig with a pelvis belt is an honest experiment. Physics
+originating locomotion to the root (a balance controller, the harness
+replaced by ground reaction) is the road beyond, not this contract.
+
+**What this rules out, by name.** The teleport-then-clean loop in
+`humanoid_locomotion.cpp maintain_entity_shape` (rigid translate, rest
+snap, ground correction, vz zeroing on drive children) and the gravity
+exemption that reads a representation flag and a game category. The
+study's three regimes (`MOTION_AUTHORITY_DESIGN.md` §3.5: EXTERNAL /
+SOLVER / released) are rail / muscle / muscle-without-a-drive; the F1
+RCA's clause ("a writer takes authority first; refused momentum is
+booked, never deleted") is INV-40's refusal sentence. The 2026-08-14
+ruling ("driving complex animations via physics is just insane for us")
+stands: the clip publishes targets, the harness carries the pelvis.
+
+**Procedure.** INV-TDD, the owner's order: the provers are born red
+(`test_rails_and_muscles`, G-81/82/83), then the writer's hands come off
+one lever at a time in the sequence on INV-40's mechanism line, the drive
+walk tests and the prover as the gauge, each deletion measured alone.
+Residual named at registration: the quaternion drive is a velocity-level
+constraint with a bias, an infinitely strong muscle; the bounded drive is
+the step AFTER this law.
+
 ## Instrument the INTERACTIONS, not just the outcomes (directive)
 
 **Owner ruling 2026-08-15.** A test that asserts where a body ended up
