@@ -2865,3 +2865,29 @@ eight law-tagged lines. Default: 3 of 8 red; KINEMATIC_LEDGER=1: 4 of 8.
 STEP 0, added to INV-40's sequence: the drive set follows the swaps.
   Lands next, measured on the prover and on the drive walk tests before
   and after; the G-81 hands are then counted on live bodies.
+
+## 2026-09-08 - INV-40 STEP 0 LANDED: the drive children follow the swaps (no lever)
+
+The prover's hygiene line found it; the fix is one lambda in
+ParticleDynamicsSystem::notify_particle_swap remapping
+physics_drive_children and physics_drive_static_targets beside the
+joint hierarchy it already remapped. No lever: a stale-id defect is
+not a mechanism, and a lever to keep ids stale would be absurd. What
+it changes in the default: a streaming world's humanoid runs on its
+drives after the first chunk flush, for the first time. EDEN WINDOW QA
+OWED on that.
+
+Measured, same binary, before -> after: prover hygiene 20 of 20 stale
+-> 0; G-81 hands 0 (ghosts) -> 36122 records in 300 of 300 frames by
+default (shape.snap_to_hips 18000 = 20 bones x 3 fields x 300 frames,
+every muscle every frame, exactly what its own comment says it does;
+shape.entity_translate 17940; shape.ground_vz_zero 174;
+kinematic_root.transfer 8, a fifth hand at the heel-strike transfer
+that the prediction did not list), 38121 under KINEMATIC_LEDGER=1
+(ground_vz_zero 2233); the gauge 4.779 -> 4.838 of 5 m (0 backward)
+by default, 3.254 -> 5.249 m (44 -> 22 backward) under the lever;
+test_physics_drive_walk_legs 4.670 -> 4.860 m (2 -> 1 backward),
+test_physics_drive_walk_legs_fast 9.627 -> 9.677 m, both green. The
+live drive path walks, slightly better than the FK path it was
+mistaken for. Standing reds of the prover: default 3 of 8, lever 4 of
+8, all for the reasons the gedanken predicted. Next: step 1.

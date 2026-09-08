@@ -218,6 +218,19 @@ void ParticleDynamicsSystem::notify_particle_swap(size_t old_idx, size_t new_idx
             fix(joint.parent_particle);
             fix(joint.child_particle);
         }
+        // The Phase 5 / Phase E drive children and their static-target
+        // subset are particle ids too. Left unmapped, the set keeps the
+        // birth ids after the first chunk flush: no joint child is in it,
+        // apply_fk_transforms writes and KINEMATIC-stamps every
+        // "physics-driven" bone, and publish_physics_drive_targets
+        // publishes to nobody. Found by test_rails_and_muscles
+        // (2026-09-08, INV-40 step 0): 20 of 20 stale, live legs KIN/q0.
+        auto fix_set = [&](std::unordered_set<unsigned int>& set) {
+            if (set.erase(static_cast<unsigned int>(old_idx)))
+                set.insert(static_cast<unsigned int>(new_idx));
+        };
+        fix_set(parts.physics_drive_children);
+        fix_set(parts.physics_drive_static_targets);
     }
 
     if (engine_) {

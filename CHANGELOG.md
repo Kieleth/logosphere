@@ -288,6 +288,14 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   restores the previous behavior for A/B.
 
 ### Fixed
+- **Humanoid physics-drive children now follow particle index swaps.** The
+  Phase 5 / Phase E drive-child set kept birth ids, so after the first chunk
+  unload (strata streaming) no joint child was in it: FK wrote and
+  KINEMATIC-stamped every "physics-driven" bone and the per-frame target
+  publisher published to nobody. `notify_particle_swap` now remaps the set and
+  its static-target subset. A streaming world's humanoid runs on its drives
+  after streaming for the first time; the drive walk tests measure the live
+  path (4.670 -> 4.860 m at 1 m/s, both still green). Found by INV-40's prover.
 - **Every generator names a material on every body it births (INV-38).**
   A material is the body's physical identity, and the organic bond law
   derives its stiffness and damping from `material_type`; a body left at

@@ -1984,3 +1984,13 @@ MEASURED (both modes): default 3 of 8 red, ledger 4 of 8. G-82 and G-83
   "physics-driven skeleton" has been dead after the first chunk flush
   in every streaming world, and the drive walk tests measured
   FK-driven walking. Step 0 of the sequence: the set follows the swaps.
+STEP 0 LANDED (no lever): notify_particle_swap remaps the drive sets.
+  Before -> after on one binary: hygiene 20/20 stale -> 0; G-81 hands
+  0 -> 36122 records in 300/300 frames (snap_to_hips 18000: every
+  muscle, every frame, three fields; entity_translate 17940; vz-zero
+  174; kinematic_root.transfer 8: a fifth hand); gauge 4.779 -> 4.838
+  m default, 3.254 -> 5.249 m under the ledger (44 -> 22 backward);
+  drive_walk_legs 4.670 -> 4.860 m, fast 9.627 -> 9.677 m, both green.
+  The drives walk. Eden's Eva now runs on live drives after streaming:
+  window QA owed. Next: step 1, the rail states its motion and the
+  anchors declare their jumps.
