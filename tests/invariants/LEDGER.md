@@ -3026,3 +3026,28 @@ riders' inertia and rows against that stage's own weak 200/12 scalar
 drive; the two_joints family, INV-13's bounded-drive item. Hair
 swinging freely is a later refinement (a position-only nail under
 weight, step 4). Headless from here, at the owner's word; step 3 next.
+
+## 2026-09-08 - INV-40 STEP 3 LANDED behind INV40_STEP>=3: the rows carry the limbs. G-81 green.
+
+Off the drive children at step 3: the locomotion velocity broadcast,
+the ground correction, the vz zeroing, and a seventh hand the prover
+found once the others were gone - the writer's own gravity model
+(apply_entity_gravity: gravity.apply when airborne, gravity.on_ground_
+clamp when grounded, 1053 clamps on the muscles in 300 frames).
+INV40_KEEP=<hand> puts one back for attribution.
+
+Measured against step 2 on one binary: hands 17863 -> 0 (the G-81
+line, born red on 2026-09-08 morning, is GREEN under the lever); the
+prover's walk 4.952 -> 4.941 of 5 m, 0 backward; test_physics_drive_
+walk_legs 4.968 m, 0 backward; body whole; worst nail upper_spine<>
+right_shoulder_bridge 0.108 m, ankle 0.105 m (the nails line stays red
+against 10 SLOP). Attribution, before the seventh hand was gated: all
+three off read 4.110 m, 11 backward, ankle nail 0.219 m; the vz zeroing
+put back changed nothing (the clamp does the same job); the ground
+correction put back 4.847 / 0 / 0.108; the broadcast put back 4.935 /
+0 / 0.096. The clamp alone was the regression: it zeroed the muscles'
+downward velocity every grounded frame while no hand carried them any
+more. With every hand off, the rows carry the limbs at the rail's
+speed. The planted foot sits on its anchor in every configuration
+(median 1 cm). Next: step 4, gravity keyed on solver_mode, the muscles
+weigh.

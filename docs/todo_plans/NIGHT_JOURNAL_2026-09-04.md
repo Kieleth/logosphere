@@ -2032,3 +2032,8 @@ G-84 RULED (a) ("head ends up like 5 meters behind the body"; "ok,
   booked: neck stage yaw 0.412 -> 0.184 (eight welded riders on the
   head vs a 200/12 drive; two_joints family). Step 3 prediction in
   G-81 notes. Headless from here.
+STEP 3 LANDED behind INV40_STEP>=3 (broadcast, ground correction, vz
+  zero, and the writer's gravity model - a seventh hand). Hands 17863
+  -> 0: G-81 GREEN. Walk 4.941 / 0 backward; drive walk 4.968 / 0;
+  whole; worst nail 0.108. Attribution: the clamp alone gave 4.110 /
+  11 backward / ankle 0.219. Next: step 4.

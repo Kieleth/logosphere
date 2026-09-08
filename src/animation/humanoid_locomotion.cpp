@@ -50,6 +50,15 @@ static int inv40_step() {
     }();
     return v;
 }
+// Attribution only: INV40_KEEP=broadcast,ground,vz puts one of step 3's
+// hands back so a change can be blamed on one hand at a time.
+static bool inv40_keep(const char* hand) {
+    static const std::string keep = [] {
+        const char* e = std::getenv("INV40_KEEP");
+        return std::string(e ? e : "");
+    }();
+    return keep.find(hand) != std::string::npos;
+}
 
 static void apply_physics_drive_legs_init(
     HumanoidParts& parts,
@@ -4602,6 +4611,8 @@ void HumanoidLocomotion::update_locomotion(HumanoidParts& parts, double delta_ti
     // (the F1 RCA's erasure site); the record lets the prover count it.
     auto& broadcast_tracer = impl_->get_particle_tracer();
     for (unsigned int id : parts.all_particle_indices) {
+        // INV-40 step 3: a muscle's velocity is the solver's; the rail states its own.
+        if (inv40_step() >= 3 && !inv40_keep("broadcast") && parts.physics_drive_children.count(id)) continue;
         const float ovx = particles_view[id].vx, ovy = particles_view[id].vy;
         particles_view[id].vx = new_vx;
         particles_view[id].vy = new_vy;
@@ -5259,6 +5270,8 @@ void HumanoidLocomotion::apply_entity_gravity(
                 // Position correction happens in maintain_entity_shape() after integration.
                 auto& grav_tracer = impl_->get_particle_tracer();
                 for (unsigned int pid : parts.all_particle_indices) {
+                    // INV-40 step 3: the writer's gravity model is the harness's; a muscle weighs for real at step 4.
+                    if (inv40_step() >= 3 && !inv40_keep("gravity") && parts.physics_drive_children.count(pid)) continue;
                     if (particles[pid].vz < 0) {
                         float old_vz = particles[pid].vz;
                         particles[pid].vz = 0;
@@ -5311,6 +5324,7 @@ void HumanoidLocomotion::apply_entity_gravity(
             on_ground = true;
             auto& grav_tracer = impl_->get_particle_tracer();
             for (unsigned int pid : parts.all_particle_indices) {
+                if (inv40_step() >= 3 && !inv40_keep("gravity") && parts.physics_drive_children.count(pid)) continue;
                 if (particles[pid].vz < 0) {
                     float old_vz = particles[pid].vz;
                     particles[pid].vz = 0;
@@ -5328,6 +5342,7 @@ void HumanoidLocomotion::apply_entity_gravity(
         float gravity_dv = -GRAVITY * dt;
         auto& grav_tracer = impl_->get_particle_tracer();
         for (unsigned int pid : parts.all_particle_indices) {
+            if (inv40_step() >= 3 && !inv40_keep("gravity") && parts.physics_drive_children.count(pid)) continue;
             float old_vz = particles[pid].vz;
             particles[pid].vz += gravity_dv;
             TRACE_WRITE_N(grav_tracer, static_cast<int>(pid),
@@ -5921,6 +5936,9 @@ void HumanoidLocomotion::maintain_entity_shape(
                         }
                     }
                     if (is_stance) continue;
+                    // INV-40 step 3: the ground correction is the harness's own
+                    // height; a muscle's height is its rows' and its contacts'.
+                    if (inv40_step() >= 3 && !inv40_keep("ground") && parts.physics_drive_children.count(pid)) continue;
                     float old_z = particles[pid].z;
                     particles[pid].z += correction;
                     TRACE_WRITE(shape_tracer, static_cast<int>(pid),
@@ -5930,6 +5948,8 @@ void HumanoidLocomotion::maintain_entity_shape(
 
             // Always stop downward velocity when on ground (even in dead zone)
             for (unsigned int pid : parts.all_particle_indices) {
+                // INV-40 step 3: no hand zeroes a muscle's velocity.
+                if (inv40_step() >= 3 && !inv40_keep("vz") && parts.physics_drive_children.count(pid)) continue;
                 if (particles[pid].vz < 0) {
                     const float old_vz = particles[pid].vz;
                     particles[pid].vz = 0;
