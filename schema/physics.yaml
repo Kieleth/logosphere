@@ -1312,6 +1312,20 @@ classes:
         annotations:
           cpp_type: uint8_t
         description: Frames below the rest threshold before resting.
+      INV40_STEP_MUSCLES_WEIGH:
+        range: integer
+        ifabsent: int(4)
+        unit: { ucum_code: "{step}" }
+        annotations:
+          cpp_type: int
+        description: >-
+          INV-40 (rails and muscles), the deletion sequence's lever
+          INV40_STEP is the number of steps applied. From this value on
+          the gravity pass keys on the momentum door alone (rails and
+          sleepers no, every other body yes) and the representation-flag
+          / owner exemption on quaternion-driven bodies is skipped:
+          rails do not fall, muscles do (INV-15). The one lever read a
+          physics translation unit makes; its value lives here (INV-29).
       REST_GROWTH_TOLERANCE:
         range: float
         ifabsent: float(1.01)

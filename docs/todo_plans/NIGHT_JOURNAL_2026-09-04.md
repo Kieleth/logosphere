@@ -2037,3 +2037,8 @@ STEP 3 LANDED behind INV40_STEP>=3 (broadcast, ground correction, vz
   -> 0: G-81 GREEN. Walk 4.941 / 0 backward; drive walk 4.968 / 0;
   whole; worst nail 0.108. Attribution: the clamp alone gave 4.110 /
   11 backward / ankle 0.219. Next: step 4.
+STEP 4 LANDED behind the lever (INV40_STEP_MUSCLES_WEIGH in the
+  schema): box A falls 1.299 m (G-82 green); muscles weigh; walk
+  5.063 / 0 backward; drive walk 4.951 / 0. NINE OF TEN under
+  INV40_STEP=4; the nails line (~10 cm) is the last red: G-85, the
+  bounded drive on the critical path. Sweep under the lever next.

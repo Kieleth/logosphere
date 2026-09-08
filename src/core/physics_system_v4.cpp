@@ -952,7 +952,17 @@ void PhysicsSystem::apply_all_forces(ParticleSystem::WriteView& particles, float
         // per-bone gravity makes the drive fight it on every joint (the
         // original exemption's rationale) — and giving DYNAMICS bones
         // weight put visible churn into the human's limbs.
-        if (p.is_quat_driven && p.owner != ParticleOwner::PHYSICS) continue;
+        // INV-40 step 4 (behind INV40_STEP >= INV40_STEP_MUSCLES_WEIGH): the
+        // door above already said who weighs - rails and sleepers no,
+        // every other body yes. This exemption read a representation flag
+        // and a game category (INV-15) and made the animation's muscles
+        // weightless; from step 4 it is skipped, and it dies with the flip.
+        static const int inv40_step = [] {
+            const char* e = std::getenv("INV40_STEP");
+            return e ? std::atoi(e) : 0;
+        }();
+        if (inv40_step < PhysicsV4::INV40_STEP_MUSCLES_WEIGH &&
+            p.is_quat_driven && p.owner != ParticleOwner::PHYSICS) continue;
         // Apply gravity: v += g × dt
         p.vz += -GRAVITY * dt;
     }

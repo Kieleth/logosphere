@@ -3051,3 +3051,28 @@ more. With every hand off, the rows carry the limbs at the rail's
 speed. The planted foot sits on its anchor in every configuration
 (median 1 cm). Next: step 4, gravity keyed on solver_mode, the muscles
 weigh.
+
+## 2026-09-08 - INV-40 STEP 4 LANDED behind the lever: the muscles weigh. Nine of ten. G-85 opened.
+
+The gravity pass keys on the momentum door alone from INV40_STEP >=
+INV40_STEP_MUSCLES_WEIGH (a schema constant, 4: the one lever read a
+physics translation unit makes, INV-29); the exemption that read a
+representation flag and a game category is skipped there and dies with
+the flip. INV-29's gate: unchanged, 31 sites.
+
+Measured against step 3 on one binary: box A falls 1.299 m and lands
+(G-82 green, as predicted); box B stays; the arm holds 0.0000 rad under
+its weight because an unbounded drive cannot sag - it proves nothing
+about a muscle yet. Eva's 28 muscles weigh for the first time: walk
+4.941 -> 5.063 of 5 m, 0 backward; test_physics_drive_walk_legs 4.951
+m, 0 backward; body whole; nails within 1 cm of step 3's. Under
+INV40_STEP=4 the prover reads NINE OF TEN green. The last red is the
+nails line: the stance chain between the two rails opens at the nails
+by ~10 cm (right ankle 0.093-0.105 m, shoulder bridge 0.108 m) because
+the drives are velocity-level constraints with no torque bound and
+cannot yield, so the solver resolves the overdetermined geometry at the
+bones instead of the muscles. G-85, the stance chain between two rails,
+written after the measurement and saying so: the bounded drive, named
+at INV-40's registration as the step after this law, is now on the
+critical path. Next: the sweep alone under INV40_STEP=4, so the flip
+has a verdict; then the ruling on the flip and on the bounded drive.

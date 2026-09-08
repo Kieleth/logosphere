@@ -329,6 +329,15 @@ constexpr float    WAKE_VELOCITY_THRESHOLD = 0.2f;   // unit: m/s
 // Frames below the rest threshold before resting.
 constexpr uint8_t  REST_FRAMES_REQUIRED = 10;   // unit: {frame}
 
+// INV-40 (rails and muscles), the deletion sequence's lever INV40_STEP
+// is the number of steps applied. From this value on the gravity pass
+// keys on the momentum door alone (rails and sleepers no, every other
+// body yes) and the representation-flag / owner exemption on
+// quaternion-driven bodies is skipped: rails do not fall, muscles do
+// (INV-15). The one lever read a physics translation unit makes; its
+// value lives here (INV-29).
+constexpr int      INV40_STEP_MUSCLES_WEIGH = 4;   // unit: {step}
+
 // G-44. Sleep may only cache a fixed point of the dynamics, and
 // observed GROWTH of the quietness speed (linear plus angular
 // extremity speed, one currency) is proof the body is not at one: an
