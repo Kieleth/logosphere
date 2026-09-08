@@ -2912,3 +2912,22 @@ gauge unchanged (4.838 m, drive walk 4.860 m); lever-mode gauge
 Prover: 2 of 8 red in both modes (G-81 the hands, G-82 the hovering
 box). Next: step 2, the rigid translate and the rest snap come off the
 drive children, behind a lever.
+
+## 2026-09-08 - SWEEP ALONE after INV-40 step 1: MOLES 45 (new-red 2, gone-green 0, unaudited 43)
+
+The 43 unaudited are the standing set (44 on 2026-09-03 with one
+gone-green). The two new reds are test_physics_drive_arm_chain and
+test_physics_drive_neck_yaw. Read, not guessed: both stages flush 2700
+particles at engine frame 13, so until step 0 their rigs were
+FK-stamped after the swap and only the joints they enable afterwards
+were live drives on a KINEMATIC parent; with the set live, the parent
+is a DYNAMIC drive child and the light intermediate bone absorbs the
+drive's reaction (shoulder settles at 0.152 of 0.524 rad, elbow and
+wrist converge; head yaw 0.315 of 0.393, zero drift). The FK-stamp
+comment measured this exact mechanism when it chose to stamp; the
+two_joints / shoulder_multiaxis reds are the same family. Step 0
+removed the stamp that hid it. BOOKED known_open under INV-13 (expect
+stays pass: the tests assert the right physics). Attribution from the
+sweep history (all drive tests green before step 0) and the code; no
+paired A/B binary was built. The bounded drive is the step after
+INV-40.

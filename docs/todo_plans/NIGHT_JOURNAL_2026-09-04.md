@@ -2001,3 +2001,9 @@ STEP 1 LANDED (no lever, inert by default): the anchor writer voids
   traced: +12000 records, the sixth hand. Prover 2/8 red both modes.
   Lever-mode walk 5.249 -> 3.961 m (22 -> 17 backward), default
   unchanged. Next: step 2 behind a lever.
+SWEEP ALONE after step 1: MOLES 45 (new-red 2, unaudited 43 standing).
+  arm_chain and neck_yaw red: their stages flush at frame 13; before
+  step 0 their rigs were FK-stamped after the swap; now the light
+  bridge/neck absorbs the shoulder/head drive's reaction (0.152 of
+  0.524; 0.315 of 0.393). two_joints family. Booked known_open under
+  INV-13, expect pass. Attribution: sweep history + code, no A/B.

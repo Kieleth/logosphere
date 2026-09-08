@@ -446,6 +446,8 @@ gauge, in dependency order:
 | 4 | gravity keyed on `solver_mode` alone; `is_quat_driven`'s last authority read dies | G-82 | owed |
 | 5 | the harness controller drains the refused-momentum book (KNOCKBACK) | test_humanoid_knockback (red since 2026-08-14) | owed, last |
 
+**SWEEP ALONE after step 1 (2026-09-08): `MOLES 45 (new-red 2, gone-green 0, unaudited 43)`.** The 43 are the standing unaudited set. The two new reds, `test_physics_drive_arm_chain` and `test_physics_drive_neck_yaw`, are step 0's exposure, not its defect: their stages flush at frame 13, so until step 0 their rigs were FK-stamped and only the joints they enable afterwards were live; with the whole rig on drives the light intermediate bone (shoulder bridge, neck) absorbs the drive's reaction (shoulder 0.152 of 0.524 rad; head 0.315 of 0.393). The `two_joints` / `shoulder_multiaxis` family. BOOKED known_open under INV-13; the bounded drive (a muscle with a maximum torque, and the light bone's own muscle holding it) is the step after this law. Attribution from sweep history + code, no A/B binary.
+
 Residuals named at registration: the quaternion drive is a velocity-level
 constraint with a bias, not a torque law (an infinitely strong muscle);
 bounding it is the step AFTER this law. The walking tests are tuned to the
