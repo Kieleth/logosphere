@@ -392,9 +392,12 @@ OWNER RULINGS for the flip, after the sweep under them and a paired Eden
 A/B.** SWEEP UNDER BOTH (same day): MOLES 55, new-red 9, gone-green 3 (the
 two new tests and test_walk_through_grass). The reds are the ledger's, not
 the friction lever's: G-80 - THE PLANTED FOOT HAS A VELOCITY. Eva's stance
-foot, KINEMATIC and 'glued', is written by FK sliding through the floor at
-1.2-1.7 m/s for 0.375 s per step and the tiles now feel it (walk_forward
-2.786 of 5 m, 51 backward frames). The law told the truth about the writer.
+foot, KINEMATIC and FK-written, carries 1-2 m/s derived velocities at floor
+height and every joint row against an FK bone now prices them (walk_forward
+2.786 of 5 m, 51 backward frames; the ledger alone reproduces it with box
+friction still gated off, so the channel is the joint rows, not floor
+friction: G-80 corrected 2026-09-08). The law told the truth about the writer.
+OWNER PAUSED 2026-09-08 for a design pass on the animation/physics contract.
 RULING OWED: (a) writers maintain the velocity ledger and the delta
 derivation dies (G-38's fold), or (b) the derivation stays and the
 stance-foot slide is the humanoid front's next red. This law retires the
