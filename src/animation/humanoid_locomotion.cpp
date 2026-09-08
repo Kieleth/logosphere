@@ -2136,6 +2136,7 @@ void HumanoidLocomotion::flush_pending_pin_gluon_ops() {
                 auto view = ps.lock_particles_for_write();
                 if (static_cast<size_t>(anchor_id) < view.size()) {
                     Particle& a = view[anchor_id];
+                    const float jx = a.x, jy = a.y, jz = a.z;
                     a.x = op.tx;
                     a.y = op.ty;
                     a.z = op.tz;
@@ -2143,6 +2144,18 @@ void HumanoidLocomotion::flush_pending_pin_gluon_ops() {
                     a.solver_mode = ParticleSolverMode::KINEMATIC;
                     a.owner = ParticleOwner::DYNAMICS;
                     a.is_at_rest = false;
+                    // INV-40 / G-83: a replant is a NEW rail, not a rail that
+                    // moved. The writer declares the discontinuity by voiding
+                    // this body's history, so the ledger's derivation (INV-39,
+                    // KINEMATIC_LEDGER) reads the fresh plant's own velocity,
+                    // zero, and never the stride over one frame (41-61 m/s
+                    // measured before this line). The record is the
+                    // declaration a witness can read.
+                    a.prev_valid = false;
+                    auto& jump_tracer = impl_->get_particle_tracer();
+                    TRACE_WRITE_N(jump_tracer, anchor_id, "rail.jump", "x", jx, a.x, "replant: a new rail");
+                    TRACE_WRITE_N(jump_tracer, anchor_id, "rail.jump", "y", jy, a.y, "replant: a new rail");
+                    TRACE_WRITE_N(jump_tracer, anchor_id, "rail.jump", "z", jz, a.z, "replant: a new rail");
                 }
             }
 
@@ -4476,9 +4489,15 @@ void HumanoidLocomotion::update_locomotion(HumanoidParts& parts, double delta_ti
     float new_vy = vy + dvy;
 
     // 8. Apply to ALL entity particles (key insight!)
+    // INV-40 / G-81: on a drive child this is a hand on a muscle's velocity
+    // (the F1 RCA's erasure site); the record lets the prover count it.
+    auto& broadcast_tracer = impl_->get_particle_tracer();
     for (unsigned int id : parts.all_particle_indices) {
+        const float ovx = particles_view[id].vx, ovy = particles_view[id].vy;
         particles_view[id].vx = new_vx;
         particles_view[id].vy = new_vy;
+        TRACE_WRITE(broadcast_tracer, static_cast<int>(id), "locomotion.velocity_broadcast", "vx", ovx, new_vx);
+        TRACE_WRITE(broadcast_tracer, static_cast<int>(id), "locomotion.velocity_broadcast", "vy", ovy, new_vy);
     }
 
     // DEBUG: Check for body part separation (decomposition)

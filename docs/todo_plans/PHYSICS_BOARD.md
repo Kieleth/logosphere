@@ -440,7 +440,7 @@ gauge, in dependency order:
 | step | what | lands into | state |
 |---|---|---|---|
 | 0 | **FOUND BY THE PROVER:** `physics_drive_children` (+ static targets) never followed particle swaps; after the first chunk flush every "physics-driven" bone was FK-written and KINEMATIC-stamped, and the drive walk tests measured FK-driven walking | hygiene line | **LANDED 2026-09-08, no lever** (a stale-id defect): remap in `notify_particle_swap`. Prover hygiene green; G-81 hands now on live bodies: 36,122 records / 300 frames (snap 18,000, translate 17,940, vz-zero 174, root transfer 8); drive walk 4.670 -> 4.860 m, fast 9.627 -> 9.677 m, both green. **Eden's Eva runs on live drives after streaming for the first time: window QA owed.** |
-| 1 | the hips rail states its motion; the anchors DECLARE their jumps (`rail.jump`) | G-83 | owed |
+| 1 | the hips rail states its motion; the anchors DECLARE their jumps (`rail.jump`) | G-83 | **LANDED 2026-09-08, no lever** (inert unless `KINEMATIC_LEDGER`): `prev_valid = false` + `rail.jump` at every engage. G-83 green both modes (6 of 6 declared, ledger 0.00 m/s, was 61.47). The controller's velocity broadcast onto the muscles (F1's erasure site) now traced: 12,000 records / 300 frames, the sixth hand. Prover 2 of 8 red both modes. |
 | 2 | delete `shape.entity_translate` + `shape.snap_to_hips` on drive children | G-81 | owed |
 | 3 | delete `shape.ground_correct` + the vz zeroing on drive children | G-81 | owed |
 | 4 | gravity keyed on `solver_mode` alone; `is_quat_driven`'s last authority read dies | G-82 | owed |

@@ -1994,3 +1994,10 @@ STEP 0 LANDED (no lever): notify_particle_swap remaps the drive sets.
   The drives walk. Eden's Eva now runs on live drives after streaming:
   window QA owed. Next: step 1, the rail states its motion and the
   anchors declare their jumps.
+STEP 1 LANDED (no lever, inert by default): the anchor writer voids
+  its history at every engage + rail.jump record. G-83 green both
+  modes (6/6 declared, ledger 0.00 m/s was 61.47). The velocity
+  broadcast onto every rig particle (F1's erasure site) is now
+  traced: +12000 records, the sixth hand. Prover 2/8 red both modes.
+  Lever-mode walk 5.249 -> 3.961 m (22 -> 17 backward), default
+  unchanged. Next: step 2 behind a lever.

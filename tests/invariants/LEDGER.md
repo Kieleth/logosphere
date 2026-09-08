@@ -2891,3 +2891,24 @@ test_physics_drive_walk_legs_fast 9.627 -> 9.677 m, both green. The
 live drive path walks, slightly better than the FK path it was
 mistaken for. Standing reds of the prover: default 3 of 8, lever 4 of
 8, all for the reasons the gedanken predicted. Next: step 1.
+
+## 2026-09-08 - INV-40 STEP 1 LANDED: a replanted foot is a new rail (no lever)
+
+One bit at the plant-anchor writer: at every engage the anchor's
+history is voided (Particle::prev_valid = false) and rail.jump is
+recorded, so INV-39's derivation reads the fresh plant's own velocity
+(zero) instead of the stride over one frame. Inert by default (the
+derivation is behind KINEMATIC_LEDGER), so no new lever. The hips
+rail needed nothing: the locomotion controller states its vx/vy every
+frame. That same broadcast writes vx/vy onto every drive child every
+frame - the F1 RCA's erasure site - and is now traced as
+locomotion.velocity_broadcast, the sixth hand on the muscles.
+
+Measured: G-83 green in both modes (6 replants, 6 declared; ledger
+0.00 m/s where it read 61.47). Hands by default 36122 -> 48122
+(+12000, the broadcast: 20 bones x 2 fields x 300 frames). Default
+gauge unchanged (4.838 m, drive walk 4.860 m); lever-mode gauge
+5.249 -> 3.961 m, 22 -> 17 backward frames, with the hands still on.
+Prover: 2 of 8 red in both modes (G-81 the hands, G-82 the hovering
+box). Next: step 2, the rigid translate and the rest snap come off the
+drive children, behind a lever.
