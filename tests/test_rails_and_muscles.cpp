@@ -27,6 +27,12 @@
 //     (G-83); the ledger speed after a jump ASSERTED quiet, a claim made for
 //     KINEMATIC_LEDGER=1 (by default the ledger reads zero and the assert is
 //     vacuous, said so on the line).
+//   THE BODY (every rig particle): every nail's two attachment points
+//     ASSERTED together within 10 SLOP over the run (INV-28 / INV-22); every
+//     bone ASSERTED within its standing reach + 0.15 m of the hips (G-81:
+//     the rows carry the body; a limb that walks off is a red line, not a
+//     thing only the eye catches). Owner ask, 2026-09-08: "add a check to
+//     make sure all parts of the body are where they are supposed to be".
 //   BOX A (DYNAMIC, drive-child flags, unsupported): z ASSERTED as falling
 //     (G-82); x, y, orientation: no lateral force, no torque; WAIVED.
 //   BOX B (KINEMATIC): z ASSERTED as still (INV-1 as rewritten); rest WAIVED.
@@ -133,11 +139,12 @@ int main() {
         if (f % 30 == 29) {
             const auto* A = scene.argus.latest(scene.box_a);
             std::printf("  [f%3d] fwd %+6.3f back %2d | hands %5d recs, %3d frames (%s) | replants %d declared %d loud %d ledger %.2f m/s"
-                        " | A z %.3f drop %.3f | B drift %.4f | arm err %.4f sep drift %.5f\n",
+                        " | A z %.3f drop %.3f | B drift %.4f | arm err %.4f sep drift %.5f | body: gap %.4f (%s) reach over %+.3f (%s)\n",
                         f, scene.forward, scene.backward_frames, scene.hand_records, scene.frames_with_hands,
                         scene.hands_summary().c_str(), scene.replants, scene.replants_declared, scene.replants_ledger_loud,
                         scene.replant_ledger_speed_max, A ? A->z : 0.0f, scene.a_drop_max, scene.b_drift_max,
-                        scene.arm_err_max, scene.arm_sep_drift_max);
+                        scene.arm_err_max, scene.arm_sep_drift_max,
+                        scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.reach_over_max, scene.reach_worst.c_str());
         }
     }
     std::printf("\n  [measure] drive children: %zu, of which %d STALE (no joint names them)", scene.muscles.size(), scene.muscles_stale);
@@ -150,12 +157,18 @@ int main() {
                 scene.forward, RUN_FRAMES * DT * WALK_SPEED, scene.backward_frames);
     std::printf("  [measure] anchors: %d replants, %d declared, %d loud in the ledger (max %.2f m/s, bar %.2f)\n",
                 scene.replants, scene.replants_declared, scene.replants_ledger_loud, scene.replant_ledger_speed_max, JUMP_LEDGER_MAX);
+    std::printf("  [measure] the body: %zu bones; worst nail gap %.4f m at %s (frame %d, bar %.4f); worst reach over standing + %.2f m: %+.3f m at %s\n",
+                scene.rig.size(), scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.joint_gap_frame, JOINT_GAP_MAX,
+                REACH_SLACK, scene.reach_over_max, scene.reach_worst.c_str());
+    std::printf("  [measure] worst nails: %s\n", scene.nails_summary().c_str());
     std::printf("  [measure] box A drop max %.3f m (bar > %.3f by frame %d); box B drift %.4f m; arm pose err max %.4f rad, sep drift %.5f m\n\n",
                 scene.a_drop_max, FALL_MIN, FALL_FRAMES, scene.b_drift_max, scene.arm_err_max, scene.arm_sep_drift_max);
 
     check(Scene::muscles_live(scene.muscles_stale),                   "hygiene/INV-35: the engine's drive children are live bodies (ids follow the swaps)");
     check(Scene::hands_off(scene.hand_records),                       "INV-40/INV-35/G-81: no hand but the solver's on any muscle, any frame");
     check(Scene::walks(scene.forward, scene.walk_frames),             "G-81 gauge (drive walk bar): the limbs follow the rail and she walks");
+    check(Scene::holds_together(scene.joint_gap_max),                 "INV-28/INV-22: every nail of the body holds its two attachment points together (gap <= 10 SLOP)");
+    check(Scene::whole(scene.reach_over_max),                         "G-81/INV-22: every bone is within its standing reach of the hips (the body is whole)");
     check(Scene::fell(scene.a_drop_max),                              "INV-40/INV-15/G-82: a DYNAMIC body wearing the muscles' flags FALLS");
     check(Scene::stayed(scene.b_drift_max),                           "INV-1/G-82: a rail stays where its writer prescribes");
     check(Scene::holds(scene.arm_err_max, scene.arm_sep_drift_max),   "INV-13/G-82: the driven arm holds its commanded pose on its nail");

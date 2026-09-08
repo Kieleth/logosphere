@@ -2018,3 +2018,9 @@ STEP 2 LANDED behind INV40_STEP>=2 (value = steps applied). Hands
   Force-bound reading withdrawn (nails are not bounded). RULING OWED:
   riders are parts (DYNAMIC, nailed, hand deleted) or the union admits
   nailed KINEMATIC members. Step 3 waits.
+THE BODY LINES (owner ask): every nail within 10 SLOP; every bone
+  within standing reach + 0.15 m. Hands on: whole, hip/knee nails
+  14-15 cm open from f1-5. Hands off: leg nails 5-8 cm, spine-neck
+  opens 5 mm/frame (1.46 m by f299); walking head probe: inner eyes
+  overlap the head 14-19 mm every frame, normal forward, head pinned
+  at the broadcast's 1 m/s. G-84 in the walk. Gauge had hidden both.

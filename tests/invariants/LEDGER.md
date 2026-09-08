@@ -2969,3 +2969,34 @@ law's own answer: a trajectory copied from a muscle's state each frame
 is a hand, not a rail. (b) the union admits a KINEMATIC body nailed into
 a dynamic structure while ground anchors stay out; keeps the hand.
 Step 3 waits behind this.
+
+## 2026-09-08 - THE BODY LINES: "make sure all parts of the body are where they are supposed to be"
+
+Owner, watching step 2: "looking better, but please add a check to
+make sure all parts of the body are where they are supposed to be".
+Physically, where a part is supposed to be is what its nails say: two
+lines in test_rails_and_muscles, both law-tagged, both born red.
+  INV-28/INV-22: every nail of the rig holds its two attachment
+    points together within 10 SLOP over the run (attachment point =
+    position + offset rotated by the body's full orientation, the
+    strain-energy ledger's rule; the test carries the fifth copy of
+    that math and says so, INV-28's owed helper).
+  G-81/INV-22: every bone within its standing reach + 0.15 m of the
+    hips, the body whole.
+Measured, named, with onsets. Hands on (default): the body is whole
+(worst reach -0.120 m, the left toe), and every hip and knee nail is
+14-15 cm open from frames 1-5 and stays (right_knee<>right_hip 0.150
+m; left_hip<>hips 0.147; right_hip<>hips 0.144; left_knee<>left_hip
+0.142; right_shoulder<>right_elbow 0.118): the rest snap places the
+bones where the nails do not meet, every frame, and the drive walk
+tests never looked. Hands off (INV40_STEP=2): the leg nails close to
+5-8 cm and the upper_spine<>neck nail opens from frame 5 at 5 mm per
+frame (0.115 m at f29, 1.461 m at f299, the hair 1.053 m beyond its
+reach) while the walk gauge reads 4.929 of 5 m. The walking head probe:
+both inner eyes overlap the head by 14-19 mm every frame from frame 5,
+normal forward, the head's speed pinned at the broadcast's 1.000 m/s;
+the riders hold the head back while the chest walks on. G-84 during
+the walk, with a designed 14 mm crossing instead of a gap. The gauge
+alone had hidden both worlds' defects. Reading (a) of G-84 (the riders
+are parts of the head) makes the crossing internal geometry under the
+existing union; the ruling stands owed.

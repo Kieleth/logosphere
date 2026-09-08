@@ -79,6 +79,11 @@ constexpr float JUMP_MIN      = 0.10f;                       // m in one frame: 
 constexpr float JUMP_LEDGER_MAX = 0.5f;                      // m/s: a fresh plant's own velocity is ~0
 constexpr float WALK_MIN_FRACTION = 0.5f;                    // the drive walk gauge's own bar
 constexpr const char* JUMP_SITE = "rail.jump";               // the declaration the writer owes (G-83)
+// The body is where its nails put it: a nail's two attachment points
+// coincide up to geometric error, and no bone is farther from the hips
+// than its standing reach (a leg bends, it does not stretch).
+constexpr float JOINT_GAP_MAX = 10.0f * PhysicsV4::SLOP;    // m, per nail, whole run
+constexpr float REACH_SLACK   = 0.15f;                       // m beyond the standing reach
 
 struct Scene {
     logosphere::Argus argus;
@@ -98,6 +103,15 @@ struct Scene {
     // station B, latched
     float a_z0 = 0, b_z0 = 0, a_drop_max = 0, b_drift_max = 0;
     float arm_err_max = 0, arm_sep0 = -1.0f, arm_sep_drift_max = 0;
+    // the body: every rig particle, named; its nails; its standing reach
+    std::vector<int> rig;
+    std::unordered_set<int> rig_set;
+    std::map<int, std::string> names;
+    std::map<int, float> rest_reach;
+    float joint_gap_max = 0.0f;  std::string joint_gap_worst;  int joint_gap_frame = -1;
+    struct NailRecord { float gap_max = 0.0f; int onset = -1; };  // onset: first frame over the bar
+    std::map<std::string, NailRecord> nails;
+    float reach_over_max = -1e9f; std::string reach_worst;
     // internals
     struct AnchorEye { float x = 0, y = 0, z = 0; int check_frames = 0; bool loud = false; };
     std::map<int, AnchorEye> eyes;
@@ -128,8 +142,34 @@ struct Scene {
         return e ? std::atoi(e) : 0;
     }
 
+    // A nail's attachment point in the world: the body's position plus its
+    // offset rotated by the body's full orientation (INV-28). Mirrors the
+    // solver's own rule at the strain-energy ledger (physics_system_v4.cpp,
+    // the `attach` lambda): that helper is not exported, and INV-28 owes the
+    // one shared definition; until it exists this is the fifth copy, and
+    // says so.
+    static void attach(const Particle& p, const Vec3& o, bool rot, float& wx, float& wy, float& wz) {
+        if (!rot) { wx = p.x + o.x; wy = p.y + o.y; wz = p.z + o.z; return; }
+        const float cx = std::cos(p.rotation_x), sx = std::sin(p.rotation_x);
+        const float cy = std::cos(p.rotation_y), sy = std::sin(p.rotation_y);
+        const float cz = std::cos(p.rotation_z), sz = std::sin(p.rotation_z);
+        const float y1 = o.y * cx - o.z * sx;
+        const float z1 = o.y * sx + o.z * cx;
+        const float x2 = o.x * cy + z1 * sy;
+        const float z2 = -o.x * sy + z1 * cy;
+        wx = p.x + x2 * cz - y1 * sz;
+        wy = p.y + x2 * sz + y1 * cz;
+        wz = p.z + z2;
+    }
+    std::string name_of(int id) const {
+        auto it = names.find(id);
+        return it != names.end() ? it->second : ("P" + std::to_string(id));
+    }
+
     // ---- predicates: the asserts, the log and the panel read these ----
     static bool hands_off(int records)            { return records == 0; }
+    static bool holds_together(float gap_max)     { return gap_max <= JOINT_GAP_MAX; }
+    static bool whole(float reach_over)           { return reach_over <= 0.0f; }
     static bool muscles_live(int stale)           { return stale == 0; }
     static bool walks(float fwd, int frames)      { return frames > 0 && fwd >= WALK_MIN_FRACTION * frames * DT * WALK_SPEED; }
     static bool fell(float drop)                  { return drop > FALL_MIN; }
@@ -232,7 +272,13 @@ struct Scene {
             for (int& id : eva.right_arm_ids) fix(id);
             for (int& id : eva.torso_ids) fix(id);
             for (int& id : muscles) fix(id);
+            for (int& id : rig) fix(id);
             if (muscle_set.erase((int)o)) muscle_set.insert((int)n);
+            if (rig_set.erase((int)o)) rig_set.insert((int)n);
+            auto nm = names.find((int)o);
+            if (nm != names.end()) { auto v = nm->second; names.erase(nm); names[(int)n] = v; }
+            auto rr = rest_reach.find((int)o);
+            if (rr != rest_reach.end()) { auto v = rr->second; rest_reach.erase(rr); rest_reach[(int)n] = v; }
             if (tracer.is_traced((int)o)) {
                 auto label = tracer.label_of((int)o);
                 tracer.untrace((int)o); tracer.trace((int)n, std::move(label));
@@ -249,6 +295,17 @@ struct Scene {
             for (unsigned int pid : parts->physics_drive_children) {
                 muscles.push_back((int)pid); muscle_set.insert((int)pid);
                 tracer.trace((int)pid, "muscle/" + std::to_string(pid));
+            }
+        }
+        if (parts) {
+            for (unsigned int pid : parts->all_particle_indices) { rig.push_back((int)pid); rig_set.insert((int)pid); }
+            for (const auto& j : parts->joint_hierarchy.joints) names[(int)j.child_particle] = j.name;
+            for (unsigned int c : parts->head_child_particles) names[(int)c] = "rider/" + std::to_string(c);
+            names[hips] = "hips";
+            auto v = ps.lock_particles_for_read();
+            for (int id : rig) {
+                const float dx = v[id].x - v[hips].x, dy = v[id].y - v[hips].y, dz = v[id].z - v[hips].z;
+                rest_reach[id] = std::sqrt(dx * dx + dy * dy + dz * dz);
             }
         }
         tracer.trace(hips, "rail/hips");
@@ -345,6 +402,34 @@ struct Scene {
             eye.x = x; eye.y = y; eye.z = z;
         }
 
+        // THE BODY: every nail of the rig holds its two attachment points
+        // together, and no bone is beyond its standing reach from the hips.
+        {
+            auto& physics = engine.get_physics_system();
+            auto v = ps.lock_particles_for_read();
+            std::unordered_set<const GluonConstraintBase*> seen;
+            for (int id : rig) {
+                for (const GluonConstraintBase* g : physics.get_gluons_for_particle((size_t)id)) {
+                    if (!g || !seen.insert(g).second) continue;
+                    const int a = (int)g->particle_a, b = (int)g->particle_b;
+                    if (!rig_set.count(a) || !rig_set.count(b)) continue;   // a pin to an anchor is not the body
+                    float ax, ay, az, bx, by, bz;
+                    attach(v[a], g->offset_a, g->rotate_offsets, ax, ay, az);
+                    attach(v[b], g->offset_b, g->rotate_offsets, bx, by, bz);
+                    const float dx = bx - ax, dy = by - ay, dz = bz - az;
+                    const float gap = std::fabs(std::sqrt(dx * dx + dy * dy + dz * dz) - g->target_distance);
+                    const std::string nm = name_of(a) + "<>" + name_of(b);
+                    NailRecord& rec = nails[nm];
+                    if (gap > rec.gap_max) rec.gap_max = gap;
+                    if (gap > JOINT_GAP_MAX && rec.onset < 0) rec.onset = frame;
+                    if (gap > joint_gap_max) { joint_gap_max = gap; joint_gap_worst = nm; joint_gap_frame = frame; }
+                }
+                const float dx = v[id].x - v[hips].x, dy = v[id].y - v[hips].y, dz = v[id].z - v[hips].z;
+                const float over = std::sqrt(dx * dx + dy * dy + dz * dz) - rest_reach[id] - REACH_SLACK;
+                if (over > reach_over_max) { reach_over_max = over; reach_worst = name_of(id); }
+            }
+        }
+
         // the gauge: does she still walk?
         forward = (hx - hx0) * fx + (hy - hy0) * fy;
         if (forward - prev_forward < -0.005f) ++backward_frames;
@@ -396,9 +481,19 @@ struct Scene {
             hx0 = v[hips].x; hy0 = v[hips].y;
         }
         forward = prev_forward = 0.0f; backward_frames = 0; walk_frames = 0;
+        joint_gap_max = 0.0f; joint_gap_worst.clear(); joint_gap_frame = -1; reach_over_max = -1e9f; reach_worst.clear(); nails.clear();
         argus.reset_milestones(box_a); argus.reset_milestones(arm);
     }
 
+    // The worst nails, for the log: name, max gap, onset frame.
+    std::string nails_summary(int max_n = 5) const {
+        std::vector<std::pair<float, std::string>> v;
+        for (const auto& [nm, r] : nails) v.push_back({r.gap_max, nm + " " + std::to_string(r.gap_max).substr(0, 6) + (r.onset >= 0 ? " (opens f" + std::to_string(r.onset) + ")" : "")});
+        std::sort(v.begin(), v.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+        std::string out; int k = 0;
+        for (const auto& [g, txt] : v) { if (k++ == max_n) break; if (!out.empty()) out += "; "; out += txt; }
+        return out.empty() ? "none" : out;
+    }
     // The top hands, for the log and the panel.
     std::string hands_summary(int max_sites = 3) const {
         std::vector<std::pair<int, std::string>> v;

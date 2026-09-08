@@ -95,6 +95,8 @@ int main() {
     add_assert("hygiene/INV-35: the drive children are live bodies",         [&]{ return Scene::muscles_live(scene.muscles_stale); });
     add_assert("INV-40/INV-35/G-81: no hand but the solver's on any muscle",  [&]{ return Scene::hands_off(scene.hand_records); });
     add_assert("G-81 gauge: the limbs follow the rail and she walks",          [&]{ return Scene::walks(scene.forward, scene.walk_frames); });
+    add_assert("INV-28/INV-22: every nail holds its two attachment points (gap <= 10 SLOP)", [&]{ return Scene::holds_together(scene.joint_gap_max); });
+    add_assert("G-81/INV-22: every bone within its standing reach of the hips", [&]{ return Scene::whole(scene.reach_over_max); });
     add_assert("INV-40/INV-15/G-82: the flagged DYNAMIC box FALLS",           [&]{ return Scene::fell(scene.a_drop_max); });
     add_assert("INV-1/G-82: the rail stays where its writer prescribes",      [&]{ return Scene::stayed(scene.b_drift_max); });
     add_assert("INV-13/G-82: the driven arm holds its pose on its nail",      [&]{ return Scene::holds(scene.arm_err_max, scene.arm_sep_drift_max); });
@@ -118,8 +120,9 @@ int main() {
         std::snprintf(buf, sizeof(buf), "WALK fwd %.2f m back %d | REPLANTS %d declared %d loud %d (ledger %.1f m/s)",
                       scene.forward, scene.backward_frames, scene.replants, scene.replants_declared, scene.replants_ledger_loud, scene.replant_ledger_speed_max);
         l_b->set_text(buf);
-        std::snprintf(buf, sizeof(buf), "BOX A drop %.2f m   BOX B drift %.4f   ARM err %.3f rad sep drift %.4f",
-                      scene.a_drop_max, scene.b_drift_max, scene.arm_err_max, scene.arm_sep_drift_max);
+        std::snprintf(buf, sizeof(buf), "BOX A drop %.2f m   BOX B drift %.4f   ARM err %.3f rad sep drift %.4f | BODY nail gap %.4f (%s) reach over %+.3f (%s)",
+                      scene.a_drop_max, scene.b_drift_max, scene.arm_err_max, scene.arm_sep_drift_max,
+                      scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.reach_over_max, scene.reach_worst.c_str());
         l_c->set_text(buf);
         int passing = 0;
         for (auto& a : panel) {
