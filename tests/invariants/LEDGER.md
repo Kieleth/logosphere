@@ -3180,3 +3180,32 @@ inline, the banner read back): 4 of 4 cases, 0 explosions; default
 unchanged. face_tracks_head: pi on every feature under both levers,
 4 of 4 runs; unread; G-38's suspect, the hips rail's two orientation
 ledgers under the cascade. Next: the both-lever sweep on this binary.
+
+## 2026-09-08 (night) - THE FLIP VERDICT: sweep alone under both levers on the teleport-door binary
+
+SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43) - the
+class is not the verdict (lever-world notes in known_open file lever
+fails as KNOWN-OPEN), so read BY VERDICT against the default-world
+sweep of the same day. Green by default AND under both levers: every
+walk and strafe stage, turn in place, the swap-and-walk stage, full
+idle, the two drive walks, rotation during walk, leg shoot-out, stance
+foot invariance, reverse leg chain, impact, ground, multitile ground,
+and eva_movement (green again through the teleport door). Green by
+default, RED under both levers - the flip's cost sheet, six stages:
+  face_tracks_head (pi on every feature; unread; G-38 suspect),
+  humanoid_movement_instrumented (47 jitter violations, G-85),
+  humanoid_strata_integrity (foot-shin 0.31-0.47 m, G-85),
+  humanoid_headless (hips-abdomen +0.598 m in a turn, G-85 until read),
+  pin_gluon_lifecycle (the foot 1.571 m from its anchor, G-85 until read),
+  idle_pose_stability (right foot 0.097 m forward, budget 0.08).
+Red in both worlds, unchanged: arm_chain, neck_yaw, two_joints,
+shoulder_multiaxis (INV-13), rails_and_muscles (the nails line, G-85),
+humanoid_knockback (step 5), walk_through_grass, body_coherence.
+animation_layering: PASS on the previous both-lever sweep, FAIL on
+this one, expected fail; not read.
+
+RULINGS OWED, in chat: (1) the flip of INV40_STEP=4 together with
+KINEMATIC_LEDGER=1 (they belong together: swap_integrity needs the
+rail's spin in the ledger), against the six-stage cost sheet above;
+(2) the bounded drive (G-85), the only mechanism that can close the
+nails and the four stages in its family.

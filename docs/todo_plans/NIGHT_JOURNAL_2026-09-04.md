@@ -2062,3 +2062,9 @@ CORRECTION: my "both levers" direct runs were INV40_STEP=4 alone (zsh
   the test's undeclared teleport; reset_humanoid_position now declares
   the jump (rails void history, forget_body): 4/4 under both. face:
   pi under both, unread (G-38 suspect). Sweep on this binary next.
+FINAL both-lever sweep (teleport-door binary): MOLES 43 = the standing
+  unaudited set; by verdict, six stages green by default and red under
+  both levers (face, movement_instrumented, strata_integrity, headless,
+  pin_lifecycle, idle 1.7 cm); every walk/strafe/turn/idle/movement
+  stage green in both worlds. Rulings owed: the flip (both levers),
+  the bounded drive (G-85).
