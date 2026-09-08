@@ -2056,3 +2056,9 @@ BOTH LEVERS: MOLES 47 (4 new: strafe reversed in two directions,
   keeps its command in its own state (harness_vx/vy, lever world);
   riders' nails rotate offsets. All four green; prover 5.052 m,
   drive walk 4.927 m. Sweep again under both levers next.
+CORRECTION: my "both levers" direct runs were INV40_STEP=4 alone (zsh
+  unquoted $E). Sweep under both: strafe/walk/turn/swap green;
+  eva_movement + face red under BOTH, green under each. eva_movement =
+  the test's undeclared teleport; reset_humanoid_position now declares
+  the jump (rails void history, forget_body): 4/4 under both. face:
+  pi under both, unread (G-38 suspect). Sweep on this binary next.

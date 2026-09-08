@@ -3143,3 +3143,40 @@ default), the prover's walk 5.052 m and the drive walk 4.927 m, both
 0 backward. vz keeps the same collision (the writer's gravity model
 integrates the hips' vz field): residual, booked. Next: the sweep
 under both levers once more, then the rulings.
+
+## 2026-09-08 (late) - CORRECTION: the direct runs were under one lever. The teleport door.
+
+Correction first. The direct measurements in the previous entry ("under
+both levers: strafe 5 of 5, walk_forward 0 backward, turn 0.021 m, the
+face 0.000 rad, prover 5.052 m, drive walk 4.927 m") were under
+INV40_STEP=4 ALONE. In zsh an unquoted $E does not word-split, so
+`env $E ./binary` set one variable named INV40_STEP with the value
+"4 KINEMATIC_LEDGER=1" (read as 4) and never set KINEMATIC_LEDGER. The
+sweep, a python process inheriting a correctly written environment,
+had both levers. It surfaced when the sweep and my runs disagreed on
+the same binary a minute apart. The prover's banner prints its levers;
+from now on every run's mode is read back from the program.
+
+What the both-lever sweep (sweep_both2) actually says: MOLES 44 (new-
+red 0 by class - my lever-world notes in known_open file the lever
+fails as KNOWN-OPEN, so the class is not the verdict), read by verdict:
+strafe_progress, walk_forward_progress, turn_in_place_foot_step,
+joint_hierarchy_swap_integrity, physics_drive_full_idle and the two
+drive walks PASS; animation_layering PASS (gone green); eva_movement
+and face_tracks_head FAIL under both levers while each lever alone is
+green (4 of 4 and 0.000 rad); the G-85 family FAIL (movement_
+instrumented, strata_integrity, headless, pin_gluon_lifecycle, the
+prover's nails); idle_pose_stability FAIL by 1.7 cm; arm_chain,
+neck_yaw, two_joints FAIL (INV-13, booked).
+
+eva_movement, read: its reset between cases writes every rig position
+with zero velocity - an undeclared teleport; the hands used to hide
+it, INV-39's derivation reads it as a velocity (a body at 412 m/s at
+frame 240, the rig torn 3.3 m). reset_humanoid_position is the
+engine's teleport door for a humanoid and now declares the jump: every
+rig body and both plant anchors void their ledger history, forget_body
+voids the solver's memory of them. Measured under both levers (written
+inline, the banner read back): 4 of 4 cases, 0 explosions; default
+unchanged. face_tracks_head: pi on every feature under both levers,
+4 of 4 runs; unread; G-38's suspect, the hips rail's two orientation
+ledgers under the cascade. Next: the both-lever sweep on this binary.

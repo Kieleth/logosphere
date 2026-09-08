@@ -1959,21 +1959,44 @@ void HumanoidLocomotion::unregister_humanoid(int hips_id) {
     dyn.humanoid_look_at_entities_.erase(it, dyn.humanoid_look_at_entities_.end());
 }
 
+// The humanoid's teleport door. A caller that has just written the rig's
+// positions from outside (a test's reset between cases, a game's respawn)
+// tells the engine so. INV-40 / G-83: a writer's jump is declared, never
+// read as a velocity - every rail of the rig (the hips, the plant anchors)
+// voids its ledger history, every body of the rig voids the solver's
+// memory of it (forget_body: warm starts, contacts), and the walk cycle's
+// own position tracking restarts. Without this, INV-39's derivation read
+// a between-cases reset as 412 m/s (test_eva_movement under both levers).
 void HumanoidLocomotion::reset_humanoid_position(int hips_id) {
     if (!impl_->initialized) return;
     auto& dyn = impl_->get_dynamics_system();
     auto& ps = impl_->get_particle_system();
-    auto particles = ps.lock_particles_for_read();
+    auto& physics = impl_->get_physics_system();
+    auto& tracer = impl_->get_particle_tracer();
     for (auto& parts : dyn.humanoid_look_at_entities_) {
-        if (static_cast<int>(parts.hips) == hips_id) {
+        if (static_cast<int>(parts.hips) != hips_id) continue;
+        {
+            auto particles = ps.lock_particles_for_write();
             if (static_cast<size_t>(hips_id) < particles.size()) {
                 parts.prev_world_x = particles[hips_id].x;
                 parts.prev_world_y = particles[hips_id].y;
                 parts.world_x = parts.prev_world_x;
                 parts.world_y = parts.prev_world_y;
             }
-            return;
+            auto declare = [&](int pid, const char* who) {
+                if (pid < 0 || static_cast<size_t>(pid) >= particles.size()) return;
+                Particle& p = particles[pid];
+                p.prev_valid = false;
+                TRACE_WRITE_N(tracer, pid, "rail.jump", "x", p.x, p.x, who);
+            };
+            for (unsigned int pid : parts.all_particle_indices) declare(static_cast<int>(pid), "reset: a new rail");
+            declare(parts.left_plant_anchor_id, "reset: a new rail");
+            declare(parts.right_plant_anchor_id, "reset: a new rail");
         }
+        for (unsigned int pid : parts.all_particle_indices) physics.forget_body(pid);
+        if (parts.left_plant_anchor_id >= 0)  physics.forget_body(static_cast<size_t>(parts.left_plant_anchor_id));
+        if (parts.right_plant_anchor_id >= 0) physics.forget_body(static_cast<size_t>(parts.right_plant_anchor_id));
+        return;
     }
 }
 
