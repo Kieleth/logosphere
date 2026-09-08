@@ -2931,3 +2931,41 @@ stays pass: the tests assert the right physics). Attribution from the
 sweep history (all drive tests green before step 0) and the code; no
 paired A/B binary was built. The bounded drive is the step after
 INV-40.
+
+## 2026-09-08 - INV-40 STEP 2 LANDED behind INV40_STEP>=2 (default off); G-84 opened; the flip is blocked
+
+The lever's value is the number of deletion steps applied, so each
+step is measured against the one before on one binary and the flip is
+one ruling. Step 2: maintain_entity_shape keeps entity translate, rest
+snap and angular integrate off the drive children (three sites, one
+concept: the placement hands). Measured against step 1: hands on the
+muscles 50514 -> 12463 (what remains is step 3's: the velocity
+broadcast 12000, ground correction 256, vz zeroing 207); the prover's
+walk 4.838 -> 4.929 of 5 m, 1 backward; test_physics_drive_walk_legs
+4.860 -> 4.935 m, 0 backward. The limbs follow the rail through their
+rows better than they were carried by hand. Arm chain unchanged
+(shoulder 0.163). The neck stage's yaw now converges (0.412 against
+0.393, within the 5 % budget) - and its head drifts 3.838 m.
+
+G-84, the rider and the driven head, measured before it was written
+(said so in its notes): eight bodies ride the head, all KINEMATIC since
+registration, re-placed at head + offset by a hand every frame; six
+are nailed to the head, the inner eyes to the outer eyes. The bonded-
+structure union skips every KINEMATIC endpoint (an anchor is ground,
+not structure: physics_system_v4.cpp:1154-1195), so the riders are
+singletons and the inner eyes, two hops away, get contact rows against
+the head. An undriven head sits still for 120 frames with 0 contacts;
+a driven one has rows against P1510/P1512 from frame 10 (gaps 6-15 mm,
+the normal turning with the yaw) and walks off at ~1.3 m/s, no gluon
+torn, no gravity (the exemption). With the snap on, the same rows exist
+and the snap re-places the head each frame: the hand hid the fight.
+The force-bound reading I first had is withdrawn: the nail is not
+force-bounded, only the organic gluon is.
+
+OWNER RULING OWED: (a) the riders are parts of the head, not rails -
+DYNAMIC, nailed, the head-snap hand deleted; they fall into the head's
+component under the existing union and weigh at step 4. This is the
+law's own answer: a trajectory copied from a muscle's state each frame
+is a hand, not a rail. (b) the union admits a KINEMATIC body nailed into
+a dynamic structure while ground anchors stay out; keeps the hand.
+Step 3 waits behind this.

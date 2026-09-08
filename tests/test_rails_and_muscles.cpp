@@ -10,6 +10,7 @@
 // measures them.
 //
 //   ./build/test_rails_and_muscles                         numbers
+//   INV40_STEP=n ./build/test_rails_and_muscles            with n deletion steps applied
 //   KINEMATIC_LEDGER=1 ./build/test_rails_and_muscles     the G-83 ledger half
 //   INTERACTIVE=1 ./build/test_rails_and_muscles_visual   window
 // =============================================================================
@@ -49,7 +50,7 @@ void check(bool ok, const std::string& what) {
 int main() {
     setvbuf(stdout, nullptr, _IOLBF, 0);
     const bool ledger = std::getenv("KINEMATIC_LEDGER") != nullptr;
-    std::printf("\n=== rails and muscles (INV-40) %s ===\n", ledger ? "[KINEMATIC_LEDGER=1]" : "[default]");
+    std::printf("\n=== rails and muscles (INV-40) %s INV40_STEP=%d ===\n", ledger ? "[KINEMATIC_LEDGER=1]" : "[default]", Scene::inv40_step());
     Engine engine;
     EngineConfig cfg;
     cfg.create_display = false;
@@ -63,6 +64,45 @@ int main() {
     const bool diag = std::getenv("RAILS_DIAG") != nullptr;
     for (int f = 0; f < RUN_FRAMES; ++f) {
         scene.step(engine, f);
+        if (diag && f < 120 && f % 5 == 0) {           // the head: rows, contacts, hands, motion
+            auto& tracer = engine.get_particle_tracer();
+            auto& physics = engine.get_physics_system();
+            const int head = scene.eva.head_id;
+            float hx = 0, hy = 0, hz = 0, hv = 0; int mode = -1;
+            {
+                auto v = engine.get_particle_system().lock_particles_for_read();
+                if (head >= 0 && (size_t)head < v.size()) {
+                    const Particle& p = v[head]; hx = p.x; hy = p.y; hz = p.z;
+                    hv = std::sqrt(p.vx * p.vx + p.vy * p.vy + p.vz * p.vz); mode = (int)p.solver_mode;
+                }
+            }
+            const auto gl = physics.get_gluons_for_particle((size_t)head);
+            if (f == 10) {   // the head's cast, once: who is nailed to it, who rides it, and their modes
+                std::printf("  [head cast] nailed to P%d:", head);
+                for (const auto* g : gl) if (g) std::printf(" P%zu", g->particle_a == (size_t)head ? g->particle_b : g->particle_a);
+                if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(scene.hips)) {
+                    auto v = engine.get_particle_system().lock_particles_for_read();
+                    std::printf("\n  [head cast] rides the head:");
+                    for (unsigned int c : parts->head_child_particles)
+                        std::printf(" P%u(%s,q%d,o%d)", c, v[c].solver_mode == ParticleSolverMode::KINEMATIC ? "KIN" : "DYN", (int)v[c].is_quat_driven, (int)v[c].owner);
+                }
+                std::printf("\n");
+            }
+            std::string contacts;
+            int nc = 0;
+            for (const auto& e : physics.get_collision_events()) {
+                if ((int)e.particle_a != head && (int)e.particle_b != head) continue;
+                ++nc;
+                if (nc <= 4) {
+                    char b[96]; std::snprintf(b, sizeof(b), " [%zu<>%zu pen %.4f n(%.2f,%.2f,%.2f)]", e.particle_a, e.particle_b, e.penetration, e.normal_x, e.normal_y, e.normal_z);
+                    contacts += b;
+                }
+            }
+            std::string hands_on_head;
+            for (const auto& r : tracer.records()) if (r.particle_id == head && Scene::is_state_field(r.field)) { hands_on_head += " "; hands_on_head += r.site; }
+            std::printf("  [head f%3d] P%d mode %d pos (%.3f,%.3f,%.3f) |v| %.3f gluons %zu contacts %d%s hands:%s\n",
+                        f, head, mode, hx, hy, hz, hv, gl.size(), nc, contacts.c_str(), hands_on_head.empty() ? " none" : hands_on_head.c_str());
+        }
         if (diag && (f < 3 || f == 20 || f == 60)) {    // who is traced, and every record this frame
             auto& tracer = engine.get_particle_tracer();
             std::printf("  [diag f%d] muscles:", f);

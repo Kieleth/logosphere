@@ -79,8 +79,11 @@ int main() {
     l_demo->set_text("DEMONSTRATING INV-40: animation is a rail or a muscle; nobody else moves a physics body.");
     auto* l_demo2 = add_line(engine, 5, 190, 220, 255);
     l_demo2->set_position(PANEL_X, 62);
-    l_demo2->set_text(ledger ? "KINEMATIC_LEDGER=1: the rails' motion is in the ledger; a replant must be declared."
-                             : "Default: the ledger reads zero; born red on the hands, the hovering box and the jumps.");
+    {
+        std::string mode = std::string("INV40_STEP=") + std::to_string(Scene::inv40_step()) + (ledger ? ", KINEMATIC_LEDGER=1" : ", default ledger");
+        mode += Scene::inv40_step() >= 2 ? ": the shape pass keeps its hands off the muscles." : ": today's hands are on every muscle every frame.";
+        l_demo2->set_text(mode);
+    }
     struct LiveAssert { ui::Label* label; std::string text; std::function<bool()> eval; };
     std::vector<LiveAssert> panel; int prow = 0;
     auto add_assert = [&](const std::string& text, std::function<bool()> eval) {

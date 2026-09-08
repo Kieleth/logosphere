@@ -2007,3 +2007,14 @@ SWEEP ALONE after step 1: MOLES 45 (new-red 2, unaudited 43 standing).
   bridge/neck absorbs the shoulder/head drive's reaction (0.152 of
   0.524; 0.315 of 0.393). two_joints family. Booked known_open under
   INV-13, expect pass. Attribution: sweep history + code, no A/B.
+STEP 2 LANDED behind INV40_STEP>=2 (value = steps applied). Hands
+  50514 -> 12463; walk 4.838 -> 4.929 m; drive walk 4.860 -> 4.935 m.
+  The neck stage's yaw converges under it (0.412 vs 0.393) and its
+  head drifts 3.838 m: G-84. Probe (RAILS_IDLE/RAILS_NECK/RAILS_DIAG):
+  undriven head still, 0 contacts; driven head has rows against the
+  INNER eyes P1510/P1512 (KINEMATIC riders, nailed to the outer eyes,
+  outside the head's component because the union skips KINEMATIC
+  endpoints) and walks off at 1.3 m/s; the snap used to re-place it.
+  Force-bound reading withdrawn (nails are not bounded). RULING OWED:
+  riders are parts (DYNAMIC, nailed, hand deleted) or the union admits
+  nailed KINEMATIC members. Step 3 waits.

@@ -113,6 +113,21 @@ struct Scene {
         return p;
     }
 
+    // A record is a hand only if it names a state field. Note-only records
+    // ("skipped", a transfer's "anchor_z" marker) are the tracer's causal
+    // log, not writes.
+    static bool is_state_field(const char* f) {
+        static const char* const fields[] = {"x", "y", "z", "vx", "vy", "vz",
+            "rotation_x", "rotation_y", "rotation_z", "rotation_q",
+            "omega", "omega_x", "omega_y", "omega_z"};
+        for (const char* k : fields) if (std::strcmp(f, k) == 0) return true;
+        return false;
+    }
+    static int inv40_step() {
+        const char* e = std::getenv("INV40_STEP");
+        return e ? std::atoi(e) : 0;
+    }
+
     // ---- predicates: the asserts, the log and the panel read these ----
     static bool hands_off(int records)            { return records == 0; }
     static bool muscles_live(int stale)           { return stale == 0; }
@@ -209,7 +224,7 @@ struct Scene {
         // Index swaps (strata streaming): keep every id and label honest.
         ps.add_swap_callback([this, &tracer](size_t o, size_t n) {
             auto fix = [&](int& id) { if (id == (int)o) id = (int)n; };
-            fix(eva.hips_id); fix(hips); fix(box_a); fix(box_b); fix(post); fix(arm);
+            fix(eva.hips_id); fix(eva.head_id); fix(hips); fix(box_a); fix(box_b); fix(post); fix(arm);
             for (int& id : eva.body_ids) fix(id);
             for (int& id : eva.left_leg_ids) fix(id);
             for (int& id : eva.right_leg_ids) fix(id);
@@ -245,8 +260,16 @@ struct Scene {
             hx0 = v[hips].x; hy0 = v[hips].y;
             fx = std::sin(v[hips].rotation_z); fy = std::cos(v[hips].rotation_z);
         }
-        humanoid.set_volitional(hips, true);
-        humanoid.set_body_relative_velocity(hips, WALK_SPEED, 0.0f);
+        // Diagnostic stagings (env, never the shipped claim): RAILS_IDLE=1
+        // leaves Eva standing (the neck stage's condition); RAILS_NECK=1 adds
+        // the neck stage's own scalar head drive (pi/8, 200 / 12).
+        if (!std::getenv("RAILS_IDLE")) {
+            humanoid.set_volitional(hips, true);
+            humanoid.set_body_relative_velocity(hips, WALK_SPEED, 0.0f);
+        }
+        if (std::getenv("RAILS_NECK")) {
+            humanoid.set_joint_physics_drive(eva.entity_id, "head", static_cast<float>(M_PI) / 8.0f, 200.0f, 12.0f);
+        }
     }
 
     void step(Engine& engine, int frame) {
@@ -268,6 +291,7 @@ struct Scene {
         const auto recs = tracer.records();
         int frame_hands = 0;
         for (const auto& r : recs) {
+            if (!is_state_field(r.field)) continue;
             if (muscle_set.count(r.particle_id)) { hands[r.site]++; ++hand_records; ++frame_hands; }
             else if (r.particle_id == hips)      { rail_hands[r.site]++; }
         }

@@ -5228,6 +5228,23 @@ void HumanoidLocomotion::apply_entity_gravity(
     }
 }
 
+// INV-40 (rails and muscles), the deletion sequence's lever. The value
+// is the number of steps applied, so each step is measurable against
+// the one before it on one binary and the flip is one ruling:
+//   >= 2  the shape pass keeps its placement hands off the drive
+//         children (entity translate, rest snap, angular integrate)
+//   >= 3  the velocity and ground hands come off them too (velocity
+//         broadcast, ground correction, vz zeroing)
+//   >= 4  gravity keyed on solver_mode alone (physics_system_v4.cpp)
+// Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
+static int inv40_step() {
+    static const int v = [] {
+        const char* e = std::getenv("INV40_STEP");
+        return e ? std::atoi(e) : 0;
+    }();
+    return v;
+}
+
 void HumanoidLocomotion::maintain_entity_shape(
     HumanoidParts& parts,
     ParticleSystem::WriteView& particles,
@@ -5281,6 +5298,8 @@ void HumanoidLocomotion::maintain_entity_shape(
     if (entity_dx*entity_dx + entity_dy*entity_dy + entity_dz*entity_dz > 1e-10f) {
         for (unsigned int pid : parts.all_particle_indices) {
             if (pid == parts.hips) continue;  // already integrated
+            // INV-40 step 2: a muscle is carried by its rows, not by hand.
+            if (inv40_step() >= 2 && parts.physics_drive_children.count(pid)) continue;
             float ox = particles[pid].x;
             float oy = particles[pid].y;
             float oz = particles[pid].z;
@@ -5310,6 +5329,9 @@ void HumanoidLocomotion::maintain_entity_shape(
 
         // Skip ANIMATION-owned particles - FK controls their rotation
         if (p.owner == ParticleOwner::ANIMATION) continue;
+        // INV-40 step 2: a drive child's orientation is the solver's.
+        if (inv40_step() >= 2 && parts.physics_drive_children.count(pid)) continue;
+        const float shape_old_rz = p.rotation_z, shape_old_wz = p.omega_z;
 
         // Calculate rotational inertia (simplified: sphere approximation)
         // I = 0.4 * m * r^2 for solid sphere
@@ -5337,6 +5359,8 @@ void HumanoidLocomotion::maintain_entity_shape(
 
         // Integrate rotation: θ += ω * dt
         p.rotation_z += p.omega_z * dt;
+        TRACE_WRITE(shape_tracer, static_cast<int>(pid), "shape.angular_integrate", "omega_z", shape_old_wz, p.omega_z);
+        TRACE_WRITE(shape_tracer, static_cast<int>(pid), "shape.angular_integrate", "rotation_z", shape_old_rz, p.rotation_z);
 
         // Clear torque accumulator for next frame
         p.torque_z = 0.0f;
@@ -5462,6 +5486,18 @@ void HumanoidLocomotion::maintain_entity_shape(
             if (shape_tracer.is_active() && shape_tracer.is_traced(static_cast<int>(pid))) {
                 shape_tracer.record(static_cast<int>(pid), "shape.snap_to_hips",
                                     "skipped", 0.0f, 0.0f, "head-child (rides head)");
+            }
+            continue;
+        }
+
+        // INV-40 step 2: a muscle is carried by its rows. The comment
+        // below is the pre-ruling world, kept for the record: its reason
+        // ("left behind") was the INV-39 gap, the rail carrying no
+        // velocity for the rows to follow.
+        if (inv40_step() >= 2 && parts.physics_drive_children.count(pid)) {
+            if (shape_tracer.is_active() && shape_tracer.is_traced(static_cast<int>(pid))) {
+                shape_tracer.record(static_cast<int>(pid), "shape.snap_to_hips",
+                                    "skipped", 0.0f, 0.0f, "INV-40: a muscle, its rows carry it");
             }
             continue;
         }
