@@ -176,6 +176,67 @@ Residual named at registration: the quaternion drive is a velocity-level
 constraint with a bias, an infinitely strong muscle; the bounded drive is
 the step AFTER this law.
 
+**The lever world and its instruments (2026-09-09).** The flip candidate
+is three levers together: `INV40_STEP=4 KINEMATIC_LEDGER=1
+GLUON_OFFSETS_CW=1` (the hands off and the muscles weighing, the rail's
+motion in the ledger, the nail offsets turning clockwise: G-87). Write
+levers inline per command, never through an unquoted shell variable
+(zsh does not word-split: one variable gets set, the rest never), and
+read them back from the prover's banner. The prover's stagings are its
+diagnostic instruments, never the shipped claim: `RAILS_DIAG`,
+`RAILS_IDLE`, `RAILS_NECK`, `RAILS_DROP=<m>`, `RAILS_LOOK`,
+`RAILS_REPLAY=n` (the window's SPACE, headless), `RAILS_FRAMES=n`,
+`RAILS_ARMS`, `RAILS_WAKE=<s>`; `INV40_KEEP=<hand>` puts one hand back
+for attribution. The sweep files a lever-world fail as KNOWN-OPEN when a
+`known_open` note names the lever, so a flip's cost sheet is read BY
+VERDICT against the same day's default sweep, never by class.
+
+**Eight hands, and the one you cannot see.** The writer's hands on the
+muscles are eight, not four: the entity translate, the rest snap, the
+angular integrate, the velocity broadcast, the ground correction, the vz
+zeroing, the writer's gravity model, and the entity-vs-obstacle push
+(`handle_collision_events`, found 2026-09-09 by the window's SPACE: it
+writes every muscle every frame in the default world and was invisible
+to the prover because it had no tracer site). A hand is a state write;
+an untraced write is a hand the hands-off line cannot see. Before any
+"no hand" claim, audit the writer TU for state writes without a TRACE
+macro. The mechanical gate for that audit is owed.
+
+**The teleport door.** `reset_humanoid_position` is the rig's teleport:
+every rail voids its history and declares the jump, every body is
+forgotten by the solver, and the plant is RELEASED (G-88: a teleport
+voids every promise of place the writer made; a plant left behind tore
+the stance leg 0.85 m). Tests re-arm through it, never by writing
+positions alone. A harness that never calls `physics.update()` measures
+the animation's placement and, under INV-40, measures nothing: read a
+test's stepping before booking its red as physics (two of the flip's six
+reds were such harnesses).
+
+**A muscle asleep ignores its drive (G-89).** The sleep judge reads
+quietness and position rows, never a drive's target error, so a driven
+body that fell asleep standing still is dragged by its rows as a
+mannequin's limb until something else wakes it; the default world's
+hands hid this by giving every muscle a velocity every frame. Sleep
+transitions are tracer records now (`sleep.rest` / `sleep.wake`, field
+`asleep`, note = the reason: the INV-18 witness,
+`PhysicsSystem::set_particle_tracer`, wired by the engine). When a body
+ignores its command or hangs where it should not, trace it and read
+WHEN it slept and WHAT woke it before any other hypothesis. Two
+mechanisms are owner rulings on the board: a driven muscle never sleeps
+against its command, and the drives' convergence on a light
+intermediate bone (the shoulder drive turns the bridge, not the arm:
+INV-13's two_joints family; the joint block solver branch is the
+candidate).
+
+**The window's log is evidence.** When the owner's eye sees an onset the
+headless run does not reproduce, the probe goes into the SHARED scene so
+the windowed run prints the same rows into its tee'd log; the owner's
+next viewing dates the onset and the record names the cause (G-89 was
+dated by one SPACE in `/tmp/rails_and_muscles_proof_arms.log`).
+"Headless mode" is how the work runs; the round still ends with the
+proof window launched for the owner, unprompted, teed to /tmp, never
+piped, with SPACE replaying the experiment through the teleport door.
+
 ## Instrument the INTERACTIONS, not just the outcomes (directive)
 
 **Owner ruling 2026-08-15.** A test that asserts where a body ended up
