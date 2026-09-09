@@ -3246,3 +3246,18 @@ The flip of GLUON_OFFSETS_CW changes every rotating nail in the
 default world (trees, the rotation ladder): it needs its own sweep
 before the ruling. Three rulings owed: the two-lever flip, this
 lever's flip, the bounded drive.
+
+## 2026-09-09 - GLUON_OFFSETS_CW's cost sheet: sweep alone, default world, lever on
+
+SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43): the
+standing set and nothing else. Compared verdict by verdict against the
+same day's default sweep, one test changes: test_grass_bends_not_tears,
+red -> green. Run twice each way: by default one bond tears at 2.08x
+its tear ratio (P212<->P213 at frame 67) and three INV-14 lines fail
+("walking through grass is mowing it"); with the offsets clockwise
+nothing tears and 10 of 10 pass. A stage with no humanoid in it: a
+bending blade's attachment orbited the wrong way and over-strained its
+bond. The rotation ladder and the tree stages read the same verdicts
+either way. The flip of GLUON_OFFSETS_CW restores the convention
+CLAUDE.md states, costs nothing the sweep can see, and heals a booked
+red: RECOMMENDED; the owner rules.

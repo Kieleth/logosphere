@@ -2074,3 +2074,6 @@ FINAL both-lever sweep (teleport-door binary): MOLES 43 = the standing
   eye orbits with the head; face 3.138 -> 0.223; look-turn ankle
   0.356 -> 0.173; walking nails UNCHANGED (0.118): G-85 stands.
   Default world unchanged. Sweep under the lever next; 3 rulings owed.
+GLUON_OFFSETS_CW cost sheet (default world, lever on): MOLES 43, zero
+  new reds; grass_bends_not_tears red -> green (1 tear at 2.08x -> 0,
+  deterministic). Flip recommended; the owner rules.
