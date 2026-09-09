@@ -45,6 +45,10 @@ namespace logosphere::animation {
 //   >= 5  the plant is a rail DECLARED where the foot is, on its support,
 //         flat, and the stance ankle is commanded to hold the foot on it
 //         (G-90); never computed from the hips and a stride length
+//   >= 6  the harness rides over the planted foot on the straight stance
+//         leg's length: the compass gait's bob (G-91, owner ruling '6')
+//   >= 7  the walk clip's heel strike is the step's end, its hip flexion
+//         asin(half stride / leg reach): one data path (G-92, ruling '5')
 // Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
 static int inv40_step() {
     static const int v = [] {
@@ -160,6 +164,19 @@ static float highest_support_top_under(
         }
     }
     return best_support_top;
+}
+
+// The straight stance leg's reach from the hip pivot to the ankle pivot, from
+// the hierarchy's own bone lengths (the IK's reach test). 0 when the joints
+// are missing. Read by the harness's ride (step 6) and the strike (step 7).
+static float stance_leg_reach(HumanoidParts& parts, bool right) {
+    const char* side = right ? "right" : "left";
+    auto* hip_j   = parts.joint_hierarchy.get_joint(std::string(side) + "_hip");
+    auto* knee_j  = parts.joint_hierarchy.get_joint(std::string(side) + "_knee");
+    auto* ankle_j = parts.joint_hierarchy.get_joint(std::string(side) + "_ankle");
+    if (!hip_j || !knee_j || !ankle_j) return 0.0f;
+    return logosphere::compute_bone_length(hip_j->child_offset, knee_j->pivot_offset)
+         + logosphere::compute_bone_length(knee_j->child_offset, ankle_j->pivot_offset);
 }
 
 static void apply_physics_drive_legs_init(
@@ -1861,8 +1878,27 @@ void HumanoidLocomotion::register_humanoid_direct(
     reg.foot_planting_enabled = true;
     std::cout << "[HumanoidLocomotion] Foot planting enabled" << std::endl;
 
+    // INV-40 / G-92 (owner ruling 2026-09-09, '5'): from INV40_STEP >= 7 the
+    // walk clip's heel strike is the step's END and its hip flexion is derived
+    // from the stride and the leg, asin(half stride / the straight leg's
+    // reach), so the plant the writer declares where the foot lands is where
+    // the cadence walks: one data path. Read before it: the clip struck at
+    // 400 of 600 ms at half the peak and returned the leg under the hips by
+    // the boundary, the plant found the foot 5-9 cm ahead of a 0.325 m half
+    // stride, and the old target yanked it forward by the difference.
+    WalkStepProfile walk_profile = get_walk_reference_profile();
+    if (inv40_step() >= 7) {
+        const float reach = stance_leg_reach(reg, true);
+        const float half = 0.5f * reg.dynamics.walk_stride_length;
+        if (reach > 0.0f) {
+            walk_profile.hip_flex_strike = std::asin(std::min(1.0f, half / reach));
+            walk_profile.strike_holds = true;
+            std::cout << "[HumanoidLocomotion] INV40_STEP>=7: walk strike " << walk_profile.hip_flex_strike
+                      << " rad = asin(" << half << " / " << reach << "), held to the step's end" << std::endl;
+        }
+    }
     register_walk_clips(hips_id,
-        create_fk_walk_step(Side::RIGHT), create_fk_walk_step(Side::LEFT));
+        create_fk_walk_step(Side::RIGHT, walk_profile), create_fk_walk_step(Side::LEFT, walk_profile));
     register_strafe_clips(hips_id,
         create_fk_strafe_step(Side::RIGHT, 1.0f), create_fk_strafe_step(Side::LEFT, -1.0f));
     register_turn_clips(hips_id,
@@ -6062,8 +6098,61 @@ void HumanoidLocomotion::maintain_entity_shape(
     shape_ground_frame++;
     bool should_debug_shape = (shape_ground_frame <= 5);
 
-    // If floor found, correct ALL particles (including hips) to snap to ground
-    if (best_support_top > -1e8f) {
+    // The harness's own lift: every rig body but the stance leg and, from
+    // step 3, the muscles (their height is their rows' and their contacts').
+    auto lift_body = [&](float dz, const char* site) {
+        unsigned int stance_skip[4] = {0, 0, 0, 0};
+        if (parts.has_planted_foot) {
+            const auto& leg = parts.planted_foot_is_right ? parts.right_leg_particles : parts.left_leg_particles;
+            if (leg.size() >= 4) { stance_skip[0] = leg[0]; stance_skip[1] = leg[1]; stance_skip[2] = leg[2]; stance_skip[3] = leg[3]; }
+        }
+        for (unsigned int pid : parts.all_particle_indices) {
+            bool is_stance = false;
+            for (int k = 0; k < 4; k++) if (stance_skip[k] != 0 && pid == stance_skip[k]) { is_stance = true; break; }
+            if (is_stance) continue;
+            // INV-40 step 3: the ground correction is the harness's own
+            // height; a muscle's height is its rows' and its contacts'.
+            if (inv40_step() >= 3 && !inv40_keep("ground") && parts.physics_drive_children.count(pid)) continue;
+            float old_z = particles[pid].z;
+            particles[pid].z += dz;
+            TRACE_WRITE(shape_tracer, static_cast<int>(pid), site, "z", old_z, particles[pid].z);
+        }
+    };
+
+    // INV-40 / G-91 (owner ruling 2026-09-09, '6'): from INV40_STEP >= 6 the
+    // harness rides over the planted foot on the straight stance leg's
+    // length, the compass gait. The hip pivot's height above the ankle's
+    // target is the rise of a leg of the hierarchy's own bone lengths over
+    // the horizontal distance to that target (the IK's own reach test), so
+    // the foot the writer declared on its support is reachable at every
+    // frame of the stance and the hips bob as a walker's do (~6 cm at this
+    // stride). Read before it: the landing foot 6.3 cm above its support at
+    // every strike, the arithmetic of a fixed rest height. The rail
+    // prescribes its trajectory from the plant it declared: no dead zone.
+    bool ride = false; float ride_correction = 0.0f;
+    if (inv40_step() >= 6 && parts.has_planted_foot && parts.plant_anchor_particle_id >= 0) {
+        const char* side = parts.planted_foot_is_right ? "right" : "left";
+        auto* hip_j   = parts.joint_hierarchy.get_joint(std::string(side) + "_hip");
+        auto* ankle_j = parts.joint_hierarchy.get_joint(std::string(side) + "_ankle");
+        const float reach = stance_leg_reach(parts, parts.planted_foot_is_right);
+        if (hip_j && ankle_j && reach > 0.0f) {
+            const Particle& hips_p = particles[parts.hips];
+            const logosphere::Quat hips_rot = logosphere::Quat::from_euler(hips_p.rotation_x, hips_p.rotation_y, hips_p.rotation_z);
+            const logosphere::Vec3 pivot = logosphere::Vec3{hips_p.x, hips_p.y, hips_p.z} + logosphere::quat_rotate(hips_rot, hip_j->pivot_offset);
+            const logosphere::Quat foot_rot = logosphere::Quat::from_euler(parts.plant_foot_rx, parts.plant_foot_ry, parts.plant_foot_rz);
+            const logosphere::Vec3 ankle_t = logosphere::Vec3{parts.plant_target_x, parts.plant_target_y, parts.plant_target_z}
+                                            + logosphere::quat_rotate(foot_rot, ankle_j->child_offset);
+            const float dx = pivot.x - ankle_t.x, dy = pivot.y - ankle_t.y;
+            const float d2 = dx * dx + dy * dy;
+            const float rise = d2 < reach * reach ? std::sqrt(reach * reach - d2) : 0.0f;
+            ride_correction = (ankle_t.z + rise) - pivot.z;
+            ride = true;
+        }
+    }
+
+    if (ride) {
+        lift_body(ride_correction, "shape.harness_ride");
+    } else if (best_support_top > -1e8f) {
         float gap = foot_bottom_z - best_support_top;
 
         if (should_debug_shape) {
@@ -6093,38 +6182,7 @@ void HumanoidLocomotion::maintain_entity_shape(
                     std::cout << "  [SHAPE_ADJUST] gap=" << gap << " correction=" << correction << std::endl;
                 }
 
-                // Apply correction to all body particles EXCEPT the stance
-                // leg (kinematic-root anchors its foot; lifting it here
-                // fights the post-FK shift). Swing leg + hips + upper body
-                // get the correction as before.
-                unsigned int stance_skip[4] = {0, 0, 0, 0};
-                if (parts.has_planted_foot) {
-                    const auto& leg = parts.planted_foot_is_right
-                        ? parts.right_leg_particles
-                        : parts.left_leg_particles;
-                    if (leg.size() >= 4) {
-                        stance_skip[0] = leg[0];  // foot
-                        stance_skip[1] = leg[1];  // shin
-                        stance_skip[2] = leg[2];  // thigh
-                        stance_skip[3] = leg[3];  // toe
-                    }
-                }
-                for (unsigned int pid : parts.all_particle_indices) {
-                    bool is_stance = false;
-                    for (int k = 0; k < 4; k++) {
-                        if (stance_skip[k] != 0 && pid == stance_skip[k]) {
-                            is_stance = true; break;
-                        }
-                    }
-                    if (is_stance) continue;
-                    // INV-40 step 3: the ground correction is the harness's own
-                    // height; a muscle's height is its rows' and its contacts'.
-                    if (inv40_step() >= 3 && !inv40_keep("ground") && parts.physics_drive_children.count(pid)) continue;
-                    float old_z = particles[pid].z;
-                    particles[pid].z += correction;
-                    TRACE_WRITE(shape_tracer, static_cast<int>(pid),
-                                "shape.ground_correct", "z", old_z, particles[pid].z);
-                }
+                lift_body(correction, "shape.ground_correct");
             }
 
             // Always stop downward velocity when on ground (even in dead zone)

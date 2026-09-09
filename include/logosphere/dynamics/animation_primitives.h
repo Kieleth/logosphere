@@ -1936,6 +1936,13 @@ struct WalkStepProfile {
     // 0.0 = no stabilization, 1.0 = full counter-motion (robotic).
     // 0.3-0.5 is natural range (partial compensation).
     float head_stabilize_factor = 0.4f;
+
+    // INV-40 / G-92: the strike pose. hip_flex_strike > 0 is the hip flexion
+    // at the heel-strike keyframe in rad (0 = the authored fraction of the
+    // peak); strike_holds keeps that pose on the final keyframe instead of
+    // returning to neutral (the writer plants at that keyframe).
+    float hip_flex_strike = 0.0f;
+    bool  strike_holds = false;
 };
 
 // Reference walk profile — tuned for natural adult walking (~1.2 m/s)
@@ -2021,6 +2028,9 @@ inline FKAnimationClip generate_walk_step_clip(
     // WALK_STRIKE_HOLD=1 (KF4 holds the strike pose instead of neutral).
     static const float strike_frac = [] { const char* e = std::getenv("WALK_STRIKE"); return e ? static_cast<float>(std::atof(e)) : 0.5f; }();
     static const bool  strike_hold = std::getenv("WALK_STRIKE_HOLD") != nullptr;
+    // A profile with a derived strike (INV-40 step 7, G-92) wins over the levers.
+    const float strike = p.hip_flex_strike > 0.0f ? p.hip_flex_strike : p.hip_flex_peak * strike_frac;
+    const bool  hold   = p.strike_holds || strike_hold;
 
     float t = 0.0f;
 
@@ -2141,7 +2151,7 @@ inline FKAnimationClip generate_walk_step_clip(
     {
         RotationPose pose;
         // Active leg: forward, extending for contact
-        pose.flex(active.hip, s * p.hip_flex_peak * strike_frac);
+        pose.flex(active.hip, s * strike);
         pose.flex(active.knee, p.knee_flex_peak * 0.1f);  // nearly straight
         pose.flex(active.ankle, s * p.ankle_dorsi_swing * 0.5f);  // slight dorsiflex
         pose.flex(active.toe, s * p.toe_dorsi_swing * 0.3f);    // slight dorsi at heel-strike
@@ -2177,11 +2187,11 @@ inline FKAnimationClip generate_walk_step_clip(
     t = p.swing_ms + p.contact_ms;
     {
         RotationPose pose;
-        pose.flex(active.hip, strike_hold ? s * p.hip_flex_peak * strike_frac : 0.0f);
-        pose.flex(active.knee, strike_hold ? p.knee_flex_peak * 0.1f : 0.0f);
-        pose.flex(active.ankle, strike_hold ? s * p.ankle_dorsi_swing * 0.5f : 0.0f);
+        pose.flex(active.hip, hold ? s * strike : 0.0f);
+        pose.flex(active.knee, hold ? p.knee_flex_peak * 0.1f : 0.0f);
+        pose.flex(active.ankle, hold ? s * p.ankle_dorsi_swing * 0.5f : 0.0f);
         pose.flex(active.toe, 0.0f);
-        pose.flex(passive.hip, strike_hold ? -s * p.stance_hip_extend * 0.5f : 0.0f);
+        pose.flex(passive.hip, hold ? -s * p.stance_hip_extend * 0.5f : 0.0f);
         pose.flex(passive.knee, 0.0f);
         pose.flex(passive.ankle, 0.0f);
         pose.flex(passive.toe, 0.0f);
@@ -2206,10 +2216,12 @@ inline FKAnimationClip generate_walk_step_clip(
 }
 
 // Public API: Side-generic walk step
-inline FKAnimationClip create_fk_walk_step(Side side) {
-    const WalkStepProfile& profile = get_walk_reference_profile();
+inline FKAnimationClip create_fk_walk_step(Side side, const WalkStepProfile& profile) {
     float spine_sign = (side == Side::RIGHT) ? -1.0f : 1.0f;
     return generate_walk_step_clip(profile, body(side), body(opposite(side)), spine_sign);
+}
+inline FKAnimationClip create_fk_walk_step(Side side) {
+    return create_fk_walk_step(side, get_walk_reference_profile());
 }
 
 // Backward compatible: right-side walk step

@@ -256,7 +256,14 @@ step from standing is a full stance, and physics ticks at 30 Hz under a
 60 Hz writer (`PHYSICS_HZ`; read the `[FIXED_TIMESTEP]` line: every muscle
 stands still on every second frame). `RAILS_FEET=2` prints a row per foot
 per frame, with the hip drive's command against the thigh's angle: read
-those before naming a cause. Before any claim about a gait, read the feet rows; the walk
+those before naming a cause. Rulings 6 and 5 landed as `INV40_STEP=6`
+(the harness rides over the planted foot on the leg's length: the hips bob
+7-9 cm) and `INV40_STEP=7` (the strike at the step's end, its flexion
+asin(half stride / leg reach)); the gait is symmetric from the fourth
+stance. The standing start is the wall: a full first stance from under the
+hips makes the ride dive 28 cm and jump 29 cm (ruling 7). After a SPACE the
+walk resumes mid-phase and the dive does not happen: read a window's first
+step and its replays as two different experiments. Before any claim about a gait, read the feet rows; the walk
 gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in

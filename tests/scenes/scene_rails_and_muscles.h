@@ -775,9 +775,9 @@ struct Scene {
                 if (sp > 0.1f) { dx /= sp; dy /= sp; } else { dx = std::sin(h.rotation_z); dy = std::cos(h.rotation_z); }
                 const float ahead = (x - h.x) * dx + (y - h.y) * dy;
                 char row[300];
-                std::snprintf(row, sizeof(row), "  [foot f%3d] %s %s: ahead of hips %+.3f m | bottom - support %+.4f | to anchor dxy %.4f dz %+.4f | tilt rx %+.1f ry %+.1f deg | contacts %d pen max %.4f | hip cmd %.1f act %.1f err %.1f\n",
+                std::snprintf(row, sizeof(row), "  [foot f%3d] %s %s: ahead of hips %+.3f m | bottom - support %+.4f | to anchor dxy %.4f dz %+.4f | tilt rx %+.1f ry %+.1f deg | contacts %d pen max %.4f | hip cmd %.1f act %.1f err %.1f | hips z %.3f\n",
                               f, side, stance ? "STANCE" : "swing ", ahead, support_top > -1e8f ? bottom - support_top : 0.0f, stance ? sep : -1.0f, stance ? sep_z : 0.0f,
-                              p.rotation_x * 57.2958f, p.rotation_y * 57.2958f, contacts, pen_max, hip_cmd, hip_act, hip_err);
+                              p.rotation_x * 57.2958f, p.rotation_y * 57.2958f, contacts, pen_max, hip_cmd, hip_act, hip_err, h.z);
                 feet_frame_rows += row;
             }
         }

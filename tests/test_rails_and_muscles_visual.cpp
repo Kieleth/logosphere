@@ -92,7 +92,9 @@ int main() {
                          + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)")
                          + (std::getenv("PHYSICS_HZ") ? std::string(", PHYSICS_HZ=") + std::getenv("PHYSICS_HZ") : ", physics 30 Hz");
         const int st = Scene::inv40_step();
-        mode += st >= 5 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground, the plant is declared where the foot is."
+        mode += st >= 7 ? ": the plant declared where the foot is, the harness riding over it, the strike derived from the stride."
+              : st >= 6 ? ": the plant declared where the foot is, the harness riding over it on the leg's length."
+              : st >= 5 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground, the plant is declared where the foot is."
               : st >= 4 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground."
               : st >= 3 ? ": no hand on any muscle; the harness reads the ground."
               : st >= 2 ? ": the shape pass keeps its hands off the muscles."

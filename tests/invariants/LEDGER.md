@@ -3523,3 +3523,26 @@ Both G-90 lines stay red in every world. Rulings owed: (5) the clip's strike
 pose derived from the stride (recommended), (6) the harness riding over the
 planted foot on the leg's length (recommended), (7) the first step as a half
 step, (8) the physics rate. Prediction's score in G-90's notes.
+
+## 2026-09-09 - Rulings 6 and 5 ("6 and 5"): the harness rides over the planted foot, the strike derived from the stride
+
+Owner: "6 and 5". Landed behind INV40_STEP>=6 (G-91: the hip pivot's height
+over the ankle's target is the rise of the straight stance leg, the
+hierarchy's own bone lengths, over the horizontal distance to it; the rail
+prescribes, no dead zone; shape.harness_ride) and INV40_STEP>=7 (G-92: the
+walk clip's heel strike at the step's end, hip flexion asin(half stride /
+leg reach) = asin(0.325 / 0.837) = 0.399 rad; WalkStepProfile gains
+hip_flex_strike and strike_holds). Measured on one binary, after the
+standing-start transient: lands +0.31-0.35 m, leaves -0.30-0.32, the hips
+bob 7-9 cm per step, the landing foot within 0.3-0.7 cm of its support
+(right stances 0.7-2.8) and 2-5 mm from mid-stance, touching the floor 8-26
+frames per stance where before it never touched; walk 4.967; the default
+world byte-identical; sweep alone MOLES 43.
+
+What the ride made visible: the first step from standing. The left foot is
+planted under the hips at frame 1 and held 0.58 m behind for a whole
+half-cycle; the ride lowers the hips 28 cm over it (1.532 -> 1.249) and
+lifts them 29 cm in one frame at the next plant (1.230 -> 1.512); the hip
+and spine nails open 0.29-0.30 m, the second stance lands short (+0.19)
+and the third long (+0.41). Ruling 7 owed before the flip; options on the
+board, (a) recommended: standing is mid-stance.
