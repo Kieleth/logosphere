@@ -350,8 +350,14 @@ public:
 // Use add_particle_with_gluon_to() for new code
 
 
+class ParticleTracer;
+
 class PhysicsSystem {
 public:
+    // INV-18 witness: sleep transitions on a traced body become note-only
+    // tracer records (sleep.rest / sleep.wake, field "asleep", with the
+    // reason), so a test reads WHEN a body slept or woke and WHAT woke it.
+    void set_particle_tracer(ParticleTracer* t);
     PhysicsSystem();
     ~PhysicsSystem();
 
@@ -723,7 +729,8 @@ private:
     // Default: FLT_MAX = always propagate (for external API calls like wake_particle())
     // Contact collisions pass the colliding particle's velocity
     void wake_particle_with_propagation(size_t particle_id, ParticleSystem::WriteView& particles,
-                                        float impact_velocity = std::numeric_limits<float>::max());
+                                        float impact_velocity = std::numeric_limits<float>::max(),
+                                        const char* why = "wake_particle (api)");
 
     // V4.5: Turtle-Support Chain Checking (Optimization)
     // Returns true if particle has continuous gluon support path down to Turtle

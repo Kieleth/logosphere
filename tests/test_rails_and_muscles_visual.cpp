@@ -128,7 +128,7 @@ int main() {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
         if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
-        if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.substr(0, 150)); }
+        if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
         move_lamps(ps, cx, cy, cz);

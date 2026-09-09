@@ -395,6 +395,7 @@ int Engine::initialize(const EngineConfig& config) {
 
     // Initialize physics system with engine reference
     physics_system_.initialize(this);
+    physics_system_.set_particle_tracer(&get_particle_tracer());   // INV-18 witness: sleep transitions as records
     
     // Initialize light system with engine reference for SimplePixelToLight
     // Telemetry sink (LOGOSPHERE_METRICS=<path.jsonl>). Absent env means no

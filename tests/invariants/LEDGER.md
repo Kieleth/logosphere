@@ -3403,3 +3403,42 @@ at frame 38), untied to the arms so far. The arm rows move into the
 shared scene so the window's log dates the onset at the owner's next
 viewing; the owner is asked whether the swing began before or after a
 SPACE.
+
+## 2026-09-09 - G-89 witnessed: the hands were asleep; the window's SPACE woke them; the INV-18 witness lands
+
+The owner's arm rows in the window's own log (RAILS_ARMS in the visual)
+dated the onset: every run read the same 8 cm mannequin swing with the
+wrists asleep until one SPACE, in whose first second the wrists' asleep
+count stopped at 208 accumulated frames and the hands travelled from
+0.15 m behind the hips to 0.06 m in front; every arm body was awake for
+the rest of the session, the hands hanging in front and bobbing 6 cm.
+
+Why they were asleep, now witnessed rather than inferred: sleep
+transitions are tracer records (sleep.rest / sleep.wake, field "asleep",
+with the reason; note-only, so INV-40's hands line does not count them;
+PhysicsSystem::set_particle_tracer, wired by the engine at init). The
+settle puts all six arm bodies to sleep at engine frame 20 ("judge: quiet
+and satisfied"). In the walk the shoulders wake at frames 7-9 ("row
+dissatisfied") and stay awake; the elbows are woken every stride by the
+moving hips rail's reach (derive_kinematic_motion: "a rail in reach") and
+re-slept by the judge eighteen frames later; the WRISTS never wake: not
+one record in 900 frames and two teleport replays. Default world: all six
+wake at frame 1 ("judge: moving") because the velocity-broadcast hand
+gives them a velocity - the hands hid the sleep, as they hid everything
+else. The internal wake's note was "wake_particle (api)" for every
+caller; the reason now travels with the call (rail in reach / contact /
+api).
+
+The answer to the owner, in one sentence: the arms did not swing because
+the hands were asleep from the settle and nothing in INV-40's world wakes
+a driven muscle; once something woke them they hung in front and bobbed,
+and the swing stays small because the shoulder drive turns the light
+bridge (INV-13). Two mechanisms, both owner rulings, both NEEDS DESIGN
+on the board: a driven muscle never sleeps against its command (the
+judge reads the drive's target error), and the drives' convergence on a
+light intermediate bone (the joint block solver is the candidate).
+Sweep alone with the eighth-hand gate and the sleep witness in the tree:
+SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43), the
+standing set. The wake's reason now prints from the call site: the
+elbows read "a rail in reach (KINEMATIC_LEDGER)" every stride, the
+shoulders "row dissatisfied", the wrists nothing.

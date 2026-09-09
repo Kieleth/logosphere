@@ -124,6 +124,18 @@
 // the west (test_rails_and_muscles' yaw probe: head +1.82 rad, eye -1.83).
 // GLUON_OFFSETS_CW=1 turns them right, for A/B on one binary; the flip is
 // an owner ruling. The X and Y steps are untouched.
+#include "particle_tracer.h"
+// INV-18 witness (G-89): every sleep transition on a traced body is a note-only
+// record - field "asleep", never a state field, so the hands-off count of
+// INV-40's prover does not read it as a hand. Zero cost untraced.
+static ParticleTracer* g_sleep_tracer = nullptr;
+void PhysicsSystem::set_particle_tracer(ParticleTracer* t) { g_sleep_tracer = t; }
+static inline void note_sleep(size_t id, bool asleep, const char* why) {
+    if (!g_sleep_tracer || !g_sleep_tracer->is_active() || !g_sleep_tracer->is_traced(static_cast<int>(id))) return;
+    g_sleep_tracer->record(static_cast<int>(id), asleep ? "sleep.rest" : "sleep.wake", "asleep",
+                           asleep ? 0.0f : 1.0f, asleep ? 1.0f : 0.0f, why);
+}
+
 static inline void rotate_offset_z(float x2, float y1, float cz, float sz, float& wx, float& wy) {
     static const bool cw = std::getenv("GLUON_OFFSETS_CW") != nullptr;
     if (cw) { wx = x2 * cz + y1 * sz; wy = -x2 * sz + y1 * cz; }
@@ -701,7 +713,7 @@ void PhysicsSystem::derive_kinematic_motion(ParticleSystem::WriteView& particles
             const size_t other = (g->particle_a == i) ? g->particle_b : g->particle_a;
             if (other < count && particles[other].is_at_rest &&
                 particles[other].solver_mode != ParticleSolverMode::KINEMATIC)
-                wake_particle_with_propagation(other, particles, 0.0f);
+                wake_particle_with_propagation(other, particles, 0.0f, "a rail in reach (KINEMATIC_LEDGER)");
         }
         // What it carries: every sleeper within SLOP of its bounding sphere.
         const float rk = 0.5f * std::sqrt(k.width*k.width + k.height*k.height + k.thickness*k.thickness);
@@ -713,7 +725,7 @@ void PhysicsSystem::derive_kinematic_motion(ParticleSystem::WriteView& particles
             const float ddx = s.x - k.x, ddy = s.y - k.y, ddz = s.z - k.z;
             const float reach = rk + rs + PhysicsV4::SLOP;
             if (ddx*ddx + ddy*ddy + ddz*ddz <= reach * reach) {
-                wake_particle_with_propagation(j, particles, 0.0f);
+                wake_particle_with_propagation(j, particles, 0.0f, "a rail in reach (KINEMATIC_LEDGER)");
                 static const bool dbg = std::getenv("KINEMATIC_LEDGER_DEBUG") != nullptr;
                 if (dbg) std::printf("[KIN LEDGER] P%zu (v %.3f,%.3f,%.3f) woke sleeper P%zu; at_rest now %d\n",
                                      i, k.vx, k.vy, k.vz, j, (int)particles[j].is_at_rest);
@@ -764,6 +776,7 @@ void PhysicsSystem::admit_declared_sleepers(ParticleSystem::WriteView& particles
             p.frames_at_rest = REST_FRAMES_REQUIRED;   // earned by geometry, judged once
             continue;
         }
+        if (p.is_at_rest) note_sleep(i, false, "no support under it (G-72)");
         p.is_at_rest = false;
         p.frames_at_rest = 0;
         ++woken_at_birth_;
@@ -899,6 +912,7 @@ static void resolve_sleep_wakes(ParticleSystem::WriteView& particles) {
             p.omega_x = p.omega_y = p.omega_z = 0.0f;
         }
         if (v_sq > REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) {
+            note_sleep(i, false, "resolver: acquired velocity");
             p.is_at_rest = false;
             p.low_velocity_frames = 0;
             PHYS_TRACE_F(::logosphere::phystrace::Pair, "resolver_wake",
@@ -1785,10 +1799,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (pi.is_at_rest && !pj.is_at_rest) {
                     float pj_vel = std::sqrt(pj.vx*pj.vx + pj.vy*pj.vy + pj.vz*pj.vz);
                     if (support_leaving(pi, pj)) {
-                        wake_particle_with_propagation(i, particles, pj_vel);
+                        wake_particle_with_propagation(i, particles, pj_vel, "contact");
                         contact_wake_events++;
                     } else if (should_wake(pj, pi, pj_vel)) {
-                        wake_particle_with_propagation(i, particles, pj_vel);
+                        wake_particle_with_propagation(i, particles, pj_vel, "contact");
                         contact_wake_events++;
                     } else {
                         threshold_blocked++;
@@ -1796,10 +1810,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 } else if (pj.is_at_rest && !pi.is_at_rest) {
                     float pi_vel = std::sqrt(pi.vx*pi.vx + pi.vy*pi.vy + pi.vz*pi.vz);
                     if (support_leaving(pj, pi)) {
-                        wake_particle_with_propagation(j, particles, pi_vel);
+                        wake_particle_with_propagation(j, particles, pi_vel, "contact");
                         contact_wake_events++;
                     } else if (should_wake(pi, pj, pi_vel)) {
-                        wake_particle_with_propagation(j, particles, pi_vel);
+                        wake_particle_with_propagation(j, particles, pi_vel, "contact");
                         contact_wake_events++;
                     } else {
                         threshold_blocked++;
@@ -2630,10 +2644,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // while this wake fired every frame). Freedom resets
                     // the counter, same as wake-on-break.
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                        if (particles[body_a].is_at_rest) note_sleep(body_a, false, "row dissatisfied");
                         particles[body_a].is_at_rest = false;
                         particles[body_a].low_velocity_frames = 0;
                     }
                     if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                        if (particles[body_b].is_at_rest) note_sleep(body_b, false, "row dissatisfied");
                         particles[body_b].is_at_rest = false;
                         particles[body_b].low_velocity_frames = 0;
                     }
@@ -3083,10 +3099,12 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     if (body_b < constraint_dissatisfied_.size())
                         { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
+                        if (particles[body_a].is_at_rest) note_sleep(body_a, false, "row dissatisfied");
                         particles[body_a].is_at_rest = false;
                         particles[body_a].low_velocity_frames = 0;
                     }
                     if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
+                        if (particles[body_b].is_at_rest) note_sleep(body_b, false, "row dissatisfied");
                         particles[body_b].is_at_rest = false;
                         particles[body_b].low_velocity_frames = 0;
                     }
@@ -6568,6 +6586,7 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
                                i >= constraint_dissatisfied_.size() ||
                                constraint_dissatisfied_[i] == 0;
         if (!satisfied) {
+            if (p.is_at_rest) note_sleep(i, false, "judge: constraints dissatisfied");
             p.frames_at_rest = 0;
             p.is_at_rest = false;
             p.low_velocity_frames = 0;
@@ -6579,6 +6598,7 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
             } else
             if (p.frames_at_rest < 255) p.frames_at_rest++;
             if (p.frames_at_rest >= REST_FRAMES_REQUIRED) {
+                if (!p.is_at_rest) note_sleep(i, true, "judge: quiet and satisfied");
                 p.is_at_rest = true;
                 // Zero velocity when entering rest to prevent drift.
                 // BOTH halves: a body that kept its angular velocity went
@@ -6592,6 +6612,7 @@ void PhysicsSystem::update_rest_state(ParticleSystem::WriteView& particles) {
             }
         } else if (q_sq > WAKE_VELOCITY_THRESHOLD * WAKE_VELOCITY_THRESHOLD) {
             // Velocity above wake threshold - actually moving
+            if (p.is_at_rest) note_sleep(i, false, "judge: moving");
             p.frames_at_rest = 0;
             p.is_at_rest = false;
         }
@@ -7355,10 +7376,12 @@ void PhysicsSystem::remove_marked_gluons(ParticleSystem::WriteView* particles) {
                 // crushes it and the particle re-latches at_rest while
                 // FLOATING. Freedom resets the counter too.
                 if (g->particle_a < particles->size()) {
+                    if ((*particles)[g->particle_a].is_at_rest) note_sleep(g->particle_a, false, "gluon freed");
                     (*particles)[g->particle_a].is_at_rest = false;
                     (*particles)[g->particle_a].low_velocity_frames = 0;
                 }
                 if (g->particle_b < particles->size()) {
+                    if ((*particles)[g->particle_b].is_at_rest) note_sleep(g->particle_b, false, "gluon freed");
                     (*particles)[g->particle_b].is_at_rest = false;
                     (*particles)[g->particle_b].low_velocity_frames = 0;
                 }
@@ -7531,12 +7554,13 @@ static size_t s_wake_propagation_calls = 0;
 static size_t s_wake_propagation_max_single = 0;
 
 void PhysicsSystem::wake_particle_with_propagation(size_t particle_id, ParticleSystem::WriteView& particles,
-                                                    float impact_velocity) {
+                                                    float impact_velocity, const char* why) {
     if (particle_id >= particles.size()) return;
 
     // Always wake the initial particle
     Particle& initial = particles[particle_id];
     if (initial.is_at_rest) {
+        note_sleep(particle_id, false, why);
         initial.is_at_rest = false;
         initial.frames_at_rest = 0;
     }
@@ -7578,6 +7602,7 @@ void PhysicsSystem::wake_particle_with_propagation(size_t particle_id, ParticleS
         queue.pop();
 
         Particle& p = particles[curr];
+        if (p.is_at_rest) note_sleep(curr, false, "wake propagation");
 
         // Wake this particle
         if (p.is_at_rest) {

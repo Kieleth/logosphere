@@ -295,6 +295,12 @@ struct Scene {
             if (it != eyes.end()) { auto eye = it->second; eyes.erase(it); eyes[(int)n] = eye; }
         });
 
+        // G-89: with RAILS_ARMS the arm bodies are traced from birth, so the
+        // settle's own sleep transitions (sleep.rest / sleep.wake) are on record.
+        if (std::getenv("RAILS_ARMS")) {
+            for (int id : eva.left_arm_ids)  tracer.trace(id, "arm/L" + std::to_string(id));
+            for (int id : eva.right_arm_ids) tracer.trace(id, "arm/R" + std::to_string(id));
+        }
         for (int i = 0; i < SETTLE_FRAMES; ++i) engine.update(DT);
 
         // The cast: every drive child is a muscle; the hips are a rail.
@@ -317,6 +323,7 @@ struct Scene {
             }
         }
         tracer.trace(hips, "rail/hips");
+        tracer_ = &tracer;
         argus.watch(hips, "hips");
         argus.watch(eva.head_id, "head");
         argus.watch(box_a, "box_a"); argus.watch(box_b, "box_b");
@@ -529,6 +536,8 @@ struct Scene {
         void reset() { *this = ArmWin{}; }
     };
     bool arms_on = false;
+    ParticleTracer* tracer_ = nullptr;                 // set in build(); the arm probe reads sleep.wake / sleep.rest records
+    std::string arms_sleep_notes;                      // this window's sleep transitions on the arm bodies, for the row
     ArmEyes arm_l, arm_r;
     ArmWin win_l, win_r;
     std::string arms_last_row;                      // the latest completed second, for the panel
@@ -545,8 +554,20 @@ struct Scene {
             for (int id : {a.bridge, a.shoulder, a.elbow, a.wrist}) if (id >= 0) argus.watch(id, std::string(side) + "/arm" + std::to_string(id));
         };
         pick(arm_l, "left"); pick(arm_r, "right");
+        for (int id : {arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.shoulder, arm_r.elbow, arm_r.wrist})
+            if (id >= 0 && !tracer_->is_traced(id)) tracer_->trace(id, "arm/" + name_of(id));
         std::printf("  [arms] cast: L bridge P%d shoulder P%d elbow P%d wrist P%d | R bridge P%d shoulder P%d elbow P%d wrist P%d\n",
                     arm_l.bridge, arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.bridge, arm_r.shoulder, arm_r.elbow, arm_r.wrist);
+        if (tracer_) {                                     // the settle's sleep transitions on the arm bodies, before the first step clears the ring
+            std::string settle;
+            for (const auto& r : tracer_->records()) {
+                if (std::strcmp(r.field, "asleep") != 0) continue;
+                bool ours = false;
+                for (int id : {arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.shoulder, arm_r.elbow, arm_r.wrist}) if (id == r.particle_id) ours = true;
+                if (ours && settle.size() < 600) settle += " f" + std::to_string(r.frame) + " " + name_of(r.particle_id) + " " + r.site + (r.note ? std::string(" [") + r.note + "]" : "");
+            }
+            std::printf("  [arms] the settle's sleep transitions:%s\n", settle.empty() ? " none" : settle.c_str());
+        }
     }
     static float qangle(const logosphere::Quat& q) { float c = std::fabs(q.w); if (c > 1.0f) c = 1.0f; return 2.0f * std::acos(c); }
     void arm_observe(Engine& engine, ArmEyes& a, ArmWin& w) {
@@ -604,6 +625,13 @@ struct Scene {
             std::printf("  [arms] WOKE the six arm bodies at second %d (G-89)\n", wake_s);
         }
         arm_observe(engine, arm_l, win_l); arm_observe(engine, arm_r, win_r);
+        if (tracer_) for (const auto& r : tracer_->records()) {
+            if (std::strcmp(r.field, "asleep") != 0) continue;
+            bool ours = false;
+            for (int id : {arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.shoulder, arm_r.elbow, arm_r.wrist}) if (id == r.particle_id) ours = true;
+            if (!ours) continue;
+            if (arms_sleep_notes.size() < 400) arms_sleep_notes += " f" + std::to_string(f) + " " + name_of(r.particle_id) + " " + r.site + (r.note ? std::string(" [") + r.note + "]" : "");
+        }
         if (f % 60 != 59) return false;
         const int sec = f / 60;
         auto amp = [](float lo, float hi) { return hi < lo ? 0.0f : hi - lo; };
@@ -620,6 +648,7 @@ struct Scene {
             win_r.fwd_min, win_r.fwd_max, ramp, rcmd, amp(win_r.act_min, win_r.act_max), win_r.n ? win_r.spin_sum / win_r.n : 0.0f, win_r.gap_max,
             win_r.asleep_frames[0], win_r.asleep_frames[1], win_r.asleep_frames[2], win_r.sh_turn, win_r.br_turn, win_r.wrist_speed_max, win_r.wrist_cmd_err_max);
         arms_last_row = row;
+        if (!arms_sleep_notes.empty()) { arms_last_row += " || sleep:" + arms_sleep_notes; arms_sleep_notes.clear(); }
         win_l.reset(); win_r.reset();
         return true;
     }
