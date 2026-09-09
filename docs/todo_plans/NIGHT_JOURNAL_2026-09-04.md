@@ -2068,3 +2068,9 @@ FINAL both-lever sweep (teleport-door binary): MOLES 43 = the standing
   pin_lifecycle, idle 1.7 cm); every walk/strafe/turn/idle/movement
   stage green in both worlds. Rulings owed: the flip (both levers),
   the bounded drive (G-85).
+2026-09-09 G-87 THE MIRRORED ATTACHMENT: the face's pi = the solver
+  rotating nail offsets anticlockwise on a clockwise yaw (5 copies).
+  One helper, clockwise behind GLUON_OFFSETS_CW (default off). A/B:
+  eye orbits with the head; face 3.138 -> 0.223; look-turn ankle
+  0.356 -> 0.173; walking nails UNCHANGED (0.118): G-85 stands.
+  Default world unchanged. Sweep under the lever next; 3 rulings owed.

@@ -117,6 +117,20 @@
 #include <chrono>
 #include <unordered_set>
 
+// G-87 / INV-28: a nail's offset turns with its body CLOCKWISE viewed from
+// +Z, the engine's compass (CLAUDE.md: yaw +pi/2 faces +X; local offsets
+// MUST rotate CW). Five copies of this rotation used the math-textbook
+// anticlockwise form and a front offset on a head facing east landed on
+// the west (test_rails_and_muscles' yaw probe: head +1.82 rad, eye -1.83).
+// GLUON_OFFSETS_CW=1 turns them right, for A/B on one binary; the flip is
+// an owner ruling. The X and Y steps are untouched.
+static inline void rotate_offset_z(float x2, float y1, float cz, float sz, float& wx, float& wy) {
+    static const bool cw = std::getenv("GLUON_OFFSETS_CW") != nullptr;
+    if (cw) { wx = x2 * cz + y1 * sz; wy = -x2 * sz + y1 * cz; }
+    else    { wx = x2 * cz - y1 * sz; wy =  x2 * sz + y1 * cz; }   // the legacy form, anticlockwise
+}
+
+
 // ============================================================================
 // THE ENERGY LEDGER (ENERGY_LEDGER=1)
 // ============================================================================
@@ -173,8 +187,9 @@ static EnergyBuckets measure_energy(
             const float z1 = o.y * sx + o.z * cx;
             const float x2 = o.x * cy + z1 * sy;
             const float z2 = -o.x * sy + z1 * cy;
-            wx = p.x + x2 * cz - y1 * sz;
-            wy = p.y + x2 * sz + y1 * cz;
+            float rx, ry; rotate_offset_z(x2, y1, cz, sz, rx, ry);
+            wx = p.x + rx;
+            wy = p.y + ry;
             wz = p.z + z2;
         };
         float ax, ay, az, bx, by, bz;
@@ -2559,9 +2574,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // Y: (ox*cy + z1*sy, y1, -ox*sy + z1*cy)
                     const float x2 = ox * cy + z1 * sy;
                     const float z2 = -ox * sy + z1 * cy;
-                    // Z: same form the site always used
-                    wx = p.x + x2 * cz - y1 * sz;
-                    wy = p.y + x2 * sz + y1 * cz;
+                    // Z: the compass (G-87); the legacy form behind the lever
+                    float rx, ry; rotate_offset_z(x2, y1, cz, sz, rx, ry);
+                    wx = p.x + rx;
+                    wy = p.y + ry;
                     wz = p.z + z2;
                 };
                 rotate_full(pa, gluon->offset_a.x, gluon->offset_a.y,
@@ -2968,8 +2984,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                             const float y1 = oy * cxr - oz * sxr;
                             const float z1 = oy * sxr + oz * cxr;
                             const float x2 = ox * cyr + z1 * syr;
-                            anchor_x = pa.x + x2 * czr - y1 * szr;
-                            anchor_y = pa.y + x2 * szr + y1 * czr;
+                            float rx_, ry_; rotate_offset_z(x2, y1, czr, szr, rx_, ry_);
+                            anchor_x = pa.x + rx_;
+                            anchor_y = pa.y + ry_;
                         }
                         // Only the horizontal lever matters against vertical
                         // gravity: tau = r x (0,0,-Mg) has no z component.
@@ -6008,8 +6025,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 const float z1 = o.y * sx + o.z * cx;
                 const float x2 = o.x * cy + z1 * sy;
                 const float z2 = -o.x * sy + z1 * cy;
-                wx = x2 * cz - y1 * sz;
-                wy = x2 * sz + y1 * cz;
+                rotate_offset_z(x2, y1, cz, sz, wx, wy);
                 wz = z2;
             };
             float seg_len;
@@ -7846,13 +7862,13 @@ void PhysicsSystem::project_gluon_positions(ParticleSystem::WriteView& particles
             // Rotate offsets by particle's rotation_z
             float cos_a = cosf(pa.rotation_z);
             float sin_a = sinf(pa.rotation_z);
-            float rotated_offset_a_x = gluon->offset_a.x * cos_a - gluon->offset_a.y * sin_a;
-            float rotated_offset_a_y = gluon->offset_a.x * sin_a + gluon->offset_a.y * cos_a;
+            float rotated_offset_a_x, rotated_offset_a_y;
+            rotate_offset_z(gluon->offset_a.x, gluon->offset_a.y, cos_a, sin_a, rotated_offset_a_x, rotated_offset_a_y);
 
             float cos_b = cosf(pb.rotation_z);
             float sin_b = sinf(pb.rotation_z);
-            float rotated_offset_b_x = gluon->offset_b.x * cos_b - gluon->offset_b.y * sin_b;
-            float rotated_offset_b_y = gluon->offset_b.x * sin_b + gluon->offset_b.y * cos_b;
+            float rotated_offset_b_x, rotated_offset_b_y;
+            rotate_offset_z(gluon->offset_b.x, gluon->offset_b.y, cos_b, sin_b, rotated_offset_b_x, rotated_offset_b_y);
 
             attach_a_x = pa.x + rotated_offset_a_x;
             attach_a_y = pa.y + rotated_offset_a_y;

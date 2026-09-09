@@ -88,6 +88,24 @@ int main() {
             std::printf("  [harness f%2d] hips z %.3f vz %+.3f hands:%s | l_foot z %.3f vz %+.3f hands:%s\n",
                         f, hz, hvz, hh.empty() ? " none" : hh.c_str(), fz, fvz, fh.empty() ? " none" : fh.c_str());
         }
+        if (diag && f < 150 && f % 10 == 0) {          // the yaws: the hips rail's two ledgers, the head, a rider
+            auto v = engine.get_particle_system().lock_particles_for_read();
+            auto qyaw = [](const logosphere::Quat& q) {   // yaw about Z from the quaternion, engine compass sign as rotation_z
+                float ax = 0, ay = 0, az = 1, th = 0; q.to_axis_angle(ax, ay, az, th); return az < 0 ? -th : th; };
+            const Particle& H = v[scene.hips];
+            const Particle& D = v[scene.eva.head_id];
+            int rider = -1;
+            if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(scene.hips))
+                if (parts->head_child_particles.size() > 4) rider = (int)parts->head_child_particles[4];
+            float rider_off = 0.0f;
+            if (rider >= 0) rider_off = std::atan2(v[rider].x - D.x, v[rider].y - D.y);
+            static float rider_off0 = 0.0f, head_rz0 = 0.0f; if (f == 0) { rider_off0 = rider_off; head_rz0 = D.rotation_z; }
+            auto wrap = [](float a) { while (a > (float)M_PI) a -= 2.0f * (float)M_PI; while (a < -(float)M_PI) a += 2.0f * (float)M_PI; return a; };
+            std::printf("  [yaw f%3d] hips rz %+.3f q-yaw %+.3f omega_z %+.3f div %.3f | head rz %+.3f q-yaw %+.3f omega_z %+.3f div %.3f | rider P%d offset-yaw %+.3f (moved %+.3f, head turned %+.3f)\n",
+                        f, H.rotation_z, qyaw(H.rotation_q), H.omega_z, scene.argus.divergence(scene.hips),
+                        D.rotation_z, qyaw(D.rotation_q), D.omega_z, scene.argus.divergence(scene.eva.head_id),
+                        rider, rider_off, wrap(rider_off - rider_off0), wrap(D.rotation_z - head_rz0));
+        }
         if (diag && f < 120 && f % 5 == 0) {           // the head: rows, contacts, hands, motion
             auto& tracer = engine.get_particle_tracer();
             auto& physics = engine.get_physics_system();

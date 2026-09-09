@@ -3209,3 +3209,40 @@ KINEMATIC_LEDGER=1 (they belong together: swap_integrity needs the
 rail's spin in the ledger), against the six-stage cost sheet above;
 (2) the bounded drive (G-85), the only mechanism that can close the
 nails and the four stages in its family.
+
+## 2026-09-09 - G-87: THE MIRRORED ATTACHMENT. The face's pi, read; five copies behind one lever.
+
+The face stage under both levers, probed (RAILS_LOOK, the yaw probe):
+the head turns +1.82 rad clockwise with Argus divergence 0.000 between
+its two ledgers, and the outer eye's compass angle moves -1.83: the
+exact mirror; it ends at the back of the head. Read: the solver
+rotates a nail's offsets with the math-textbook anticlockwise matrix
+(wx = x cos - y sin, wy = x sin + y cos) on a rotation_z the engine
+defines as clockwise viewed from +Z - five copies in
+physics_system_v4.cpp (the constraint build's rotate_full, 'Z: same
+form the site always used'; the anchor-torque site; project_gluon_
+positions; the strain-energy ledger; the legacy z-only site). CLAUDE.md
+warns of exactly this ('the CCW matrix on CW geometry produces a bike
+whose body and wheels rotate in opposite directions') and names the
+canonical CW helper; INV-28 counted four copies. Quat::from_euler
+negates Z for the compass (G-20), so a driven child's ORIENTATION turns
+the right way while its ATTACHMENT orbits the wrong way; every
+rotate_offsets nail between a turned body and its child is mirrored.
+The hands hid it: the snap re-placed every bone at its CW rest offset
+each frame.
+
+All five copies route through one static helper, clockwise behind
+GLUON_OFFSETS_CW (A/B, default off). Measured on one binary under
+INV40_STEP=4 KINEMATIC_LEDGER=1, lever off -> on: the eye's orbit
+-1.884 -> +1.898 against a head turn of +1.87; test_face_tracks_head
+3.138 -> 0.223 rad (still over its budget; the residual is the welds'
+lag during the turn transient); the look-turn's ankle nail 0.356 ->
+0.173 m; the walking rig's nails 0.116 -> 0.118 m, UNCHANGED (shoulder
+bridges 0.11-0.12, ankle 0.09); default world identical to the
+millimetre; drive walk 5.006 -> 5.032 m. The fork G-87's prediction
+named came out on G-85's side: the mirror was the face and the turn,
+the bounded drive stands for the walk. INV-29's gate unchanged.
+The flip of GLUON_OFFSETS_CW changes every rotating nail in the
+default world (trees, the rotation ladder): it needs its own sweep
+before the ruling. Three rulings owed: the two-lever flip, this
+lever's flip, the bounded drive.

@@ -157,8 +157,11 @@ struct Scene {
         const float z1 = o.y * sx + o.z * cx;
         const float x2 = o.x * cy + z1 * sy;
         const float z2 = -o.x * sy + z1 * cy;
-        wx = p.x + x2 * cz - y1 * sz;
-        wy = p.y + x2 * sz + y1 * cz;
+        // G-87: the compass turns clockwise; the solver's copies follow the
+        // same lever, so the test measures what the solver enforces.
+        static const bool cw = std::getenv("GLUON_OFFSETS_CW") != nullptr;
+        if (cw) { wx = p.x + x2 * cz + y1 * sz; wy = p.y - x2 * sz + y1 * cz; }
+        else    { wx = p.x + x2 * cz - y1 * sz; wy = p.y + x2 * sz + y1 * cz; }
         wz = p.z + z2;
     }
     std::string name_of(int id) const {
@@ -314,6 +317,7 @@ struct Scene {
         }
         tracer.trace(hips, "rail/hips");
         argus.watch(hips, "hips");
+        argus.watch(eva.head_id, "head");
         argus.watch(box_a, "box_a"); argus.watch(box_b, "box_b");
         argus.watch(post, "post");   argus.watch(arm, "arm");
         {
@@ -331,6 +335,9 @@ struct Scene {
         if (std::getenv("RAILS_NECK")) {
             humanoid.set_joint_physics_drive(eva.entity_id, "head", static_cast<float>(M_PI) / 8.0f, 200.0f, 12.0f);
         }
+        // RAILS_LOOK=1: the face stage's condition - a look-at target due east,
+        // the cascade turns head, torso and hips in that order.
+        if (std::getenv("RAILS_LOOK")) humanoid.set_look_at_target(hips, 10.0f, 0.0f);
     }
 
     void step(Engine& engine, int frame) {
