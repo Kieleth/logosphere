@@ -245,9 +245,18 @@ slide over its stance, and it stands on its support. `RAILS_FEET=1`
 prints the rows. What they read on 2026-09-09: in the default world the
 "planted" foot glides at the hips' speed (the rest snap over the pin),
 in the lever world the landing foot is yanked 22 cm onto a plant target
-computed from the hips and a stride length. The design answer put to
-the owner: the plant is a rail DECLARED where the muscle touched, never
-computed. Before any claim about a gait, read the feet rows; the walk
+computed from the hips and a stride length. The plant is now DECLARED where the
+foot is (`INV40_STEP=5`, the stance ankle commanded to hold it): the yank is
+gone, and the honest plant exposed the rest, each an owner ruling on the
+board: the walk clip strikes at 400 of 600 ms and returns the leg under the
+hips before the writer plants at the boundary (`WALK_STRIKE` /
+`WALK_STRIKE_HOLD` measure the alternative), a harness at a fixed height
+cannot put a foot 0.33 m ahead on the floor (6 cm, arithmetic), the first
+step from standing is a full stance, and physics ticks at 30 Hz under a
+60 Hz writer (`PHYSICS_HZ`; read the `[FIXED_TIMESTEP]` line: every muscle
+stands still on every second frame). `RAILS_FEET=2` prints a row per foot
+per frame, with the hip drive's command against the thigh's angle: read
+those before naming a cause. Before any claim about a gait, read the feet rows; the walk
 gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in

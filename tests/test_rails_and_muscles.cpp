@@ -70,6 +70,7 @@ void check(bool ok, const std::string& what) {
 int main() {
     setvbuf(stdout, nullptr, _IOLBF, 0);
     const bool ledger = std::getenv("KINEMATIC_LEDGER") != nullptr;
+    if (const char* hz = std::getenv("PHYSICS_HZ")) std::printf("\n    [PHYSICS_HZ=%s: the muscles step at %s Hz, the writer at 60]", hz, hz);
     std::printf("\n=== rails and muscles (INV-40) %s INV40_STEP=%d%s ===\n", ledger ? "[KINEMATIC_LEDGER=1]" : "[default]", Scene::inv40_step(),
                 std::getenv("GLUON_OFFSETS_CW") ? " GLUON_OFFSETS_CW=1" : " offsets-anticlockwise(legacy)");
     Engine engine;
@@ -98,7 +99,7 @@ int main() {
         const int fr = f % run_frames;                 // frame within the run (the replay restarts at 0)
         scene.step(engine, fr);
         if (arms && scene.arms_observe(engine, f)) std::printf("  %s\n", scene.arms_last_row.c_str());
-        if (feet) { if (!scene.feet_last_row.empty()) std::printf("  %s\n", scene.feet_last_row.c_str()); if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
+        if (feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) std::printf("  %s\n", scene.feet_last_row.c_str()); if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
             const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];

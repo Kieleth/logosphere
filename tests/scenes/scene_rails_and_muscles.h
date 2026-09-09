@@ -462,7 +462,7 @@ struct Scene {
 
         // G-90: the feet, every frame (the rows are printed by the drivers when RAILS_FEET is set)
         feet_observe(engine, frame);
-        if (!feet_rows) { feet_last_row.clear(); feet_height_row.clear(); }
+        if (!feet_rows) { feet_last_row.clear(); feet_height_row.clear(); feet_frame_rows.clear(); }
 
         // the gauge: does she still walk?
         forward = (hx - hx0) * fx + (hy - hy0) * fy;
@@ -686,12 +686,14 @@ struct Scene {
         float sep_start = -1, sep_end = -1, blend_start = -1, blend_end = -1;
     };
     bool feet_on = false;
-    int foot_l = -1, foot_r = -1, toe_l = -1, toe_r = -1;
+    int foot_l = -1, foot_r = -1, toe_l = -1, toe_r = -1, thigh_l = -1, thigh_r = -1;
     FootPhase ph_l, ph_r;
     std::string feet_last_row;
     int feet_stances = 0, feet_swings = 0, feet_swing_contact_frames = 0, feet_swing_frames = 0;
     float feet_stance_slide_max = 0, feet_stance_slide_sum = 0, feet_stance_early_sum = 0, feet_stance_peak_max = 0, feet_swing_lift_max = -1e9f, feet_stance_gap_max = -1e9f;
     bool feet_rows = false;                              // RAILS_FEET=1: print every phase's row; the measurement itself is always on
+    int feet_rows_level = 0;                             // RAILS_FEET=2: a row per foot per frame (the landing offset, the height, the anchor, the tilt, the contacts)
+    std::string feet_frame_rows;
     std::string feet_worst;
     // the height row: per 30 frames, each foot's lowest and highest bottom, the support top under it, its contacts
     struct FootHeight { float bottom_min = 1e9f, bottom_max = -1e9f, support_top = -1e9f; int contacts = 0, near = 0; void reset() { *this = FootHeight{}; } };
@@ -700,11 +702,13 @@ struct Scene {
 
     void feet_enable() {
         feet_on = true;
-        feet_rows = std::getenv("RAILS_FEET") != nullptr;
+        if (const char* e = std::getenv("RAILS_FEET")) feet_rows_level = std::max(1, std::atoi(e));
+        feet_rows = feet_rows_level >= 1;
         std::map<std::string, int> by_name;
         for (const auto& [id, nm] : names) by_name[nm] = id;
         auto get = [&](const char* k) { auto it = by_name.find(k); return it == by_name.end() ? -1 : it->second; };
         foot_l = get("left_ankle"); foot_r = get("right_ankle"); toe_l = get("left_toe"); toe_r = get("right_toe");
+        thigh_l = get("left_hip"); thigh_r = get("right_hip");           // the hip joint's child is the thigh
         if (foot_l < 0 && !eva.left_leg_ids.empty())  foot_l = eva.left_leg_ids[0];
         if (foot_r < 0 && !eva.right_leg_ids.empty()) foot_r = eva.right_leg_ids[0];
         for (int id : {foot_l, foot_r}) if (id >= 0) argus.watch(id, id == foot_l ? "foot_l" : "foot_r");
@@ -716,7 +720,7 @@ struct Scene {
         if (foot < 0) return false;
         auto& physics  = engine.get_physics_system();
         auto& humanoid = engine.get_humanoid_locomotion();
-        int contacts = 0, near = 0;
+        int contacts = 0, near = 0; float pen_max = 0.0f;
         for (const auto& e : physics.get_collision_events()) {
             const bool a_foot = (int)e.particle_a == foot || (int)e.particle_a == toe;
             const bool b_foot = (int)e.particle_b == foot || (int)e.particle_b == toe;
@@ -724,7 +728,7 @@ struct Scene {
             const int other = (int)(a_foot ? e.particle_b : e.particle_a);
             if (rig_set.count(other)) continue;
             if (std::fabs(e.normal_z) < 0.5f) continue;
-            if (e.penetration > 0.0f) ++contacts; else ++near;          // touching is overlap; a proximity event is not a touch
+            if (e.penetration > 0.0f) { ++contacts; pen_max = std::max(pen_max, e.penetration); } else ++near;   // touching is overlap; a proximity event is not a touch
         }
         const bool right = (foot == foot_r);
         float x, y, bottom, sep = -1.0f, blend = 0.0f, support_top = -1e9f; bool stance = false;
@@ -740,11 +744,41 @@ struct Scene {
                 if (top > bottom + 0.05f) continue;
                 support_top = std::max(support_top, top);
             }
+            float sep_z = 0.0f;
             if (const auto* parts = humanoid.get_humanoid_parts(hips)) {
                 stance = parts->has_planted_foot && parts->planted_foot_is_right == right;
                 const int anchor = right ? parts->right_plant_anchor_id : parts->left_plant_anchor_id;
-                if (anchor >= 0 && (size_t)anchor < v.size()) { const float dx = x - v[anchor].x, dy = y - v[anchor].y; sep = std::sqrt(dx * dx + dy * dy); }
+                if (anchor >= 0 && (size_t)anchor < v.size()) { const float dx = x - v[anchor].x, dy = y - v[anchor].y; sep = std::sqrt(dx * dx + dy * dy); sep_z = p.z - v[anchor].z; }
                 blend = stance ? parts->plant_blend : 0.0f;
+            }
+            float hip_cmd = -1.0f, hip_act = -1.0f, hip_err = -1.0f;    // the hip drive: commanded vs actual relative angle (deg)
+            if (const int thigh = right ? thigh_r : thigh_l; thigh >= 0)
+                for (const GluonConstraintBase* g : physics.get_gluons_for_particle((size_t)thigh)) {
+                    if (!g) continue;
+                    const int other = (int)(g->particle_a == (size_t)thigh ? g->particle_b : g->particle_a);
+                    if (other != hips) continue;
+                    const auto* nail = dynamic_cast<const NailGluon*>(g);
+                    if (!nail || !nail->use_quat_target) continue;
+                    const bool fwdp = g->particle_a == (size_t)hips;
+                    const logosphere::Quat rel = fwdp ? (v[hips].rotation_q.conjugate() * v[thigh].rotation_q).normalized()
+                                                      : (v[thigh].rotation_q.conjugate() * v[hips].rotation_q).normalized();
+                    hip_cmd = qangle(nail->target_relative_q) * 57.2958f;
+                    hip_act = qangle(rel) * 57.2958f;
+                    hip_err = qangle((nail->target_relative_q.conjugate() * rel).normalized()) * 57.2958f;
+                }
+            if (feet_rows_level >= 2) {
+                // the row per frame: where the foot is along the walk relative to the hips (the clip's reach at
+                // landing, the leg's stretch at toe-off), its height over the support, its offset from its
+                // anchor in the plane and in z, its tilt, and its contacts with the floor
+                const Particle& h = v[hips];
+                float dx = h.vx, dy = h.vy; const float sp = std::sqrt(dx * dx + dy * dy);
+                if (sp > 0.1f) { dx /= sp; dy /= sp; } else { dx = std::sin(h.rotation_z); dy = std::cos(h.rotation_z); }
+                const float ahead = (x - h.x) * dx + (y - h.y) * dy;
+                char row[300];
+                std::snprintf(row, sizeof(row), "  [foot f%3d] %s %s: ahead of hips %+.3f m | bottom - support %+.4f | to anchor dxy %.4f dz %+.4f | tilt rx %+.1f ry %+.1f deg | contacts %d pen max %.4f | hip cmd %.1f act %.1f err %.1f\n",
+                              f, side, stance ? "STANCE" : "swing ", ahead, support_top > -1e8f ? bottom - support_top : 0.0f, stance ? sep : -1.0f, stance ? sep_z : 0.0f,
+                              p.rotation_x * 57.2958f, p.rotation_y * 57.2958f, contacts, pen_max, hip_cmd, hip_act, hip_err);
+                feet_frame_rows += row;
             }
         }
         FootHeight& fh = right ? fh_r : fh_l;
@@ -788,7 +822,7 @@ struct Scene {
     // Call after step() every frame when feet_on. Returns true when a phase ended.
     bool feet_observe(Engine& engine, int f) {
         if (!feet_on) return false;
-        feet_last_row.clear();
+        feet_last_row.clear(); feet_frame_rows.clear();
         const bool l = foot_observe(engine, f, foot_l, toe_l, ph_l, "L");
         const bool r = foot_observe(engine, f, foot_r, toe_r, ph_r, "R");
         if (f % 30 == 29) {

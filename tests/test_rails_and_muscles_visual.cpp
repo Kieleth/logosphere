@@ -89,9 +89,11 @@ int main() {
     l_demo2->set_position(PANEL_X, 62);
     {
         std::string mode = std::string("INV40_STEP=") + std::to_string(Scene::inv40_step()) + (ledger ? ", KINEMATIC_LEDGER=1" : ", default ledger")
-                         + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)");
+                         + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)")
+                         + (std::getenv("PHYSICS_HZ") ? std::string(", PHYSICS_HZ=") + std::getenv("PHYSICS_HZ") : ", physics 30 Hz");
         const int st = Scene::inv40_step();
-        mode += st >= 4 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground."
+        mode += st >= 5 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground, the plant is declared where the foot is."
+              : st >= 4 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground."
               : st >= 3 ? ": no hand on any muscle; the harness reads the ground."
               : st >= 2 ? ": the shape pass keeps its hands off the muscles."
               :           ": today's hands are on every muscle every frame.";
@@ -134,7 +136,7 @@ int main() {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
         if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
-        if (live && feet) { if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
+        if (live && feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);

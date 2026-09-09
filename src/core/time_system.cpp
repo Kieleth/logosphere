@@ -1,10 +1,16 @@
+#include <cstdlib>
 #include "time_system.h"
 #include "logosphere/physics/physics_flags.h"  // for forensic logging
 #include <algorithm>  // for std::max
 #include <iostream>   // for std::cout (Stage 4 debug logging)
 
 TimeSystem::TimeSystem() {
-    // All members initialized via initializer list in header
+    // All members initialized via initializer list in header; the physics
+    // rate alone takes the PHYSICS_HZ lever (A/B; unset = 30 Hz, today).
+    if (const char* e = std::getenv("PHYSICS_HZ")) {
+        const double hz = std::atof(e);
+        if (hz > 0.0) physics_timestep_ = 1.0 / hz;
+    }
 }
 
 void TimeSystem::tick(double real_delta_time) {
@@ -109,13 +115,13 @@ void TimeSystem::tick_fixed_physics(std::function<void(double)> physics_callback
     static int frame_count_debug = 0;
     bool should_log = (frame_count_debug++ < 5);  // Log first 5 frames
 
-    // Tick physics in fixed PHYSICS_TIMESTEP chunks
-    while (physics_accumulator_ >= PHYSICS_TIMESTEP && steps_taken < MAX_PHYSICS_STEPS) {
+    // Tick physics in fixed physics_timestep_ chunks
+    while (physics_accumulator_ >= physics_timestep_ && steps_taken < MAX_PHYSICS_STEPS) {
         // Call physics update with FIXED timestep (always 0.0167s at 60 Hz)
-        physics_callback(PHYSICS_TIMESTEP);
+        physics_callback(physics_timestep_);
 
         // Remove one physics tick worth of time from accumulator
-        physics_accumulator_ -= PHYSICS_TIMESTEP;
+        physics_accumulator_ -= physics_timestep_;
 
         steps_taken++;
     }
@@ -123,7 +129,7 @@ void TimeSystem::tick_fixed_physics(std::function<void(double)> physics_callback
     if (should_log && steps_taken > 0) {
         std::cout << "[FIXED_TIMESTEP] Frame game_delta=" << game_delta_time_
                   << "s, physics_steps=" << steps_taken
-                  << " (each " << PHYSICS_TIMESTEP << "s), leftover=" << physics_accumulator_ << "s"
+                  << " (each " << physics_timestep_ << "s), leftover=" << physics_accumulator_ << "s"
                   << std::endl;
     }
 
@@ -131,8 +137,8 @@ void TimeSystem::tick_fixed_physics(std::function<void(double)> physics_callback
     // Alpha ranges from 0.0 (just after physics tick) to 1.0 (just before next tick)
     // Renderer can use this to interpolate between current and previous physics state
     //
-    // Example: If accumulator = 0.0083s and PHYSICS_TIMESTEP = 0.0167s:
+    // Example: If accumulator = 0.0083s and physics_timestep_ = 0.0167s:
     //   alpha = 0.0083 / 0.0167 = 0.5 (halfway between ticks)
     //   render_pos = lerp(prev_physics_pos, current_physics_pos, 0.5)
-    interpolation_alpha_ = physics_accumulator_ / PHYSICS_TIMESTEP;
+    interpolation_alpha_ = physics_accumulator_ / physics_timestep_;
 }

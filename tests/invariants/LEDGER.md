@@ -3489,3 +3489,37 @@ where the muscle touched. The anchor is born at the foot's contact
 point on its support, never computed from the hips and a stride length;
 then the pin never drags, the foot stands on the floor, and the stride
 is whatever the clip's reach makes it. G-90 stays open until ruled.
+
+## 2026-09-09 - The declared plant (G-90, INV40_STEP=5): the yank is gone, four rulings owed
+
+Owner: "continue with this till the feet is properly fixed." Landed behind
+INV40_STEP=5 (default off): at heel strike the anchor is born at the foot's
+own x,y, at the support's top plus the foot's half thickness, flat, and the
+stance ankle is commanded to hold the foot there (INV40_KEEP=ankle keeps the
+clip's ankle). The support finder is one helper shared with the ground
+correction (highest_support_top_under). Measured against step 4 on one
+binary: the landing foot's drag in its first 8 frames 0.21-0.27 m at 8 m/s
+-> 0.6-1.3 cm at 0.5 m/s. That was the owner's "sliding when they touch".
+The default world is byte-identical (three diffs).
+
+The honest plant exposed the rest, each read from RAILS_FEET=2's per-frame
+rows and measured behind its own A/B lever:
+- The clip's reach: the foot lands 5-9 cm ahead of the hips (the hip muscle
+  within 0.1-4 deg of its command: authored). create_fk_walk_step strikes at
+  400 of 600 ms at half the peak flexion and returns the hip to zero at the
+  phase boundary, where the writer plants. WALK_STRIKE=0.925
+  WALK_STRIKE_HOLD=1: lands 0.326-0.328 ahead, leaves 0.319 behind, ankle
+  nail 0.156 -> 0.094 m, stance path 7-8 -> 3.6-5.5 cm.
+- The strike height: 6.3-6.5 cm above the support at every strike, the
+  arithmetic of a straight 0.9 m leg reaching 0.325 m ahead from a harness
+  at a fixed height (6.1 cm). The foot then descends onto its plant over six
+  frames and stands 2-5 mm from its anchor, flat, from mid-stance.
+- The first step from standing: a full stance from under the hips, leaving
+  0.58 m behind; the worst nail (0.166) and the body-whole red are its.
+- The rate: PHYSICS_TIMESTEP = 1/30 under a 60 Hz writer; every muscle
+  stands still on every second frame. PHYSICS_HZ=60 doubles the stance path
+  with the step count: the path law reads jitter, not a slide.
+Both G-90 lines stay red in every world. Rulings owed: (5) the clip's strike
+pose derived from the stride (recommended), (6) the harness riding over the
+planted foot on the leg's length (recommended), (7) the first step as a half
+step, (8) the physics rate. Prediction's score in G-90's notes.

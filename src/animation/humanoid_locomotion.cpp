@@ -42,6 +42,9 @@ namespace logosphere::animation {
 //   >= 3  the velocity and ground hands come off them too (velocity
 //         broadcast, ground correction, vz zeroing, the obstacle push)
 //   >= 4  gravity keyed on solver_mode alone (physics_system_v4.cpp)
+//   >= 5  the plant is a rail DECLARED where the foot is, on its support,
+//         flat, and the stance ankle is commanded to hold the foot on it
+//         (G-90); never computed from the hips and a stride length
 // Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
 static int inv40_step() {
     static const int v = [] {
@@ -51,13 +54,112 @@ static int inv40_step() {
     return v;
 }
 // Attribution only: INV40_KEEP=broadcast,ground,vz,gravity,push puts one of step 3's
-// hands back so a change can be blamed on one hand at a time.
+// hands back so a change can be blamed on one hand at a time; INV40_KEEP=ankle
+// leaves the clip's ankle in charge at step 5.
 static bool inv40_keep(const char* hand) {
     static const std::string keep = [] {
         const char* e = std::getenv("INV40_KEEP");
         return std::string(e ? e : "");
     }();
     return keep.find(hand) != std::string::npos;
+}
+
+// The support under a footprint: the highest top among the BVH's candidates
+// that is not the rig's own body, not another humanoid, standing still and
+// large enough to stand on, within the ground correction's window below and
+// above the foot's bottom. One definition for the two readers of the ground:
+// the ground correction (maintain_entity_shape) and the declared plant
+// (INV-40 / G-90: the anchor is born on the support the foot landed over).
+// Returns -1e9f when nothing under the footprint qualifies; best_support_id
+// names the last qualifying candidate (-1 for none), n_candidates how many
+// the BVH offered.
+static const float SUPPORT_FOOTPRINT_MARGIN = 0.15f;
+static float highest_support_top_under(
+    const HumanoidParts& parts,
+    const ParticleSystem::WriteView& particles,
+    const BVH* bvh,
+    float min_x, float max_x, float min_y, float max_y,
+    float foot_bottom_z,
+    int& best_support_id,
+    size_t& n_candidates)
+{
+    best_support_id = -1;
+    n_candidates = 0;
+    const auto& all = particles.get_particles();
+
+    // Expand footprint
+    min_x -= SUPPORT_FOOTPRINT_MARGIN; max_x += SUPPORT_FOOTPRINT_MARGIN;
+    min_y -= SUPPORT_FOOTPRINT_MARGIN; max_y += SUPPORT_FOOTPRINT_MARGIN;
+
+    // Query BVH for floor beneath footprint
+    AABB query_box;
+    query_box.min_x = min_x;
+    query_box.max_x = max_x;
+    query_box.min_y = min_y;
+    query_box.max_y = max_y;
+    // Relative to the foot. A fixed -1 floor made this blind to any
+    // ground below it, which on a raised or curved world is the only
+    // ground there is.
+    query_box.min_z = foot_bottom_z - 2.0f;
+    query_box.max_z = foot_bottom_z + 0.5f;
+
+    std::vector<int> candidates;
+    if (bvh && bvh->is_ready()) {
+        bvh->query_aabb(query_box, all, candidates);
+    }
+    n_candidates = candidates.size();
+
+    // Find highest floor tile beneath footprint.
+    float best_support_top = -1e9f;
+    for (int cand_id : candidates) {
+        // Skip self
+        bool is_self = false;
+        for (unsigned int pid : parts.all_particle_indices) {
+            if (static_cast<int>(pid) == cand_id) { is_self = true; break; }
+        }
+        if (is_self) continue;
+
+        const Particle& support = all[cand_id];
+
+        // Skip other humanoids - prevents rocket launch when two humanoids overlap
+        // (each would see the other as floor and push up in feedback loop)
+        if (support.owner == ParticleOwner::DYNAMICS) continue;
+
+        // STABILITY CHECK: Only use stable surfaces as ground
+        // A stable surface has low velocity - moving/falling objects aren't ground
+        float vel_sq = support.vx * support.vx + support.vy * support.vy + support.vz * support.vz;
+        constexpr float MAX_STABLE_VEL_SQ = 0.25f;  // 0.5 m/s threshold
+        if (vel_sq > MAX_STABLE_VEL_SQ) {
+            // DEBUG: Log skipped unstable support
+            static int unstable_skip_frame = 0;
+            if (unstable_skip_frame++ % 60 == 0) {
+                float vel = std::sqrt(vel_sq);
+                std::cout << "[GROUND_SKIP] pid=" << cand_id << " vel=" << vel
+                          << " m/s - unstable, skipping" << std::endl;
+            }
+            continue;
+        }
+
+        // SIZE CHECK: Real ground surfaces are large enough to stand on
+        // Floor tiles: width ~0.5m+, body parts: ~0.1-0.2m
+        // This prevents using small objects (body parts, debris) as ground
+        constexpr float MIN_GROUND_SIZE = 0.25f;  // Minimum width/height to be ground
+        if (support.width < MIN_GROUND_SIZE || support.height < MIN_GROUND_SIZE) {
+            static int size_skip_frame = 0;
+            if (size_skip_frame++ % 60 == 0) {
+                std::cout << "[GROUND_SKIP] pid=" << cand_id << " size=" << support.width
+                          << "x" << support.height << " - too small, skipping" << std::endl;
+            }
+            continue;
+        }
+
+        float support_top = support.z + support.thickness * 0.5f;
+        if (support_top <= foot_bottom_z + 0.3f) {
+            best_support_top = std::max(best_support_top, support_top);
+            best_support_id = cand_id;
+        }
+    }
+    return best_support_top;
 }
 
 static void apply_physics_drive_legs_init(
@@ -1034,6 +1136,43 @@ void HumanoidLocomotion::update_post_physics(double delta_time) {
                     // world position at heel-strike IS the plant.
                     parts.plant_target_z = particles_view[foot_id].z;
 
+                    // INV-40 / G-90: the plant is a rail DECLARED where the
+                    // muscle is, on its support. From INV40_STEP >= 5 the
+                    // anchor is born at the foot's own x,y - never the hips
+                    // plus a stride: the clip's reach and the stride length
+                    // are different data paths, and the pin dragged every
+                    // landed foot 22-30 cm across the difference at 8 m/s -
+                    // and at the top of the support under the foot plus the
+                    // foot's half thickness, so it stands on the floor
+                    // instead of floating where the swing left it. No
+                    // support under the foot: the plant is the foot's own z,
+                    // and the record says so.
+                    bool plant_on_support = false;
+                    if (inv40_step() >= 5) {
+                        const Particle& fp = particles_view[foot_id];
+                        const float half = 0.5f * fp.size;
+                        const float bottom = fp.z - 0.5f * fp.thickness;
+                        int support_id = -1;
+                        size_t n_candidates = 0;
+                        const float top = highest_support_top_under(
+                            parts, particles_view,
+                            impl_->get_particle_system().get_shadow_bvh(),
+                            fp.x - half, fp.x + half, fp.y - half, fp.y + half,
+                            bottom, support_id, n_candidates);
+                        const bool on_support = top > -1e8f;
+                        plant_on_support = on_support;
+                        parts.plant_target_x = fp.x;
+                        parts.plant_target_y = fp.y;
+                        parts.plant_target_z = on_support ? top + 0.5f * fp.thickness : fp.z;
+                        auto& plant_tracer = impl_->get_particle_tracer();
+                        if (plant_tracer.is_active() && plant_tracer.is_traced(static_cast<int>(foot_id))) {
+                            plant_tracer.record(static_cast<int>(foot_id), "plant.declare", "anchor_z",
+                                                fp.z, parts.plant_target_z,
+                                                on_support ? "declared where the foot is, on its support"
+                                                           : "declared where the foot is: no support under it");
+                        }
+                    }
+
                     // Kinematic root transfer. The planted foot is now the
                     // skeleton's world anchor; hips will be derived from it.
                     // previous_particle_id captured for continuity diagnostics.
@@ -1087,6 +1226,17 @@ void HumanoidLocomotion::update_post_physics(double delta_time) {
                     parts.plant_foot_rx = particles_view[foot_id].rotation_x;
                     parts.plant_foot_ry = particles_view[foot_id].rotation_y;
                     parts.plant_foot_rz = particles_view[foot_id].rotation_z;
+                    // INV-40 / G-90: a rail prescribes orientation as well as
+                    // place. A plant declared on a support is FLAT on it (the
+                    // support scan reads level tops; a tilted support is not
+                    // covered by it, and says so in the record). Read at 34 deg
+                    // of pitch through a stance with the clip's ankle angle: the
+                    // heel dug 1.9 cm into the floor and the floor lifted the
+                    // pinned centre against the pin, a 1 cm jitter.
+                    if (inv40_step() >= 5 && plant_on_support) {
+                        parts.plant_foot_rx = 0.0f;
+                        parts.plant_foot_ry = 0.0f;
+                    }
 
                     parts.planted_foot_is_right = stance_is_right;
                     parts.has_planted_foot = true;
@@ -1314,6 +1464,14 @@ void HumanoidLocomotion::update_post_physics(double delta_time) {
                         };
                         publish(hip_j,  hip_target);
                         publish(knee_j, knee_target);
+                        // INV-40 / G-90: the ankle is a muscle commanded to hold
+                        // the foot on its plant, flat, while the shin passes over
+                        // it - the stance ankle's job. Without it the clip's
+                        // ankle angle (relative to a shin the IK has re-aimed)
+                        // pitches the pinned foot 34 deg through the stance.
+                        // INV40_KEEP=ankle leaves the clip's ankle in charge.
+                        if (inv40_step() >= 5 && !inv40_keep("ankle"))
+                            publish(ankle_j, blended_foot * blended_shin.conjugate());
                     }
 
                     static int plant_log_count = 0;
@@ -5870,79 +6028,13 @@ void HumanoidLocomotion::maintain_entity_shape(
 
     if (foot_bottom_z > 1e8f) return;  // No feet
 
-    // Expand footprint
-    const float MARGIN = 0.15f;
-    min_x -= MARGIN; max_x += MARGIN;
-    min_y -= MARGIN; max_y += MARGIN;
-
-    // Query BVH for floor beneath footprint
-    AABB query_box;
-    query_box.min_x = min_x;
-    query_box.max_x = max_x;
-    query_box.min_y = min_y;
-    query_box.max_y = max_y;
-    // Relative to the foot. A fixed -1 floor made this blind to any
-    // ground below it, which on a raised or curved world is the only
-    // ground there is.
-    query_box.min_z = foot_bottom_z - 2.0f;
-    query_box.max_z = foot_bottom_z + 0.5f;
-
-    std::vector<int> candidates;
-    if (bvh && bvh->is_ready()) {
-        bvh->query_aabb(query_box, particles.get_particles(), candidates);
-    }
-
-    // Find highest floor tile beneath footprint.
-    float best_support_top = -1e9f;
+    // The support under the footprint: one definition, shared with the
+    // declared plant (highest_support_top_under, INV-40 / G-90).
     int best_support_id = -1;
-    for (int cand_id : candidates) {
-        // Skip self
-        bool is_self = false;
-        for (unsigned int pid : parts.all_particle_indices) {
-            if (static_cast<int>(pid) == cand_id) { is_self = true; break; }
-        }
-        if (is_self) continue;
-
-        const Particle& support = particles[cand_id];
-
-        // Skip other humanoids - prevents rocket launch when two humanoids overlap
-        // (each would see the other as floor and push up in feedback loop)
-        if (support.owner == ParticleOwner::DYNAMICS) continue;
-
-        // STABILITY CHECK: Only use stable surfaces as ground
-        // A stable surface has low velocity - moving/falling objects aren't ground
-        float vel_sq = support.vx * support.vx + support.vy * support.vy + support.vz * support.vz;
-        constexpr float MAX_STABLE_VEL_SQ = 0.25f;  // 0.5 m/s threshold
-        if (vel_sq > MAX_STABLE_VEL_SQ) {
-            // DEBUG: Log skipped unstable support
-            static int unstable_skip_frame = 0;
-            if (unstable_skip_frame++ % 60 == 0) {
-                float vel = std::sqrt(vel_sq);
-                std::cout << "[GROUND_SKIP] pid=" << cand_id << " vel=" << vel
-                          << " m/s - unstable, skipping" << std::endl;
-            }
-            continue;
-        }
-
-        // SIZE CHECK: Real ground surfaces are large enough to stand on
-        // Floor tiles: width ~0.5m+, body parts: ~0.1-0.2m
-        // This prevents using small objects (body parts, debris) as ground
-        constexpr float MIN_GROUND_SIZE = 0.25f;  // Minimum width/height to be ground
-        if (support.width < MIN_GROUND_SIZE || support.height < MIN_GROUND_SIZE) {
-            static int size_skip_frame = 0;
-            if (size_skip_frame++ % 60 == 0) {
-                std::cout << "[GROUND_SKIP] pid=" << cand_id << " size=" << support.width
-                          << "x" << support.height << " - too small, skipping" << std::endl;
-            }
-            continue;
-        }
-
-        float support_top = support.z + support.thickness * 0.5f;
-        if (support_top <= foot_bottom_z + 0.3f) {
-            best_support_top = std::max(best_support_top, support_top);
-            best_support_id = cand_id;
-        }
-    }
+    size_t n_candidates = 0;
+    float best_support_top = highest_support_top_under(
+        parts, particles, bvh, min_x, max_x, min_y, max_y, foot_bottom_z,
+        best_support_id, n_candidates);
 
     // ========================================================================
     // TURTLE PLANE AS SUPPORT OF LAST RESORT (task #42, CLASS-1 foot-sink)
@@ -6056,7 +6148,7 @@ void HumanoidLocomotion::maintain_entity_shape(
     } else {
         if (should_debug_shape || shape_ground_frame % 30 == 0) {
             std::cout << "[SHAPE_GROUND] NO FLOOR FOUND! frame=" << shape_ground_frame
-                      << " candidates=" << candidates.size()
+                      << " candidates=" << n_candidates
                       << " foot_bottom=" << foot_bottom_z
                       << " hips_z=" << hips.z
                       << " hips_xy=(" << hips.x << "," << hips.y << ")" << std::endl;

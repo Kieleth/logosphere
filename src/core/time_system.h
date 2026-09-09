@@ -40,7 +40,7 @@ public:
 
     // === Fixed Timestep Queries ===
     // Physics always ticks at this rate (Stage 1: Added, not used yet)
-    double get_physics_timestep() const { return PHYSICS_TIMESTEP; }
+    double get_physics_timestep() const { return physics_timestep_; }
     double get_interpolation_alpha() const { return interpolation_alpha_; }
 
     // === Time Control ===
@@ -71,7 +71,12 @@ private:
     float saved_time_scale_ = 1.0f;        // Previous scale before pause
 
     // Fixed timestep physics (Stage 1: Data only, no behavior change yet)
-    static constexpr double PHYSICS_TIMESTEP = 1.0 / 30.0;  // 30 Hz (0.0333s) - sufficient for narrative RPG
+    // 30 Hz (0.0333s) by default. PHYSICS_HZ=<n> overrides it: an A/B lever,
+    // found 2026-09-09 by the INV-40 prover's per-frame foot rows - the writer
+    // and its rails tick every frame, the muscles every physics step, so at
+    // 60 fps every muscle stands still on every second frame while the rails
+    // move (the engine's own comment at the call site says 60 Hz).
+    double physics_timestep_ = 1.0 / 30.0;
     double physics_accumulator_ = 0.0;     // Time accumulated for next physics tick
     double interpolation_alpha_ = 0.0;     // For smooth rendering (0.0 to 1.0)
 

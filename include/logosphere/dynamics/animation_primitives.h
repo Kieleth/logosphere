@@ -14,6 +14,7 @@
 
 #include "logosphere/dynamics/animation_types.h"
 #include <cmath>
+#include <cstdlib>
 #include <string>
 
 // ============================================================================
@@ -2011,6 +2012,15 @@ inline FKAnimationClip generate_walk_step_clip(
     clip.loops = false;
 
     const float s = active.flex_sign;  // +1 right, -1 left
+    // A/B levers (2026-09-09, INV-40 / G-90). The writer plants the foot at
+    // the step's END (the phase boundary), where this clip has already
+    // returned the leg to neutral (KF4), 200 ms after its own heel strike
+    // (KF3, at half the peak flexion): the plant found the foot 5-9 cm
+    // ahead of the hips, a third of the half-stride the cadence walks.
+    // WALK_STRIKE=<fraction of hip_flex_peak at KF3; today 0.5> and
+    // WALK_STRIKE_HOLD=1 (KF4 holds the strike pose instead of neutral).
+    static const float strike_frac = [] { const char* e = std::getenv("WALK_STRIKE"); return e ? static_cast<float>(std::atof(e)) : 0.5f; }();
+    static const bool  strike_hold = std::getenv("WALK_STRIKE_HOLD") != nullptr;
 
     float t = 0.0f;
 
@@ -2131,7 +2141,7 @@ inline FKAnimationClip generate_walk_step_clip(
     {
         RotationPose pose;
         // Active leg: forward, extending for contact
-        pose.flex(active.hip, s * p.hip_flex_peak * 0.5f);
+        pose.flex(active.hip, s * p.hip_flex_peak * strike_frac);
         pose.flex(active.knee, p.knee_flex_peak * 0.1f);  // nearly straight
         pose.flex(active.ankle, s * p.ankle_dorsi_swing * 0.5f);  // slight dorsiflex
         pose.flex(active.toe, s * p.toe_dorsi_swing * 0.3f);    // slight dorsi at heel-strike
@@ -2167,11 +2177,11 @@ inline FKAnimationClip generate_walk_step_clip(
     t = p.swing_ms + p.contact_ms;
     {
         RotationPose pose;
-        pose.flex(active.hip, 0.0f);
-        pose.flex(active.knee, 0.0f);
-        pose.flex(active.ankle, 0.0f);
+        pose.flex(active.hip, strike_hold ? s * p.hip_flex_peak * strike_frac : 0.0f);
+        pose.flex(active.knee, strike_hold ? p.knee_flex_peak * 0.1f : 0.0f);
+        pose.flex(active.ankle, strike_hold ? s * p.ankle_dorsi_swing * 0.5f : 0.0f);
         pose.flex(active.toe, 0.0f);
-        pose.flex(passive.hip, 0.0f);
+        pose.flex(passive.hip, strike_hold ? -s * p.stance_hip_extend * 0.5f : 0.0f);
         pose.flex(passive.knee, 0.0f);
         pose.flex(passive.ankle, 0.0f);
         pose.flex(passive.toe, 0.0f);
