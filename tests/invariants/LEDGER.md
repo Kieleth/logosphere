@@ -3346,3 +3346,15 @@ foot_planting fail as booked; primitives skip). Sweep alone owed once the
 owner's window is closed. "Slower and slower" is attributed, not
 measured: the window's physics went 12 -> 100 ms per frame on a constant
 2437 particles while the rig tore; no headless number was taken.
+
+## 2026-09-09 - Sweep alone after G-88 (the door releases the plant; shape.obstacle_push traced)
+
+SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43): the
+standing set and nothing else. The default world carries the door's
+release (every caller of reset_humanoid_position) and the eighth hand's
+tracer site; the six door-calling stages read their audited verdicts
+(eva_movement, divergence_microscope pass; layering, bilateral,
+foot_planting fail as booked; primitives skip); test_humanoid_headless
+and test_pin_gluon_lifecycle pass by default as before (their lever-world
+reds are the no-solver harnesses read this morning). The three registries
+had lost their trailing newline in the morning's record edits; restored.
