@@ -3442,3 +3442,50 @@ SWEEP_VERDICT: MOLES 43 (new-red 0, gone-green 0, unaudited 43), the
 standing set. The wake's reason now prints from the call site: the
 elbows read "a rail in reach (KINEMATIC_LEDGER)" every stride, the
 shoulders "row dissatisfied", the wrists nothing.
+
+## 2026-09-09 - G-90 THE SLIDING FOOT (owner's eye): three worlds read; the plant must be declared where the foot touched
+
+Owner: "argus the position of the feet against the floor, when they
+touch there's a bit of 'sliding' that is very noticeable." G-90
+registered first; the prover now measures the feet in every run (per
+stance: the slide, its first-8-frame share, the peak speed, the height
+above the support, the foot-anchor separation, the pin's blend; per
+swing: the lift and the overlap frames; touching = a collision event
+with penetration > 0 and a normal within 60 degrees of up, never a
+proximity event; RAILS_FEET=1 prints the rows) and carries two born-red
+lines: a planted foot does not slide over its stance (<= 10 SLOP) and
+stands on its support (<= 2 SLOP).
+
+Measured on one binary, three worlds, the banners read (an env loop had
+set one lever again; the banner caught it; re-run with the levers
+inline):
+- DEFAULT, the shipped path since step 0: the "planted" foot slides
+  0.57-0.65 m per stance at 1.6-1.7 m/s, the hips' own speed; its anchor
+  is 28-36 cm away and never approached; every foot is 5 mm above the
+  support the whole run; the swing lifts 5 mm. A glide: no foot ever
+  plants. The rest snap re-places the foot at its offset from the hips
+  every frame, over the pin. Before step 0 the FK-stamped stance foot
+  was IK-placed at the plant; this is read from the mechanism and the
+  anchor separation, no pre-step-0 A/B binary was built. The sweep is
+  blind to it (no test asserts a planted foot's slide); the Eden window
+  QA owed since 96ff4ba is now urgent.
+- INV40_STEP=2 alone: the foot reaches its anchor (0.29 -> 0.006 m) by
+  a YANK of 0.27 m in the first 8 frames at 7.9 m/s.
+- THE THREE-LEVER WORLD: the same yank, 0.21-0.27 m in the first 8
+  frames at 7.4-8.0 m/s, because the plant target is computed 22-30 cm
+  ahead of where the foot landed (hips + lateral + stride: the stride
+  target and the clip's reach are different data paths, CLAUDE.md's own
+  note); then the stance holds within 3.5-5 cm (G-85's tether creep);
+  the stance foot floats 0.5-2 cm above its support (its plant z is the
+  foot's z at strike, which the swing never brought down); the swing
+  lifts 4.2-4.7 cm and overlaps the floor on 71 of 275 swing frames.
+The owner's "sliding when they touch" is the yank. Three sources
+separated: the pin's engagement dragging a landed foot to a target it
+did not land on; the ankle nail's creep (G-85); the plant's height
+being the foot's, not the floor's.
+
+THE DESIGN ANSWER, for the owner's ruling: the plant is a rail DECLARED
+where the muscle touched. The anchor is born at the foot's contact
+point on its support, never computed from the hips and a stride length;
+then the pin never drags, the foot stands on the floor, and the stride
+is whatever the clip's reach makes it. G-90 stays open until ruled.

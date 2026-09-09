@@ -15,6 +15,9 @@
 //   INTERACTIVE=1 ./build/test_rails_and_muscles_visual   window
 //   RAILS_FRAMES=n ./build/test_rails_and_muscles          a longer run (default RUN_FRAMES): does a residual creep or converge?
 //   RAILS_WAKE=<s> ./build/test_rails_and_muscles          with RAILS_ARMS: wake the six arm bodies at second s (G-89's discriminator)
+//   RAILS_FEET=1 ./build/test_rails_and_muscles            the sliding foot (G-90): per contact episode, a touching foot's slide,
+//                                                          its first-8-frame share (the pin's blend-in), peak slide speed,
+//                                                          foot-anchor separation and the pin's blend at the start and end
 //   RAILS_ARMS=1 ./build/test_rails_and_muscles            the arm swing, per second: the wrists' forward excursion in the
 //                                                          hips frame, the shoulder drives' COMMANDED swing against the arms'
 //                                                          ACTUAL swing (Argus quaternions), the upper arms' spin, the
@@ -82,6 +85,7 @@ int main() {
     const bool diag = std::getenv("RAILS_DIAG") != nullptr;
     const bool arms = std::getenv("RAILS_ARMS") != nullptr;
     if (arms) scene.arms_enable();
+    const bool feet = std::getenv("RAILS_FEET") != nullptr;    // G-90: the rows (the measurement is always on)
     const int replays = std::getenv("RAILS_REPLAY") ? std::max(1, std::atoi(std::getenv("RAILS_REPLAY"))) : 0;   // RAILS_REPLAY=n: n SPACE presses
     const bool replay = replays > 0;
     const int run_frames = std::getenv("RAILS_FRAMES") ? std::max(1, std::atoi(std::getenv("RAILS_FRAMES"))) : RUN_FRAMES;
@@ -94,6 +98,7 @@ int main() {
         const int fr = f % run_frames;                 // frame within the run (the replay restarts at 0)
         scene.step(engine, fr);
         if (arms && scene.arms_observe(engine, f)) std::printf("  %s\n", scene.arms_last_row.c_str());
+        if (feet) { if (!scene.feet_last_row.empty()) std::printf("  %s\n", scene.feet_last_row.c_str()); if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
             const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];
@@ -224,6 +229,7 @@ int main() {
                         scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.reach_over_max, scene.reach_worst.c_str());
         }
     }
+    std::printf("  [measure] %s\n", scene.feet_summary().c_str());
     if (arms) std::printf("  [arms] first second with a wrist swing over 0.10 m: %d; first second with a COMMANDED shoulder swing over 0.10 rad: %d (-1 = never)\n", scene.arms_first_swing_s, scene.arms_first_cmd_s);
     std::printf("\n  [measure] drive children: %zu, of which %d STALE (no joint names them)", scene.muscles.size(), scene.muscles_stale);
     std::printf("\n  [measure] hands on muscles: %d records over %d of %d frames; sites: %s\n",
@@ -253,6 +259,8 @@ int main() {
     check(Scene::declared(scene.replants, scene.replants_declared),   "INV-40/G-83: every replant is DECLARED by its writer (rail.jump)");
     check(Scene::ledger_quiet(scene.replants, scene.replants_ledger_loud),
           std::string("INV-39/INV-11/G-83: the ledger never reads a replant as a velocity") + (ledger ? "" : " [default: no ledger, vacuous]"));
+    check(Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max), "INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)");
+    check(Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max), "INV-40/G-90: a planted foot stands on its support (bottom within 2 SLOP of it)");
 
     std::printf("\n  %s\n", failures == 0 ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40");
     engine.shutdown();

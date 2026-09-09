@@ -237,6 +237,22 @@ dated by one SPACE in `/tmp/rails_and_muscles_proof_arms.log`).
 proof window launched for the owner, unprompted, teed to /tmp, never
 piped, with SPACE replaying the experiment through the teleport door.
 
+**The feet are measured in every run (G-90).** The prover measures each
+foot's stance and swing from the plant state, the contact events
+(touching = penetration > 0, never a proximity event) and the support
+under the foot, and carries two law lines: a planted foot does not
+slide over its stance, and it stands on its support. `RAILS_FEET=1`
+prints the rows. What they read on 2026-09-09: in the default world the
+"planted" foot glides at the hips' speed (the rest snap over the pin),
+in the lever world the landing foot is yanked 22 cm onto a plant target
+computed from the hips and a stride length. The design answer put to
+the owner: the plant is a rail DECLARED where the muscle touched, never
+computed. Before any claim about a gait, read the feet rows; the walk
+gauge is blind to a glide, and so was the sweep. And never loop over
+lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
+zsh hands the program one variable; write each world's command in
+full and read the banner before the numbers.
+
 ## Instrument the INTERACTIONS, not just the outcomes (directive)
 
 **Owner ruling 2026-08-15.** A test that asserts where a body ended up

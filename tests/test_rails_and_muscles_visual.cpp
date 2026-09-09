@@ -60,6 +60,7 @@ int main() {
     scene.build(engine);
     const bool arms = std::getenv("RAILS_ARMS") != nullptr;      // G-89: the arm rows, into this log and onto the panel
     if (arms) scene.arms_enable();
+    const bool feet = std::getenv("RAILS_FEET") != nullptr;      // G-90: the rows into this log and onto the panel (the measurement is always on)
     auto centre = [&](float& cx, float& cy, float& cz) {
         auto v = ps.lock_particles_for_read();
         cx = v[scene.hips].x + B_X * 0.5f; cy = v[scene.hips].y; cz = 1.0f;
@@ -115,9 +116,14 @@ int main() {
     add_assert("INV-40/G-83: every replant is DECLARED (rail.jump)",           [&]{ return Scene::declared(scene.replants, scene.replants_declared); });
     add_assert(std::string("INV-39/G-83: no replant read as a velocity") + (ledger ? "" : " [vacuous by default]"),
                [&]{ return Scene::ledger_quiet(scene.replants, scene.replants_ledger_loud); });
+    add_assert("INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)", [&]{ return Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max); });
+    add_assert("INV-40/G-90: a planted foot stands on its support (within 2 SLOP)",           [&]{ return Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max); });
     auto* l_arms = add_line(engine, 6, 220, 200, 140);
     l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
     if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");
+    auto* l_feet = add_line(engine, 7, 220, 200, 140);
+    l_feet->set_position(PANEL_X, 96 + prow * 22 + 56);
+    if (feet) l_feet->set_text("[feet] RAILS_FEET=1: each contact episode prints when the foot leaves the floor");
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
     l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
     std::printf("\n=== INV-40: rails and muscles (%s) ===\n", interactive ? "WINDOW" : "headless");
@@ -128,6 +134,7 @@ int main() {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
         if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
+        if (live && feet) { if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
