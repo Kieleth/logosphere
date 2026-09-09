@@ -3261,3 +3261,37 @@ bond. The rotation ladder and the tree stages read the same verdicts
 either way. The flip of GLUON_OFFSETS_CW restores the convention
 CLAUDE.md states, costs nothing the sweep can see, and heals a booked
 red: RECOMMENDED; the owner rules.
+
+## 2026-09-09 - FRESH EYES on rails and muscles (owner's ask): two of the six lever-world reds are harnesses with no solver
+
+The owner asked for fresh eyes and for proof windows ("I've not seen any
+proof-tests lately"). Re-read against the physics skill: rule 1 (a window
+for the owner after every round, unprompted) had been dropped since the
+one showcase; "continue in headless mode" was read as "no windows", which
+it is not. The proof window of the flip-candidate world (INV40_STEP=4
+KINEMATIC_LEDGER=1 GLUON_OFFSETS_CW=1) is launched with this entry; both
+prover banners now print the offsets lever so the mode is read back.
+
+Re-read of the flip's cost sheet (the six stages green by default, red
+under the levers): test_humanoid_headless and test_pin_gluon_lifecycle
+never call physics.update() - their own headers say so; they run the
+writer's pre/post passes only. Under INV-40 the writer no longer places a
+muscle, so in those harnesses NOTHING moves a muscle: measured under the
+three levers, the pin harness's foot sits at its birth position on every
+frame while the plant target is 1.571 m north (separation 1.5743 m), and
+the smoke stage's hips rail walks 0.60 m while the abdomen stays
+(hips-abdomen 0.1000 -> 0.7025 m). Both stages measured the hands, and the
+hands are gone. They are not G-85 and were mislabelled "G-85 until read".
+The PHYSICAL cost sheet of the two-lever flip is four stages:
+face_tracks_head 0.223 rad (welds' lag in the turn transient),
+movement_instrumented (47 jitter violations), strata_integrity (foot-shin
+0.31-0.47 m over 190 s of streaming), idle_pose_stability (1.7 cm). The two
+harnesses need either a solver step or a lever-world waiver: owner ruling,
+in chat. Fresh-eyes gaps also named in chat, none acted on: the G-81
+hands line sees only TRACED writers (grep: 25 TRACE sites against ~67 raw
+state writes in humanoid_locomotion.cpp, a rough count) and owes a
+mechanical gate; the prover's attach() is the fifth copy of the solver's
+attachment rule (INV-28's one definition still owed); G-87 has no
+default-world prover of its own (its claim is enforced only under three
+levers plus the grass stage's side effect); step 0's default-world change
+(Eva on live drives after streaming) has had no window since 96ff4ba.

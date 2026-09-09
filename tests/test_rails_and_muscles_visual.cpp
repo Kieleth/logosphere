@@ -5,8 +5,9 @@
 // north on her two rails and twenty muscles. Right: three bodies in the air,
 // one DYNAMIC with the muscles' flags, one KINEMATIC, one driven on a nail.
 // Born red: hands still on the muscles, the flagged box hovers, no jump is
-// declared. ESC or the red X quits. SPACE re-drops the boxes and restarts
-// the counts (Eva keeps walking). Z zooms.
+// declared. The run is RUN_FRAMES long and then holds on its verdict. ESC
+// or the red X quits. SPACE replays: Eva returns to the start through the
+// teleport door, the boxes re-drop, every count restarts. Z zooms.
 // =============================================================================
 #include "core/engine.h"
 #include "scenes/scene_rails_and_muscles.h"
@@ -66,6 +67,10 @@ int main() {
     float ppu = 80.0f;
     cam.set_pixels_per_unit(ppu);
     make_lamps(ps, cx, cy, cz);
+    // Streaming swaps particle indices; the lamps were born last, so they
+    // are the first to be moved. Without this they stay behind and she
+    // walks out of their light.
+    ps.add_swap_callback([](size_t o, size_t n) { if (lamp_a == (int)o) lamp_a = (int)n; if (lamp_b == (int)o) lamp_b = (int)n; });
     const int PANEL_X = 560;
     const int base_y = cfg.window_height - 120;
     auto* l_a = add_line(engine, 0, 255, 190, 110);
@@ -80,8 +85,13 @@ int main() {
     auto* l_demo2 = add_line(engine, 5, 190, 220, 255);
     l_demo2->set_position(PANEL_X, 62);
     {
-        std::string mode = std::string("INV40_STEP=") + std::to_string(Scene::inv40_step()) + (ledger ? ", KINEMATIC_LEDGER=1" : ", default ledger");
-        mode += Scene::inv40_step() >= 2 ? ": the shape pass keeps its hands off the muscles." : ": today's hands are on every muscle every frame.";
+        std::string mode = std::string("INV40_STEP=") + std::to_string(Scene::inv40_step()) + (ledger ? ", KINEMATIC_LEDGER=1" : ", default ledger")
+                         + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)");
+        const int st = Scene::inv40_step();
+        mode += st >= 4 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground."
+              : st >= 3 ? ": no hand on any muscle; the harness reads the ground."
+              : st >= 2 ? ": the shape pass keeps its hands off the muscles."
+              :           ": today's hands are on every muscle every frame.";
         l_demo2->set_text(mode);
     }
     struct LiveAssert { ui::Label* label; std::string text; std::function<bool()> eval; };
@@ -106,12 +116,13 @@ int main() {
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
     l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
     std::printf("\n=== INV-40: rails and muscles (%s) ===\n", interactive ? "WINDOW" : "headless");
-    if (interactive) std::printf("  ESC or the red X quits.  SPACE re-drops the boxes and restarts the counts.  Z zooms in.\n\n");
+    if (interactive) std::printf("  ESC or the red X quits.  SPACE replays the run (Eva back to the start through the teleport door).  Z zooms in.\n\n");
     bool space_was_down = false, z_was_down = false, quit = false;
     int frame = 0; char buf[256];
     while (interactive ? (!quit && engine.should_continue()) : (frame < RUN_FRAMES)) {
         const auto t0 = std::chrono::steady_clock::now();
-        scene.step(engine, frame);
+        const bool live = frame < RUN_FRAMES;
+        if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
         move_lamps(ps, cx, cy, cz);
@@ -130,7 +141,7 @@ int main() {
             a.label->set_text((ok ? "[V] " : "[X] ") + a.text);
             if (ok) a.label->set_color(120, 230, 140); else a.label->set_color(255, 120, 120);
         }
-        std::snprintf(buf, sizeof(buf), "ASSERTS %d/%zu passing", passing, panel.size());
+        std::snprintf(buf, sizeof(buf), live ? "ASSERTS %d/%zu passing  (frame %d of %d)" : "ASSERTS %d/%zu passing  RUN COMPLETE (%d of %d frames) - SPACE replays", passing, panel.size(), frame, RUN_FRAMES);
         l_verdict->set_text(buf);
         l_verdict->set_color(passing == (int)panel.size() ? 120 : 255, passing == (int)panel.size() ? 230 : 120, 120);
         engine.render();
@@ -150,7 +161,7 @@ int main() {
             }
             std::this_thread::sleep_until(t0 + std::chrono::microseconds(16667));
         }
-        ++frame;
+        if (live) ++frame;
     }
     int passing = 0;
     for (auto& a : panel) if (a.eval()) ++passing;

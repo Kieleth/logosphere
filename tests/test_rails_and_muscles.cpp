@@ -56,7 +56,8 @@ void check(bool ok, const std::string& what) {
 int main() {
     setvbuf(stdout, nullptr, _IOLBF, 0);
     const bool ledger = std::getenv("KINEMATIC_LEDGER") != nullptr;
-    std::printf("\n=== rails and muscles (INV-40) %s INV40_STEP=%d ===\n", ledger ? "[KINEMATIC_LEDGER=1]" : "[default]", Scene::inv40_step());
+    std::printf("\n=== rails and muscles (INV-40) %s INV40_STEP=%d%s ===\n", ledger ? "[KINEMATIC_LEDGER=1]" : "[default]", Scene::inv40_step(),
+                std::getenv("GLUON_OFFSETS_CW") ? " GLUON_OFFSETS_CW=1" : " offsets-anticlockwise(legacy)");
     Engine engine;
     EngineConfig cfg;
     cfg.create_display = false;

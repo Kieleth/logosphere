@@ -98,6 +98,7 @@ struct Scene {
     std::map<std::string, int> rail_hands;          // sites on the hips rail (narrated, waived)
     int   replants = 0, replants_declared = 0, replants_ledger_loud = 0;
     float replant_ledger_speed_max = 0.0f;
+    float origin_x = 0, origin_y = 0;                // where the run starts; SPACE returns her here
     float hx0 = 0, hy0 = 0, fx = 0, fy = 1, forward = 0, prev_forward = 0;
     int   backward_frames = 0, walk_frames = 0;
     // station B, latched
@@ -323,6 +324,7 @@ struct Scene {
         {
             auto v = ps.lock_particles_for_read();
             hx0 = v[hips].x; hy0 = v[hips].y;
+            origin_x = hx0; origin_y = hy0;
             fx = std::sin(v[hips].rotation_z); fy = std::cos(v[hips].rotation_z);
         }
         // Diagnostic stagings (env, never the shipped claim): RAILS_IDLE=1
@@ -467,13 +469,23 @@ struct Scene {
         }
     }
 
-    // SPACE: re-drop the boxes and restart every count. Eva keeps walking
-    // (her rig cannot be re-registered cheaply); the hint line says so.
+    // SPACE: the run replays. Eva returns to where she started through the
+    // teleport door (every rig body and both anchors shifted rigidly, then
+    // reset_humanoid_position declares the jump: the rails void their
+    // history, every body is forgotten by the solver), her walk is commanded
+    // again, the boxes re-drop, every count restarts.
     void rearm(Engine& engine) {
         auto& ps = engine.get_particle_system();
         auto& physics = engine.get_physics_system();
+        auto& humanoid = engine.get_humanoid_locomotion();
         {
             auto v = ps.lock_particles_for_write();
+            const float dx = origin_x - v[hips].x, dy = origin_y - v[hips].y;
+            for (int id : rig) { v[id].x += dx; v[id].y += dy; }
+            for (auto& [id, eye] : eyes) {
+                v[id].x += dx; v[id].y += dy;
+                eye.x = v[id].x; eye.y = v[id].y; eye.z = v[id].z; eye.check_frames = 0; eye.loud = false;
+            }
             auto reset = [&](int id, float x, float y, float z) {
                 Particle& p = v[id]; p.x = x; p.y = y; p.z = z;
                 p.vx = p.vy = p.vz = 0.0f; p.omega_x = p.omega_y = p.omega_z = 0.0f;
@@ -484,10 +496,11 @@ struct Scene {
             reset(box_a, B_X, 0.0f, DROP_Z);
             reset(arm, B_X + 2.5f + POST * 0.5f + ARM_L * 0.5f, 0.0f, POST_Z);
         }
+        humanoid.reset_humanoid_position(hips);        // the door (INV-40 / G-83)
+        if (!std::getenv("RAILS_IDLE")) humanoid.set_body_relative_velocity(hips, WALK_SPEED, 0.0f);
         physics.forget_body((size_t)box_a); physics.forget_body((size_t)arm);
         hands.clear(); rail_hands.clear(); hand_records = 0; frames_with_hands = 0;
         replants = 0; replants_declared = 0; replants_ledger_loud = 0; replant_ledger_speed_max = 0.0f;
-        for (auto& [id, eye] : eyes) { eye.check_frames = 0; eye.loud = false; }
         a_drop_max = 0; b_drift_max = 0; arm_err_max = 0; arm_sep0 = -1.0f; arm_sep_drift_max = 0;
         {
             auto v = ps.lock_particles_for_read();
