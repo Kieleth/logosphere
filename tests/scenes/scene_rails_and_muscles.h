@@ -511,6 +511,119 @@ struct Scene {
         argus.reset_milestones(box_a); argus.reset_milestones(arm);
     }
 
+    // ---- THE ARM SWING (G-89), through Argus; both drivers print the rows ----
+    // Per side: the wrist's forward excursion in the hips frame, the shoulder
+    // drive's commanded swing against the actual bridge->upper-arm angle, the
+    // absolute turning of the upper arm and of the bridge within the window,
+    // the upper arm's spin, the wrist's speed, the elbow->wrist drive's error,
+    // and the frames each of shoulder / elbow / wrist spent asleep (INV-18).
+    // A window is one second (60 frames); "when does the swing start" is read
+    // off the rows. RAILS_ARMS=1 enables it; RAILS_WAKE=<s> wakes the six arm
+    // bodies at that second (the discriminator).
+    struct ArmEyes { int bridge = -1, shoulder = -1, elbow = -1, wrist = -1; };
+    struct ArmWin {
+        float fwd_min = 1e9f, fwd_max = -1e9f, cmd_min = 1e9f, cmd_max = -1e9f, act_min = 1e9f, act_max = -1e9f;
+        float spin_sum = 0, gap_max = 0, sh_turn = 0, br_turn = 0, wrist_speed_max = 0, wrist_cmd_err_max = 0;
+        int n = 0, asleep_frames[3] = {0, 0, 0};
+        logosphere::Quat q0_sh, q0_br; bool q0_set = false;
+        void reset() { *this = ArmWin{}; }
+    };
+    bool arms_on = false;
+    ArmEyes arm_l, arm_r;
+    ArmWin win_l, win_r;
+    std::string arms_last_row;                      // the latest completed second, for the panel
+    int arms_first_swing_s = -1, arms_first_cmd_s = -1;
+
+    void arms_enable() {
+        arms_on = true;
+        std::map<std::string, int> by_name;
+        for (const auto& [id, nm] : names) by_name[nm] = id;
+        auto pick = [&](ArmEyes& a, const char* side) {
+            auto get = [&](const std::string& k) { auto it = by_name.find(k); return it == by_name.end() ? -1 : it->second; };
+            a.bridge = get(std::string(side) + "_shoulder_bridge"); a.shoulder = get(std::string(side) + "_shoulder");
+            a.elbow = get(std::string(side) + "_elbow"); a.wrist = get(std::string(side) + "_wrist");
+            for (int id : {a.bridge, a.shoulder, a.elbow, a.wrist}) if (id >= 0) argus.watch(id, std::string(side) + "/arm" + std::to_string(id));
+        };
+        pick(arm_l, "left"); pick(arm_r, "right");
+        std::printf("  [arms] cast: L bridge P%d shoulder P%d elbow P%d wrist P%d | R bridge P%d shoulder P%d elbow P%d wrist P%d\n",
+                    arm_l.bridge, arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.bridge, arm_r.shoulder, arm_r.elbow, arm_r.wrist);
+    }
+    static float qangle(const logosphere::Quat& q) { float c = std::fabs(q.w); if (c > 1.0f) c = 1.0f; return 2.0f * std::acos(c); }
+    void arm_observe(Engine& engine, ArmEyes& a, ArmWin& w) {
+        if (a.wrist < 0 || a.shoulder < 0 || a.bridge < 0) return;
+        const auto* H = argus.latest(hips); const auto* W = argus.latest(a.wrist);
+        const auto* S = argus.latest(a.shoulder); const auto* B = argus.latest(a.bridge);
+        if (!H || !W || !S || !B) return;
+        const float fwd = (W->x - H->x) * fx + (W->y - H->y) * fy;                  // the wrist, forward of the hips
+        w.fwd_min = std::min(w.fwd_min, fwd); w.fwd_max = std::max(w.fwd_max, fwd);
+        const float act = qangle((B->q.conjugate() * S->q).normalized());          // actual bridge->upper arm relative angle
+        w.act_min = std::min(w.act_min, act); w.act_max = std::max(w.act_max, act);
+        auto& physics = engine.get_physics_system();
+        auto v = engine.get_particle_system().lock_particles_for_read();
+        float cmd = -1.0f, gap = 0.0f;
+        for (const GluonConstraintBase* g : physics.get_gluons_for_particle((size_t)a.shoulder)) {
+            if (!g) continue;
+            const int other = (int)(g->particle_a == (size_t)a.shoulder ? g->particle_b : g->particle_a);
+            if (other != a.bridge) continue;
+            if (const auto* nail = dynamic_cast<const NailGluon*>(g)) if (nail->use_quat_target) cmd = qangle(nail->target_relative_q);
+            float ax, ay, az, bx, by, bz;
+            attach(v[g->particle_a], g->offset_a, g->rotate_offsets, ax, ay, az);
+            attach(v[g->particle_b], g->offset_b, g->rotate_offsets, bx, by, bz);
+            gap = std::fabs(std::sqrt((bx-ax)*(bx-ax) + (by-ay)*(by-ay) + (bz-az)*(bz-az)) - g->target_distance);
+        }
+        if (cmd >= 0.0f) { w.cmd_min = std::min(w.cmd_min, cmd); w.cmd_max = std::max(w.cmd_max, cmd); }
+        w.gap_max = std::max(w.gap_max, gap);
+        int k = 0;
+        for (int id : {a.shoulder, a.elbow, a.wrist}) { if (id >= 0 && v[id].is_at_rest) ++w.asleep_frames[k]; ++k; }
+        w.spin_sum += argus.spin(a.shoulder); ++w.n;
+        if (!w.q0_set) { w.q0_sh = S->q; w.q0_br = B->q; w.q0_set = true; }
+        w.sh_turn = std::max(w.sh_turn, qangle((w.q0_sh.conjugate() * S->q).normalized()));
+        w.br_turn = std::max(w.br_turn, qangle((w.q0_br.conjugate() * B->q).normalized()));
+        w.wrist_speed_max = std::max(w.wrist_speed_max, std::sqrt(W->vx * W->vx + W->vy * W->vy + W->vz * W->vz));
+        if (a.elbow >= 0) if (const auto* E = argus.latest(a.elbow)) {
+            for (const GluonConstraintBase* g : physics.get_gluons_for_particle((size_t)a.wrist)) {
+                if (!g) continue;
+                const int other = (int)(g->particle_a == (size_t)a.wrist ? g->particle_b : g->particle_a);
+                if (other != a.elbow) continue;
+                if (const auto* nail = dynamic_cast<const NailGluon*>(g)) if (nail->use_quat_target) {
+                    const bool fwdp = g->particle_a == (size_t)a.elbow;
+                    const logosphere::Quat rel = fwdp ? (E->q.conjugate() * W->q).normalized() : (W->q.conjugate() * E->q).normalized();
+                    w.wrist_cmd_err_max = std::max(w.wrist_cmd_err_max, qangle((nail->target_relative_q.conjugate() * rel).normalized()));
+                }
+            }
+        }
+    }
+    // Call after step() every frame when arms_on. Returns true when a second
+    // completed and arms_last_row holds its row.
+    bool arms_observe(Engine& engine, int f) {
+        if (!arms_on) return false;
+        static const int wake_s = std::getenv("RAILS_WAKE") ? std::atoi(std::getenv("RAILS_WAKE")) : -1;
+        if (wake_s >= 0 && f == wake_s * 60) {
+            auto& physics = engine.get_physics_system();
+            for (int id : {arm_l.shoulder, arm_l.elbow, arm_l.wrist, arm_r.shoulder, arm_r.elbow, arm_r.wrist}) if (id >= 0) physics.wake_particle((size_t)id);
+            std::printf("  [arms] WOKE the six arm bodies at second %d (G-89)\n", wake_s);
+        }
+        arm_observe(engine, arm_l, win_l); arm_observe(engine, arm_r, win_r);
+        if (f % 60 != 59) return false;
+        const int sec = f / 60;
+        auto amp = [](float lo, float hi) { return hi < lo ? 0.0f : hi - lo; };
+        const float lamp = amp(win_l.fwd_min, win_l.fwd_max), ramp = amp(win_r.fwd_min, win_r.fwd_max);
+        if (arms_first_swing_s < 0 && std::max(lamp, ramp) > 0.10f) arms_first_swing_s = sec;
+        const float lcmd = amp(win_l.cmd_min, win_l.cmd_max), rcmd = amp(win_r.cmd_min, win_r.cmd_max);
+        if (arms_first_cmd_s < 0 && std::max(lcmd, rcmd) > 0.10f) arms_first_cmd_s = sec;
+        char row[640];
+        std::snprintf(row, sizeof(row),
+            "[arms s%2d] L wrist fwd %+.3f..%+.3f amp %.3f | cmd amp %.3f actual amp %.3f spin %.2f rad/s gap %.3f asleep s/e/w %d/%d/%d turn sh %.2f br %.2f wrist v %.2f err %.2f"
+            " || R wrist fwd %+.3f..%+.3f amp %.3f | cmd amp %.3f actual amp %.3f spin %.2f rad/s gap %.3f asleep s/e/w %d/%d/%d turn sh %.2f br %.2f wrist v %.2f err %.2f",
+            sec, win_l.fwd_min, win_l.fwd_max, lamp, lcmd, amp(win_l.act_min, win_l.act_max), win_l.n ? win_l.spin_sum / win_l.n : 0.0f, win_l.gap_max,
+            win_l.asleep_frames[0], win_l.asleep_frames[1], win_l.asleep_frames[2], win_l.sh_turn, win_l.br_turn, win_l.wrist_speed_max, win_l.wrist_cmd_err_max,
+            win_r.fwd_min, win_r.fwd_max, ramp, rcmd, amp(win_r.act_min, win_r.act_max), win_r.n ? win_r.spin_sum / win_r.n : 0.0f, win_r.gap_max,
+            win_r.asleep_frames[0], win_r.asleep_frames[1], win_r.asleep_frames[2], win_r.sh_turn, win_r.br_turn, win_r.wrist_speed_max, win_r.wrist_cmd_err_max);
+        arms_last_row = row;
+        win_l.reset(); win_r.reset();
+        return true;
+    }
+
     // The worst nails, for the log: name, max gap, onset frame.
     std::string nails_summary(int max_n = 5) const {
         std::vector<std::pair<float, std::string>> v;

@@ -14,6 +14,12 @@
 //   KINEMATIC_LEDGER=1 ./build/test_rails_and_muscles     the G-83 ledger half
 //   INTERACTIVE=1 ./build/test_rails_and_muscles_visual   window
 //   RAILS_FRAMES=n ./build/test_rails_and_muscles          a longer run (default RUN_FRAMES): does a residual creep or converge?
+//   RAILS_WAKE=<s> ./build/test_rails_and_muscles          with RAILS_ARMS: wake the six arm bodies at second s (G-89's discriminator)
+//   RAILS_ARMS=1 ./build/test_rails_and_muscles            the arm swing, per second: the wrists' forward excursion in the
+//                                                          hips frame, the shoulder drives' COMMANDED swing against the arms'
+//                                                          ACTUAL swing (Argus quaternions), the upper arms' spin, the
+//                                                          shoulder nails' gap (owner, 2026-09-09: 'Eva starts without
+//                                                          swinging her arms... after 10-15 she naturally starts')
 //   RAILS_REPLAY=n ./build/test_rails_and_muscles          the window's SPACE, headless, n times: after each
 //                                                          RUN_FRAMES the scene re-arms through the teleport
 //                                                          door and runs again; the asserts read the LAST replay
@@ -74,6 +80,8 @@ int main() {
     std::printf("  cast: %zu muscles (drive children), hips P%d as the rail; station B at x=%.1f\n",
                 scene.muscles.size(), scene.hips, B_X);
     const bool diag = std::getenv("RAILS_DIAG") != nullptr;
+    const bool arms = std::getenv("RAILS_ARMS") != nullptr;
+    if (arms) scene.arms_enable();
     const int replays = std::getenv("RAILS_REPLAY") ? std::max(1, std::atoi(std::getenv("RAILS_REPLAY"))) : 0;   // RAILS_REPLAY=n: n SPACE presses
     const bool replay = replays > 0;
     const int run_frames = std::getenv("RAILS_FRAMES") ? std::max(1, std::atoi(std::getenv("RAILS_FRAMES"))) : RUN_FRAMES;
@@ -85,6 +93,7 @@ int main() {
         }
         const int fr = f % run_frames;                 // frame within the run (the replay restarts at 0)
         scene.step(engine, fr);
+        if (arms && scene.arms_observe(engine, f)) std::printf("  %s\n", scene.arms_last_row.c_str());
         if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
             const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];
@@ -215,6 +224,7 @@ int main() {
                         scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.reach_over_max, scene.reach_worst.c_str());
         }
     }
+    if (arms) std::printf("  [arms] first second with a wrist swing over 0.10 m: %d; first second with a COMMANDED shoulder swing over 0.10 rad: %d (-1 = never)\n", scene.arms_first_swing_s, scene.arms_first_cmd_s);
     std::printf("\n  [measure] drive children: %zu, of which %d STALE (no joint names them)", scene.muscles.size(), scene.muscles_stale);
     std::printf("\n  [measure] hands on muscles: %d records over %d of %d frames; sites: %s\n",
                 scene.hand_records, scene.frames_with_hands, run_frames, scene.hands_summary(8).c_str());

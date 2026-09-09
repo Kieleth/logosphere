@@ -58,6 +58,8 @@ int main() {
     auto& cam = engine.get_camera_system();
     Scene scene;
     scene.build(engine);
+    const bool arms = std::getenv("RAILS_ARMS") != nullptr;      // G-89: the arm rows, into this log and onto the panel
+    if (arms) scene.arms_enable();
     auto centre = [&](float& cx, float& cy, float& cz) {
         auto v = ps.lock_particles_for_read();
         cx = v[scene.hips].x + B_X * 0.5f; cy = v[scene.hips].y; cz = 1.0f;
@@ -113,6 +115,9 @@ int main() {
     add_assert("INV-40/G-83: every replant is DECLARED (rail.jump)",           [&]{ return Scene::declared(scene.replants, scene.replants_declared); });
     add_assert(std::string("INV-39/G-83: no replant read as a velocity") + (ledger ? "" : " [vacuous by default]"),
                [&]{ return Scene::ledger_quiet(scene.replants, scene.replants_ledger_loud); });
+    auto* l_arms = add_line(engine, 6, 220, 200, 140);
+    l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
+    if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
     l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
     std::printf("\n=== INV-40: rails and muscles (%s) ===\n", interactive ? "WINDOW" : "headless");
@@ -123,6 +128,7 @@ int main() {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
         if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
+        if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
         move_lamps(ps, cx, cy, cz);

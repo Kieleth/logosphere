@@ -3358,3 +3358,48 @@ foot_planting fail as booked; primitives skip); test_humanoid_headless
 and test_pin_gluon_lifecycle pass by default as before (their lever-world
 reds are the no-solver harnesses read this morning). The three registries
 had lost their trailing newline in the morning's record edits; restored.
+
+## 2026-09-09 - THE ARM SWING (owner's eye): read with Argus, G-89 registered; the bridge steals the command
+
+Owner: "Eva starts without swinging her arms, which is extremely unnatural
+for humanoids... but then after 10-15 she naturally starts to swing them,
+can you please start working headless mode and catch this and why with
+argus?" RAILS_ARMS=1 prints, per second, each wrist's forward excursion
+in the hips frame, the shoulder drive's commanded swing against the
+actual bridge->arm angle, the absolute turning of the upper arm and of
+the bridge, the upper arm's spin, the wrist's speed, the elbow->wrist
+drive's error and the frames each arm body spent asleep.
+
+Lever world (INV40_STEP=4 KINEMATIC_LEDGER=1 GLUON_OFFSETS_CW=1), 60 s,
+every second the same: the clip commands 0.35 rad (arm_shoulder_flex,
+contralateral, from the first stride); the wrist's excursion is 8 cm
+about -0.10 m (the hands hang behind the hips); the upper arm turns
+0.04-0.08 rad per second-window while the shoulder BRIDGE turns
+0.22-0.42; the wrist is asleep 60 of 60 frames with speed exactly 0.00
+(dragged by position projection, its velocity absorbed by the cache),
+the elbow 6 of 60, the shoulder awake with spin 0.00. Two teleport
+replays change nothing (forget_body does not wake). Default world: the
+wrist's forward offset is exactly 0.000 for 30 s - the snap hand holds
+the hands at their rest pose while the upper arms rotate in place: rigid
+arms by a different mechanism.
+
+G-89 (the sleeping muscle) registered before the experiment, with a
+prediction that could come out either way. RAILS_WAKE=6: waking the six
+arm bodies moves the hang point in front of the hips (+0.00..+0.07) and
+they stay awake, but the excursion settles at 5.5-6.8 cm - no swing. So
+the sleep pins WHERE the arm hangs; the missing swing is INV-13's
+two_joints family: the shoulder's drive sits between a light bridge and
+a heavy arm and turns the bridge (0.3-0.4 rad) while the arm barely
+moves, exactly test_physics_drive_arm_chain's 0.152 of 0.524. The
+bounded drive is not this defect's answer; the drives' convergence on a
+light intermediate bone is (the joint block solver branch is the
+candidate; owner ruling). G-89 stays open as the law gap it names: the
+judge reads position rows and quietness, never a drive's target error.
+
+The onset at 10-15 s is NOT reproduced headless (60 s, replays). The
+window has what headless lacks: the interactive engine streams chunks
+from an observer ~170 m out (11 empty far chunks, a 225-particle flush
+at frame 38), untied to the arms so far. The arm rows move into the
+shared scene so the window's log dates the onset at the owner's next
+viewing; the owner is asked whether the swing began before or after a
+SPACE.
