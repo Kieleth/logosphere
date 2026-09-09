@@ -164,7 +164,8 @@ int main() {
         if (live) ++frame;
     }
     int passing = 0;
-    for (auto& a : panel) if (a.eval()) ++passing;
+    for (auto& a : panel) { const bool ok = a.eval(); if (ok) ++passing; std::printf("  %s %s\n", ok ? "[V]" : "[X]", a.text.c_str()); }
+    std::printf("  [measure] frame %d of %d%s\n", frame, RUN_FRAMES, frame < RUN_FRAMES ? " (closed mid-run)" : "");
     std::printf("  [measure] hands %d records; walk %.3f m; replants %d/%d declared; A drop %.3f; arm err %.4f\n",
                 scene.hand_records, scene.forward, scene.replants_declared, scene.replants, scene.a_drop_max, scene.arm_err_max);
     std::printf("\n  %s (%d/%zu)\n", passing == (int)panel.size() ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40", passing, panel.size());

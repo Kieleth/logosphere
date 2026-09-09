@@ -40,7 +40,7 @@ namespace logosphere::animation {
 //   >= 2  the shape pass keeps its placement hands off the drive
 //         children (entity translate, rest snap, angular integrate)
 //   >= 3  the velocity and ground hands come off them too (velocity
-//         broadcast, ground correction, vz zeroing)
+//         broadcast, ground correction, vz zeroing, the obstacle push)
 //   >= 4  gravity keyed on solver_mode alone (physics_system_v4.cpp)
 // Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
 static int inv40_step() {
@@ -50,7 +50,7 @@ static int inv40_step() {
     }();
     return v;
 }
-// Attribution only: INV40_KEEP=broadcast,ground,vz puts one of step 3's
+// Attribution only: INV40_KEEP=broadcast,ground,vz,gravity,push puts one of step 3's
 // hands back so a change can be blamed on one hand at a time.
 static bool inv40_keep(const char* hand) {
     static const std::string keep = [] {
@@ -1967,6 +1967,25 @@ void HumanoidLocomotion::unregister_humanoid(int hips_id) {
 // memory of it (forget_body: warm starts, contacts), and the walk cycle's
 // own position tracking restarts. Without this, INV-39's derivation read
 // a between-cases reset as 412 m/s (test_eva_movement under both levers).
+// A plant is the writer's promise that a foot stands HERE (G-83). Releasing
+// it disengages the live pin (the gluon is the engage switch; the anchor
+// persists) and clears the plant state, so the next heel strike commits a
+// fresh plant under wherever the rig is now. Shared by the walk-to-idle
+// edge's siblings: set_foot_planting and the teleport door (G-88).
+static void release_plant(HumanoidParts& parts) {
+    if (parts.plant_anchor_particle_id >= 0) {
+        HumanoidParts::PinGluonOp op;
+        op.kind = HumanoidParts::PinGluonOp::DISENGAGE;
+        op.release_anchor_id = parts.plant_anchor_particle_id;
+        parts.pending_pin_ops.push_back(op);
+        parts.plant_anchor_particle_id = -1;
+    }
+    parts.has_planted_foot = false;
+    parts.plant_blend = 0.0f;
+    parts.plant_step_count = 0;
+    parts.prev_walk_phase_half = -1.0f;
+}
+
 void HumanoidLocomotion::reset_humanoid_position(int hips_id) {
     if (!impl_->initialized) return;
     auto& dyn = impl_->get_dynamics_system();
@@ -1996,6 +2015,12 @@ void HumanoidLocomotion::reset_humanoid_position(int hips_id) {
         for (unsigned int pid : parts.all_particle_indices) physics.forget_body(pid);
         if (parts.left_plant_anchor_id >= 0)  physics.forget_body(static_cast<size_t>(parts.left_plant_anchor_id));
         if (parts.right_plant_anchor_id >= 0) physics.forget_body(static_cast<size_t>(parts.right_plant_anchor_id));
+        // G-88: a teleport voids every promise of place the writer made. The
+        // plant target and the engaged pin are retired here, not moved; a
+        // stale plant left the stance leg's drives pulling toward a target
+        // five metres away while the pin held the foot (right ankle nail
+        // 0.118 -> 0.851 m on the first replay, measured 2026-09-09).
+        release_plant(parts);
         return;
     }
 }
@@ -3564,17 +3589,7 @@ void HumanoidLocomotion::set_foot_planting(int hips_id, bool enabled) {
             parts.foot_planting_enabled = enabled;
             // Release a live pin: leaving the gluon wired while plant
             // state is reset would orphan a hard constraint on the foot.
-            if (parts.plant_anchor_particle_id >= 0) {
-                HumanoidParts::PinGluonOp op;
-                op.kind = HumanoidParts::PinGluonOp::DISENGAGE;
-                op.release_anchor_id = parts.plant_anchor_particle_id;
-                parts.pending_pin_ops.push_back(op);
-                parts.plant_anchor_particle_id = -1;
-            }
-            parts.has_planted_foot = false;
-            parts.plant_blend = 0.0f;
-            parts.plant_step_count = 0;
-            parts.prev_walk_phase_half = -1.0f;
+            release_plant(parts);
             std::cout << "[Dynamics] Foot planting " << (enabled ? "enabled" : "disabled")
                       << " for hips=" << hips_id << std::endl;
             return;
@@ -6102,16 +6117,37 @@ void HumanoidLocomotion::handle_collision_events(
 
         // Apply uniform push to all entity particles
         // Also zero velocity component toward obstacle to prevent walking through
+        //
+        // INV-40 / G-88: the eighth hand, found untraced. At INV40_STEP>=3 it
+        // is off: the muscles' contacts are the solver's and the rows carry
+        // them with the rail; what a push means to the harness is its
+        // writer's policy, owed to step 5 (the refused-momentum book).
+        // INV40_KEEP=push puts it back for attribution. Every write is
+        // traced (shape.obstacle_push).
+        // Measured 2026-09-09 (RAILS_REPLAY=3): with the muscles skipped and
+        // the rail still shoved (26 mm per frame for two frames when a foot
+        // clips a tile seam after a teleport), the rows yank every muscle
+        // and the arms swing wider after each replay (right wrist 0.245 m
+        // beyond its standing reach). The rail is a trajectory; a foot's
+        // contact is the solver's. Off the whole rig at step 3.
+        auto& push_tracer = impl_->get_particle_tracer();
+        if (inv40_step() >= 3 && !inv40_keep("push")) continue;
         for (unsigned int pid : parts.all_particle_indices) {
+            const float ox = particles[pid].x, oy = particles[pid].y;
             particles[pid].x += dx;
             particles[pid].y += dy;
+            TRACE_WRITE(push_tracer, static_cast<int>(pid), "shape.obstacle_push", "x", ox, particles[pid].x);
+            TRACE_WRITE(push_tracer, static_cast<int>(pid), "shape.obstacle_push", "y", oy, particles[pid].y);
 
             // Zero velocity component toward obstacle
             // If normal points away from obstacle, dot(velocity, -normal) is velocity toward obstacle
             float v_toward = particles[pid].vx * (-normal_x) + particles[pid].vy * (-normal_y);
             if (v_toward > 0) {  // Moving toward obstacle
+                const float ovx = particles[pid].vx, ovy = particles[pid].vy;
                 particles[pid].vx += normal_x * v_toward;
                 particles[pid].vy += normal_y * v_toward;
+                TRACE_WRITE(push_tracer, static_cast<int>(pid), "shape.obstacle_push", "vx", ovx, particles[pid].vx);
+                TRACE_WRITE(push_tracer, static_cast<int>(pid), "shape.obstacle_push", "vy", ovy, particles[pid].vy);
             }
         }
     }

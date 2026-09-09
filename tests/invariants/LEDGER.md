@@ -3295,3 +3295,54 @@ attachment rule (INV-28's one definition still owed); G-87 has no
 default-world prover of its own (its claim is enforced only under three
 levers plus the grass stage's side effect); step 0's default-world change
 (Eva on live drives after streaming) has had no window since 96ff4ba.
+
+## 2026-09-09 - THE WINDOW'S SPACE: a bad reset read to two causes (G-88); the eighth hand
+
+The owner's three windows in one afternoon, in their words: "Eva just walks
+into the black... SPACE does nothing"; "every time I pressed space, the game
+was slower and slower and doing weirder and weirder things, which is
+probably a sign of a bad reset"; "starts good and then arms start to swing
+and swing and swwwwwinnnnggg after each space". Each report was right, and
+each was measured before it was fixed.
+
+Driver defects: the lamps were born last and streaming's swap-with-last
+moved them on the first chunk unload (she walked out of their light); SPACE
+only re-dropped the boxes. Now the lamps follow swaps, the run holds on
+its verdict at RUN_FRAMES and SPACE replays it through the teleport door.
+RAILS_REPLAY=n is SPACE's headless twin (G-88's setup); RAILS_FRAMES=n a
+longer run; the window prints its panel line by line at close.
+
+The reset, first cause: the door (reset_humanoid_position) declared the
+jump on every body but left the writer's plant target five metres behind,
+so the stance leg's drives pulled toward the old plant while the pin held
+the foot: right ankle nail 0.118 -> 0.851 m within 29 frames of the first
+replay, 1.355 after the second, the body not whole after the third. The
+door now releases the plant (release_plant, shared with set_foot_planting):
+a teleport voids every promise of place the writer made.
+
+Second cause, found by the probe after the first was gone: a residual grew
+per replay (left wrist 0.064 m beyond reach after three) that a 1200-frame
+uninterrupted run does not have. At frames 3-4 of the third replay the
+hips rail moved 43 mm per frame with its velocity reading zero while every
+TRACED writer had written +17 mm and 1 m/s: an untraced hand.
+handle_collision_events shoves the whole rig, rail included, by any
+contact's penetration along its normal and zeroes the velocity toward the
+obstacle, for every collision event against a body >= 0.2 m; a foot
+clipping a tile seam after the teleport fired it. Traced as
+shape.obstacle_push it turns out to write every muscle every frame in the
+default world (67,600 records per 300 frames, zero displacement on floor
+contacts): the largest hand by count, invisible to the G-81 line until
+today, which is the completeness gap named this morning with its first
+victim. Off the muscles alone was not enough (the rail's 26 mm shove
+yanked the rows: right wrist 0.245 m beyond reach in one replay); off the
+whole rig at INV40_STEP>=3 (INV40_KEEP=push restores it), three replays
+read the base run: walk 5.000 m, worst nail 0.118 (the shoulder bridge,
+G-85), body whole, hands 0, the hips at 1 m/s through frames 3-4. The
+harness's answer to a push is step 5's (the refused-momentum book).
+Default world unchanged to the millimetre (walk 4.839, knee nail 0.1503 at
+frame 75); the six tests that call the door read their audited verdicts
+(eva_movement, divergence_microscope pass; layering, bilateral,
+foot_planting fail as booked; primitives skip). Sweep alone owed once the
+owner's window is closed. "Slower and slower" is attributed, not
+measured: the window's physics went 12 -> 100 ms per frame on a constant
+2437 particles while the rig tore; no headless number was taken.

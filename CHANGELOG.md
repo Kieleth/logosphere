@@ -7,7 +7,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 
 ## [Unreleased]
 
+### Fixed
+- **A humanoid teleport releases its plant.** `HumanoidLocomotion::reset_humanoid_position` now disengages the live foot pin and clears the plant state, so a rig moved in one frame does not keep a stance leg driving toward a plant target left behind (measured: the ankle nail opening 0.85 m on the first replay of the INV-40 prover's window). The next heel strike plants under the new position.
+
 ### Added
+- **`shape.obstacle_push` tracer site.** The writer's entity-vs-obstacle push (`handle_collision_events`) now records every position and velocity write it makes; under `INV40_STEP>=3` the push is off (`INV40_KEEP=push` restores it).
 - **The creation door: nothing is born inside anything (INV-37).** A body
   created overlapping a live body by more than `SLOP` is now REFUSED at
   `ParticleSystem::add_particle`, the one point every birth crosses: the

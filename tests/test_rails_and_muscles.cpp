@@ -13,6 +13,10 @@
 //   INV40_STEP=n ./build/test_rails_and_muscles            with n deletion steps applied
 //   KINEMATIC_LEDGER=1 ./build/test_rails_and_muscles     the G-83 ledger half
 //   INTERACTIVE=1 ./build/test_rails_and_muscles_visual   window
+//   RAILS_FRAMES=n ./build/test_rails_and_muscles          a longer run (default RUN_FRAMES): does a residual creep or converge?
+//   RAILS_REPLAY=n ./build/test_rails_and_muscles          the window's SPACE, headless, n times: after each
+//                                                          RUN_FRAMES the scene re-arms through the teleport
+//                                                          door and runs again; the asserts read the LAST replay
 // =============================================================================
 // FULL-STATE NARRATION (assert or waive, per DOF).
 //   MUSCLES (20 drive children, DYNAMIC): position, velocity, orientation,
@@ -40,6 +44,7 @@
 //     target (INV-13), separation from the post ASSERTED (the nail is rigid);
 //     x, y, z otherwise follow the nail; WAIVED.
 #include "scenes/scene_rails_and_muscles.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -69,9 +74,18 @@ int main() {
     std::printf("  cast: %zu muscles (drive children), hips P%d as the rail; station B at x=%.1f\n",
                 scene.muscles.size(), scene.hips, B_X);
     const bool diag = std::getenv("RAILS_DIAG") != nullptr;
-    for (int f = 0; f < RUN_FRAMES; ++f) {
-        scene.step(engine, f);
-        if (diag && f < 40) {                          // the harness and a foot: height, velocity, hands
+    const int replays = std::getenv("RAILS_REPLAY") ? std::max(1, std::atoi(std::getenv("RAILS_REPLAY"))) : 0;   // RAILS_REPLAY=n: n SPACE presses
+    const bool replay = replays > 0;
+    const int run_frames = std::getenv("RAILS_FRAMES") ? std::max(1, std::atoi(std::getenv("RAILS_FRAMES"))) : RUN_FRAMES;
+    for (int f = 0; f < (replays + 1) * run_frames; ++f) {
+        if (replay && f > 0 && f % run_frames == 0) {
+            std::printf("  [run %d ends] worst nails: %s | reach over %+.3f (%s)\n", f / run_frames, scene.nails_summary(6).c_str(), scene.reach_over_max, scene.reach_worst.c_str());
+            std::printf("  [replay %d] SPACE: the scene re-arms through the teleport door and runs again; every count restarts\n", f / run_frames);
+            scene.rearm(engine);
+        }
+        const int fr = f % run_frames;                 // frame within the run (the replay restarts at 0)
+        scene.step(engine, fr);
+        if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
             const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];
             float hz = 0, hvz = 0, fz = 0, fvz = 0;
@@ -83,13 +97,28 @@ int main() {
             std::string hh, fh;
             for (const auto& r : tracer.records()) {
                 if (!Scene::is_state_field(r.field)) continue;
-                if (r.particle_id == scene.hips) { hh += " "; hh += r.site; hh += ":"; hh += r.field; }
+                if (r.particle_id == scene.hips) {
+                    char rb[96];
+                    if (fr < 8) std::snprintf(rb, sizeof(rb), " %s:%s(%.3f->%.3f)", r.site, r.field, r.old_value, r.new_value);
+                    else        std::snprintf(rb, sizeof(rb), " %s:%s", r.site, r.field);
+                    hh += rb;
+                }
                 else if (r.particle_id == foot) { fh += " "; fh += r.site; fh += ":"; fh += r.field; }
             }
-            std::printf("  [harness f%2d] hips z %.3f vz %+.3f hands:%s | l_foot z %.3f vz %+.3f hands:%s\n",
-                        f, hz, hvz, hh.empty() ? " none" : hh.c_str(), fz, fvz, fh.empty() ? " none" : fh.c_str());
+            float hx_ = 0, hy_ = 0, hvx = 0, hvy = 0;
+            { auto v = engine.get_particle_system().lock_particles_for_read(); hx_ = v[scene.hips].x; hy_ = v[scene.hips].y; hvx = v[scene.hips].vx; hvy = v[scene.hips].vy; }
+            std::string plant = "no parts";
+            if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(scene.hips)) {
+                char pb[160];
+                std::snprintf(pb, sizeof(pb), "planted %d blend %.2f target (%.2f,%.2f) root P%u anchor (%.2f,%.2f) pin P%d",
+                              (int)parts->has_planted_foot, parts->plant_blend, parts->plant_target_x, parts->plant_target_y,
+                              parts->root.particle_id, parts->root.anchor_world.x, parts->root.anchor_world.y, parts->plant_anchor_particle_id);
+                plant = pb;
+            }
+            std::printf("  [harness f%2d] hips (%.3f,%.3f,%.3f) v (%+.2f,%+.2f,%+.2f) hands:%s | l_foot z %.3f vz %+.3f hands:%s | %s\n",
+                        fr, hx_, hy_, hz, hvx, hvy, hvz, hh.empty() ? " none" : hh.c_str(), fz, fvz, fh.empty() ? " none" : fh.c_str(), plant.c_str());
         }
-        if (diag && f < 150 && f % 10 == 0) {          // the yaws: the hips rail's two ledgers, the head, a rider
+        if (diag && fr < 150 && fr % 10 == 0) {          // the yaws: the hips rail's two ledgers, the head, a rider
             auto v = engine.get_particle_system().lock_particles_for_read();
             auto qyaw = [](const logosphere::Quat& q) {   // yaw about Z from the quaternion, engine compass sign as rotation_z
                 float ax = 0, ay = 0, az = 1, th = 0; q.to_axis_angle(ax, ay, az, th); return az < 0 ? -th : th; };
@@ -100,14 +129,14 @@ int main() {
                 if (parts->head_child_particles.size() > 4) rider = (int)parts->head_child_particles[4];
             float rider_off = 0.0f;
             if (rider >= 0) rider_off = std::atan2(v[rider].x - D.x, v[rider].y - D.y);
-            static float rider_off0 = 0.0f, head_rz0 = 0.0f; if (f == 0) { rider_off0 = rider_off; head_rz0 = D.rotation_z; }
+            static float rider_off0 = 0.0f, head_rz0 = 0.0f; if (fr == 0) { rider_off0 = rider_off; head_rz0 = D.rotation_z; }
             auto wrap = [](float a) { while (a > (float)M_PI) a -= 2.0f * (float)M_PI; while (a < -(float)M_PI) a += 2.0f * (float)M_PI; return a; };
             std::printf("  [yaw f%3d] hips rz %+.3f q-yaw %+.3f omega_z %+.3f div %.3f | head rz %+.3f q-yaw %+.3f omega_z %+.3f div %.3f | rider P%d offset-yaw %+.3f (moved %+.3f, head turned %+.3f)\n",
-                        f, H.rotation_z, qyaw(H.rotation_q), H.omega_z, scene.argus.divergence(scene.hips),
+                        fr, H.rotation_z, qyaw(H.rotation_q), H.omega_z, scene.argus.divergence(scene.hips),
                         D.rotation_z, qyaw(D.rotation_q), D.omega_z, scene.argus.divergence(scene.eva.head_id),
                         rider, rider_off, wrap(rider_off - rider_off0), wrap(D.rotation_z - head_rz0));
         }
-        if (diag && f < 120 && f % 5 == 0) {           // the head: rows, contacts, hands, motion
+        if (diag && fr < 120 && fr % 5 == 0) {           // the head: rows, contacts, hands, motion
             auto& tracer = engine.get_particle_tracer();
             auto& physics = engine.get_physics_system();
             const int head = scene.eva.head_id;
@@ -120,7 +149,7 @@ int main() {
                 }
             }
             const auto gl = physics.get_gluons_for_particle((size_t)head);
-            if (f == 10) {   // the head's cast, once: who is nailed to it, who rides it, and their modes
+            if (fr == 10) {   // the head's cast, once: who is nailed to it, who rides it, and their modes
                 std::printf("  [head cast] nailed to P%d:", head);
                 for (const auto* g : gl) if (g) std::printf(" P%zu", g->particle_a == (size_t)head ? g->particle_b : g->particle_a);
                 if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(scene.hips)) {
@@ -144,40 +173,42 @@ int main() {
             std::string hands_on_head;
             for (const auto& r : tracer.records()) if (r.particle_id == head && Scene::is_state_field(r.field)) { hands_on_head += " "; hands_on_head += r.site; }
             std::printf("  [head f%3d] P%d mode %d pos (%.3f,%.3f,%.3f) |v| %.3f gluons %zu contacts %d%s hands:%s\n",
-                        f, head, mode, hx, hy, hz, hv, gl.size(), nc, contacts.c_str(), hands_on_head.empty() ? " none" : hands_on_head.c_str());
+                        fr, head, mode, hx, hy, hz, hv, gl.size(), nc, contacts.c_str(), hands_on_head.empty() ? " none" : hands_on_head.c_str());
         }
-        if (diag && (f < 3 || f == 20 || f == 60)) {    // who is traced, and every record this frame
+        if (diag && (fr < 3 || fr == 20 || fr == 60)) {    // who is traced, and every record this frame
             auto& tracer = engine.get_particle_tracer();
-            std::printf("  [diag f%d] muscles:", f);
+            std::printf("  [diag f%d] muscles:", fr);
             for (int id : scene.muscles) std::printf(" %d%s", id, tracer.is_traced(id) ? "" : "(untraced)");
-            std::printf("\n  [diag f%d] eva legs L:", f);
+            std::printf("\n  [diag f%d] eva legs L:", fr);
             for (int id : scene.eva.left_leg_ids) std::printf(" %d", id);
             std::printf(" R:"); for (int id : scene.eva.right_leg_ids) std::printf(" %d", id);
             std::printf(" hips %d\n", scene.hips);
             {   // the live bones' modes, and the hierarchy's own child ids
                 auto v = engine.get_particle_system().lock_particles_for_read();
-                std::printf("  [diag f%d] leg modes:", f);
+                std::printf("  [diag f%d] leg modes:", fr);
                 for (int id : scene.eva.left_leg_ids) {
                     const Particle& p = v[id];
                     std::printf(" %d:%s/q%d/o%d", id, p.solver_mode == ParticleSolverMode::KINEMATIC ? "KIN" : (p.solver_mode == ParticleSolverMode::DYNAMIC ? "DYN" : "STA"), (int)p.is_quat_driven, (int)p.owner);
                 }
                 std::printf("\n");
                 if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(scene.hips)) {
-                    std::printf("  [diag f%d] hierarchy children:", f);
+                    std::printf("  [diag f%d] hierarchy children:", fr);
                     for (const auto& j : parts->joint_hierarchy.joints) std::printf(" %s=%u", j.name.c_str(), j.child_particle);
-                    std::printf("\n  [diag f%d] anchors L %d R %d engaged %d\n", f, parts->left_plant_anchor_id, parts->right_plant_anchor_id, parts->plant_anchor_particle_id);
+                    std::printf("\n  [diag f%d] anchors L %d R %d engaged %d\n", fr, parts->left_plant_anchor_id, parts->right_plant_anchor_id, parts->plant_anchor_particle_id);
                 }
             }
             std::map<std::string, int> by;
             for (const auto& r : tracer.records()) by[std::to_string(r.particle_id) + " " + r.site]++;
-            std::printf("  [diag f%d] records this frame: %zu\n", f, tracer.records().size());
+            std::printf("  [diag f%d] records this frame: %zu\n", fr, tracer.records().size());
             for (const auto& [k, n] : by) std::printf("      %s x%d\n", k.c_str(), n);
         }
-        if (f % 30 == 29) {
+        if (diag && fr < 30 && fr % 5 == 0)
+            std::printf("  [body f%2d] worst nail %.4f (%s) | reach over %+.3f (%s)\n", fr, scene.joint_gap_max, scene.joint_gap_worst.c_str(), scene.reach_over_max, scene.reach_worst.c_str());
+        if (fr % 30 == 29) {
             const auto* A = scene.argus.latest(scene.box_a);
-            std::printf("  [f%3d] fwd %+6.3f back %2d | hands %5d recs, %3d frames (%s) | replants %d declared %d loud %d ledger %.2f m/s"
+            std::printf("  [f%3d]%s fwd %+6.3f back %2d | hands %5d recs, %3d frames (%s) | replants %d declared %d loud %d ledger %.2f m/s"
                         " | A z %.3f drop %.3f | B drift %.4f | arm err %.4f sep drift %.5f | body: gap %.4f (%s) reach over %+.3f (%s)\n",
-                        f, scene.forward, scene.backward_frames, scene.hand_records, scene.frames_with_hands,
+                        fr, (replay && f >= RUN_FRAMES) ? " replay" : "", scene.forward, scene.backward_frames, scene.hand_records, scene.frames_with_hands,
                         scene.hands_summary().c_str(), scene.replants, scene.replants_declared, scene.replants_ledger_loud,
                         scene.replant_ledger_speed_max, A ? A->z : 0.0f, scene.a_drop_max, scene.b_drift_max,
                         scene.arm_err_max, scene.arm_sep_drift_max,
@@ -186,12 +217,12 @@ int main() {
     }
     std::printf("\n  [measure] drive children: %zu, of which %d STALE (no joint names them)", scene.muscles.size(), scene.muscles_stale);
     std::printf("\n  [measure] hands on muscles: %d records over %d of %d frames; sites: %s\n",
-                scene.hand_records, scene.frames_with_hands, RUN_FRAMES, scene.hands_summary(8).c_str());
+                scene.hand_records, scene.frames_with_hands, run_frames, scene.hands_summary(8).c_str());
     std::string rail;
     for (const auto& [site, n] : scene.rail_hands) rail += (rail.empty() ? "" : ", ") + site + " " + std::to_string(n);
     std::printf("  [measure] hands on the hips rail (narrated, waived): %s\n", rail.empty() ? "none" : rail.c_str());
     std::printf("  [measure] walk: forward %.3f of %.3f m, %d backward frames\n",
-                scene.forward, RUN_FRAMES * DT * WALK_SPEED, scene.backward_frames);
+                scene.forward, run_frames * DT * WALK_SPEED, scene.backward_frames);
     std::printf("  [measure] anchors: %d replants, %d declared, %d loud in the ledger (max %.2f m/s, bar %.2f)\n",
                 scene.replants, scene.replants_declared, scene.replants_ledger_loud, scene.replant_ledger_speed_max, JUMP_LEDGER_MAX);
     std::printf("  [measure] the body: %zu bones; worst nail gap %.4f m at %s (frame %d, bar %.4f); worst reach over standing + %.2f m: %+.3f m at %s\n",
