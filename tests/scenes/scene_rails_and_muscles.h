@@ -33,6 +33,9 @@
 // =============================================================================
 #pragma once
 
+#include <unordered_map>
+#include <array>
+#include <chrono>
 #include "core/engine.h"
 #include "core/argus.h"
 #include "core/particle_tracer.h"
@@ -331,6 +334,8 @@ struct Scene {
         }
         tracer.trace(hips, "rail/hips");
         tracer_ = &tracer;
+        perf_rows = std::getenv("RAILS_PERF") != nullptr;
+        wakes_on = std::getenv("RAILS_WAKES") != nullptr;
         feet_enable();                                     // G-90: the feet are measured in every run; RAILS_FEET=1 prints the rows
         argus.watch(hips, "hips");
         argus.watch(eva.head_id, "head");
@@ -364,12 +369,23 @@ struct Scene {
         auto& strata   = engine.get_worldgen_system().get_strata_floor_generator();
 
         tracer.clear_records();
+        if (wakes_on) wakes_trace(engine);
+        const auto t_upd = std::chrono::steady_clock::now();
         engine.update(DT);
+        const double upd_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_upd).count();
         ++walk_frames;
         argus.observe(ps, frame);
 
-        float hx, hy;
-        { auto v = ps.lock_particles_for_read(); hx = v[hips].x; hy = v[hips].y; }
+        float hx, hy; int awake = 0;
+        { auto v = ps.lock_particles_for_read(); hx = v[hips].x; hy = v[hips].y;
+          awake_world = 0; aw_xmin = aw_ymin = 1e9f; aw_xmax = aw_ymax = -1e9f;
+          for (size_t i = 0; i < v.size(); ++i) if (v[i].solver_mode == ParticleSolverMode::DYNAMIC && !v[i].is_at_rest) {
+              ++awake;
+              if (!rig_set.count((int)i) && !v[i].is_light_source) { ++awake_world; aw_xmin = std::min(aw_xmin, v[i].x); aw_xmax = std::max(aw_xmax, v[i].x); aw_ymin = std::min(aw_ymin, v[i].y); aw_ymax = std::max(aw_ymax, v[i].y); }
+          }
+          if (bodies_prev) { if (v.size() > bodies_prev) births += (int)(v.size() - bodies_prev); else deaths += (int)(bodies_prev - v.size()); }
+          bodies_prev = v.size(); }
+        perf_observe(engine, frame, upd_ms, awake);
         strata.update(hx, hy);
 
         // G-81: whose hands are on the muscles this frame?
@@ -381,6 +397,7 @@ struct Scene {
             else if (r.particle_id == hips)      { rail_hands[r.site]++; }
         }
         if (frame_hands) ++frames_with_hands;
+        if (wakes_on) { seams_observe(engine); wakes_observe(frame, recs); }
 
         // hygiene: the engine's drive children must be the bodies its joints
         // name, or the riders it made parts of the head (G-84), or the
@@ -494,6 +511,7 @@ struct Scene {
     // history, every body is forgotten by the solver), her walk is commanded
     // again, the boxes re-drop, every count restarts.
     void rearm(Engine& engine) {
+        ++perf_run;
         auto& ps = engine.get_particle_system();
         auto& physics = engine.get_physics_system();
         auto& humanoid = engine.get_humanoid_locomotion();
@@ -699,6 +717,113 @@ struct Scene {
     struct FootHeight { float bottom_min = 1e9f, bottom_max = -1e9f, support_top = -1e9f; int contacts = 0, near = 0; void reset() { *this = FootHeight{}; } };
     FootHeight fh_l, fh_r;
     std::string feet_height_row;
+
+    // ---- THE COST (owner, 2026-09-09: 'argus this for performance') ----
+    // The engine's own step witnessed per frame: the update's wall time, the
+    // solver's rows and iterations (PhysicsSystem::last_solve), the awake
+    // DYNAMIC bodies, the gluon count and the contact events. A row per 30
+    // frames when RAILS_PERF=1; the summary (first 60 frames against the last
+    // 60, across replays) always. The window's stall lines print the LAST
+    // update's timers on frames that ran none; this reads the step it timed.
+    bool perf_rows = false;
+    int perf_run = 0;
+    std::string perf_row;
+    struct PerfWin { int n = 0; double ms_sum = 0, ms_max = 0; long rows_sum = 0; int rows_max = 0; long it_sum = 0; long awake_sum = 0; int awake_max = 0; long ct_sum = 0; };
+    PerfWin pw;
+    std::vector<float> perf_ms, perf_rows_v, perf_awake;
+    size_t perf_gluons_first = 0, perf_gluons_last = 0;
+    // ---- WHO WAKES THE WORLD (RAILS_WAKES=1) ----
+    // Every world body (outside the rig, DYNAMIC, not a light) is traced, so
+    // its sleep transitions (the INV-18 witness: sleep.rest / sleep.wake with
+    // the reason) are records; per 30 frames the wakes are counted by reason,
+    // with the awake world bodies, where they are, and the births and deaths.
+    bool wakes_on = false; std::string wakes_row;
+    std::map<std::string, int> wake_reasons; int wake_n = 0, rest_n = 0, births = 0, deaths = 0; size_t bodies_prev = 0;
+    int awake_world = 0; float aw_xmin = 0, aw_xmax = 0, aw_ymin = 0, aw_ymax = 0;
+    int seam_n = 0, seam_deep = 0; float seam_max = 0;      // world-to-world contact events per window: all, deeper than the sleep tolerance, the deepest
+    std::string seam_row;                                   // the deepest seam of the window: who, how wide, where from the hips, how vertical; and how many world bodies moved
+    int seam_a = -1, seam_b = -1; float seam_ax = 0, seam_ay = 0, seam_bx = 0, seam_by = 0, seam_aw = 0, seam_bw = 0, seam_nz = 0, seam_hx = 0, seam_hy = 0;
+    std::unordered_map<int, std::array<float, 3>> world_prev;   // last position per world body, for the moved count
+    int moved_n = 0; float moved_max = 0; int moved_id = -1;
+    void wakes_trace(Engine& engine) {
+        auto& tracer = engine.get_particle_tracer();
+        auto v = engine.get_particle_system().lock_particles_for_read();
+        for (size_t i = 0; i < v.size(); ++i) {
+            if (rig_set.count((int)i) || v[i].is_light_source || v[i].solver_mode != ParticleSolverMode::DYNAMIC) continue;
+            if (!tracer.is_traced((int)i)) tracer.trace((int)i, "world");
+        }
+    }
+    void seams_observe(Engine& engine) {
+        auto& physics = engine.get_physics_system();
+        auto v = engine.get_particle_system().lock_particles_for_read();
+        auto world = [&](size_t i) { return i < v.size() && !rig_set.count((int)i) && !v[i].is_light_source && v[i].solver_mode == ParticleSolverMode::DYNAMIC; };
+        for (const auto& e : physics.get_collision_events()) {
+            if (!world(e.particle_a) || !world(e.particle_b) || e.penetration <= 0.0f) continue;
+            ++seam_n; if (e.penetration > PhysicsV4::SLEEP_PEN_TOLERANCE) ++seam_deep;
+            if (e.penetration > seam_max) {
+                seam_max = e.penetration; seam_a = (int)e.particle_a; seam_b = (int)e.particle_b; seam_nz = e.normal_z;
+                seam_ax = v[e.particle_a].x; seam_ay = v[e.particle_a].y; seam_bx = v[e.particle_b].x; seam_by = v[e.particle_b].y;
+                seam_aw = v[e.particle_a].width; seam_bw = v[e.particle_b].width; seam_hx = v[hips].x; seam_hy = v[hips].y;
+            }
+        }
+        for (size_t i = 0; i < v.size(); ++i) {
+            if (!world(i)) continue;
+            auto it = world_prev.find((int)i);
+            if (it != world_prev.end()) {
+                const float dx = v[i].x - it->second[0], dy = v[i].y - it->second[1], dz = v[i].z - it->second[2];
+                const float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+                if (d > PhysicsV4::SLEEP_PEN_TOLERANCE) ++moved_n;
+                if (d > moved_max) { moved_max = d; moved_id = (int)i; }
+            }
+            world_prev[(int)i] = {v[i].x, v[i].y, v[i].z};
+        }
+    }
+    void wakes_observe(int f, const std::vector<ParticleTracer::Record>& recs) {
+        for (const auto& r : recs) {
+            if (std::strcmp(r.field, "asleep") != 0 || rig_set.count(r.particle_id)) continue;
+            if (r.new_value == 0.0f) { ++wake_n; wake_reasons[r.note ? r.note : "?"]++; } else ++rest_n;
+        }
+        wakes_row.clear(); seam_row.clear();
+        if (f % 30 == 29) {
+            std::string reasons;
+            for (const auto& [why, n] : wake_reasons) { char b[96]; std::snprintf(b, sizeof(b), "%s%s %d", reasons.empty() ? "" : ", ", why.c_str(), n); reasons += b; }
+            char row[420];
+            std::snprintf(row, sizeof(row), "[wakes run %d f%3d] world wakes %d (%s) rests %d | awake world %d (x %.1f..%.1f, y %.1f..%.1f) | seams %d, deeper than %.0f mm: %d, deepest %.1f mm | bodies +%d -%d",
+                          perf_run, f, wake_n, reasons.c_str(), rest_n, awake_world, aw_xmin, aw_xmax, aw_ymin, aw_ymax, seam_n, PhysicsV4::SLEEP_PEN_TOLERANCE * 1000.0f, seam_deep, seam_max * 1000.0f, births, deaths);
+            wakes_row = row; wake_reasons.clear(); wake_n = rest_n = births = deaths = 0;
+            char srow[300];
+            std::snprintf(srow, sizeof(srow), "[seam run %d f%3d] deepest %.1f mm: P%d (w %.1f) vs P%d (w %.1f), normal z %.2f, at (%+.1f, %+.1f) and (%+.1f, %+.1f) from the hips | world bodies moved > 3 mm this window: %d frame-moves, largest %.1f mm (P%d)",
+                          perf_run, f, seam_max * 1000.0f, seam_a, seam_aw, seam_b, seam_bw, seam_nz, seam_ax - seam_hx, seam_ay - seam_hy, seam_bx - seam_hx, seam_by - seam_hy, moved_n, moved_max * 1000.0f, moved_id);
+            seam_row = srow; seam_n = seam_deep = 0; seam_max = 0; seam_a = seam_b = -1; moved_n = 0; moved_max = 0; moved_id = -1;
+        }
+    }
+    void perf_observe(Engine& engine, int f, double upd_ms, int awake) {
+        auto& physics = engine.get_physics_system();
+        const auto& ls = physics.last_solve();
+        const size_t gl = physics.get_total_gluon_count();
+        const int ct = (int)physics.get_collision_events().size();
+        if (perf_ms.empty()) perf_gluons_first = gl;
+        perf_gluons_last = gl;
+        perf_ms.push_back((float)upd_ms); perf_rows_v.push_back((float)ls.rows); perf_awake.push_back((float)awake);
+        pw.n++; pw.ms_sum += upd_ms; pw.ms_max = std::max(pw.ms_max, upd_ms); pw.rows_sum += ls.rows; pw.rows_max = std::max(pw.rows_max, ls.rows);
+        pw.it_sum += ls.iterations; pw.awake_sum += awake; pw.awake_max = std::max(pw.awake_max, awake); pw.ct_sum += ct;
+        perf_row.clear();
+        if (f % 30 == 29 && pw.n > 0) {
+            char row[300];
+            std::snprintf(row, sizeof(row), "[perf run %d f%3d] update %.1f ms mean, %.1f max | rows %.0f mean, %d max | iters %.1f | awake %.0f mean, %d max | gluons %zu | contacts %.0f | solver exit %s",
+                          perf_run, f, pw.ms_sum / pw.n, pw.ms_max, (double)pw.rows_sum / pw.n, pw.rows_max, (double)pw.it_sum / pw.n, (double)pw.awake_sum / pw.n, pw.awake_max, gl, (double)pw.ct_sum / pw.n, ls.exit);
+            perf_row = row; pw = PerfWin{};
+        }
+    }
+    std::string perf_summary() const {
+        auto mean = [](const std::vector<float>& v, size_t a, size_t b) { double s = 0; size_t n = 0; for (size_t i = a; i < b && i < v.size(); ++i) { s += v[i]; ++n; } return n ? s / n : 0.0; };
+        const size_t n = perf_ms.size(), w = std::min<size_t>(60, n), l0 = n > w ? n - w : 0;
+        float ms_max = 0; size_t at = 0; for (size_t i = 0; i < n; ++i) if (perf_ms[i] > ms_max) { ms_max = perf_ms[i]; at = i; }
+        char b[400];
+        std::snprintf(b, sizeof(b), "[perf] %zu frames: update ms first %zu %.1f -> last %zu %.1f (max %.1f at frame %zu) | rows %.0f -> %.0f | awake %.0f -> %.0f | gluons %zu -> %zu",
+                      n, w, mean(perf_ms, 0, w), w, mean(perf_ms, l0, n), ms_max, at, mean(perf_rows_v, 0, w), mean(perf_rows_v, l0, n), mean(perf_awake, 0, w), mean(perf_awake, l0, n), perf_gluons_first, perf_gluons_last);
+        return b;
+    }
 
     void feet_enable() {
         feet_on = true;

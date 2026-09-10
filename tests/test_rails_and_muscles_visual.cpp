@@ -60,7 +60,8 @@ int main() {
     scene.build(engine);
     const bool arms = std::getenv("RAILS_ARMS") != nullptr;      // G-89: the arm rows, into this log and onto the panel
     if (arms) scene.arms_enable();
-    const bool feet = std::getenv("RAILS_FEET") != nullptr;      // G-90: the rows into this log and onto the panel (the measurement is always on)
+    const bool feet = std::getenv("RAILS_FEET") != nullptr;
+    const bool perf = std::getenv("RAILS_PERF") != nullptr;      // the cost rows per 30 frames into this log (the summary at close)      // G-90: the rows into this log and onto the panel (the measurement is always on)
     auto centre = [&](float& cx, float& cy, float& cz) {
         auto v = ps.lock_particles_for_read();
         cx = v[scene.hips].x + B_X * 0.5f; cy = v[scene.hips].y; cz = 1.0f;
@@ -138,6 +139,9 @@ int main() {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
         if (live) scene.step(engine, frame);           // the run holds on its verdict at RUN_FRAMES
+        if (live && perf && !scene.perf_row.empty()) std::printf("  %s\n", scene.perf_row.c_str());
+        if (live && !scene.wakes_row.empty()) std::printf("  %s\n", scene.wakes_row.c_str());
+        if (live && !scene.seam_row.empty()) std::printf("  %s\n", scene.seam_row.c_str());
         if (live && feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
@@ -183,6 +187,7 @@ int main() {
     int passing = 0;
     for (auto& a : panel) { const bool ok = a.eval(); if (ok) ++passing; std::printf("  %s %s\n", ok ? "[V]" : "[X]", a.text.c_str()); }
     std::printf("  [measure] frame %d of %d%s\n", frame, RUN_FRAMES, frame < RUN_FRAMES ? " (closed mid-run)" : "");
+    std::printf("  [measure] %s\n", scene.perf_summary().c_str());
     std::printf("  [measure] hands %d records; walk %.3f m; replants %d/%d declared; A drop %.3f; arm err %.4f\n",
                 scene.hand_records, scene.forward, scene.replants_declared, scene.replants, scene.a_drop_max, scene.arm_err_max);
     std::printf("\n  %s (%d/%zu)\n", passing == (int)panel.size() ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40", passing, panel.size());

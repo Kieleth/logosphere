@@ -95,6 +95,7 @@ class KeyMapper;
 // Frame profiling data (shared between update() and present())
 namespace {
     double g_last_update_time = 0.0;
+    bool   g_update_ran_this_frame = false;   // present() prints the update's timers only when one ran (the hold of a windowed test ran none for 8500 frames and printed 65 ms on every one)
     double g_last_poll_time = 0.0;
     double g_last_movement_time = 0.0;
 }
@@ -1368,6 +1369,7 @@ void Engine::update(double delta_time) {
     if constexpr (Optimizations::ENABLE_PROFILING) {
         // Store for consolidated frame summary in present()
         g_last_update_time = update_duration;
+        g_update_ran_this_frame = true;
         g_last_poll_time = poll_ms;
         g_last_movement_time = movement_ms;
     }
@@ -1908,7 +1910,12 @@ void Engine::present() {
         // Stall detection - check EVERY frame (not just every 60)
         {
             const auto& m = metrics_;
-            double total_frame = g_last_update_time + m.render_time + present_duration;
+            // A frame that ran no update (a paused or held scene that only renders)
+            // has no update time; the last update's timers are not this frame's.
+            const double upd_time  = g_update_ran_this_frame ? g_last_update_time : 0.0;
+            const double phys_time = g_update_ran_this_frame ? m.physics_time : 0.0;
+            g_update_ran_this_frame = false;
+            double total_frame = upd_time + m.render_time + present_duration;
             if (total_frame > Optimizations::STALL_FRAME_THRESHOLD_MS) {
                 // Attribution inline: a stall total without the split is
                 // unactionable (task #21 — live-stall RCA).
@@ -1916,13 +1923,13 @@ void Engine::present() {
                                         + m.physics_time + m.ui_time;
                 std::cout << "[STALL-FRAME] Frame " << frame_counter
                           << " took " << total_frame << "ms (FPS: " << (1000.0/total_frame) << ")"
-                          << " | update=" << g_last_update_time
+                          << " | update=" << upd_time
                           << " (poll=" << g_last_poll_time
                           << " move=" << g_last_movement_time
                           << " input=" << m.input_time
-                          << " physics=" << m.physics_time
+                          << " physics=" << phys_time
                           << " ui=" << m.ui_time
-                          << " unacc=" << (g_last_update_time - update_accounted) << ")"
+                          << " unacc=" << (upd_time - update_accounted) << ")"
                           << " render=" << m.render_time
                           << " present=" << present_duration
                           << " particles=" << particle_system_.count() << std::endl;
@@ -1932,9 +1939,9 @@ void Engine::present() {
             // 5x physics outlier (22.9 vs 4.3 ms median, measured 2026-07-24)
             // does not by itself cross the stall threshold, so it would never
             // print. Separate detector, same zero-cost-when-quiet shape.
-            if (m.physics_time > Optimizations::PHYSICS_SPIKE_THRESHOLD_MS) {
+            if (phys_time > Optimizations::PHYSICS_SPIKE_THRESHOLD_MS) {
                 std::cout << "[PHYSICS-SPIKE] Frame " << frame_counter
-                          << " physics=" << m.physics_time << "ms"
+                          << " physics=" << phys_time << "ms"
                           << " | frame_total=" << total_frame
                           << " particles=" << particle_system_.count() << std::endl;
             }

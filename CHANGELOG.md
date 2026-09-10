@@ -8,6 +8,7 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 ## [Unreleased]
 
 ### Fixed
+- **Frame stall lines no longer print stale timers.** `[STALL-FRAME]` and `[PHYSICS-SPIKE]` printed the last update's timings on every frame of a scene that only rendered (a held test read 65 ms of physics for 8500 frames whose wall clock was 18 ms); they now print only on frames whose update ran.
 - **A humanoid teleport releases its plant.** `HumanoidLocomotion::reset_humanoid_position` now disengages the live foot pin and clears the plant state, so a rig moved in one frame does not keep a stance leg driving toward a plant target left behind (measured: the ankle nail opening 0.85 m on the first replay of the INV-40 prover's window). The next heel strike plants under the new position.
 
 ### Added
@@ -19,6 +20,7 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - **`PHYSICS_HZ=<n>`** (A/B lever on the time system; unset = 30 Hz as before): the fixed physics rate. Found by the INV-40 prover: the writer and its rails tick at the frame rate while physics ticks at 30 Hz, so at 60 fps every physics body stands still on every second frame.
 - **`WALK_STRIKE=<fraction>` and `WALK_STRIKE_HOLD=1`** (A/B levers on the generated walk step clip; unset = today's clip): the hip flexion at the clip's heel strike as a fraction of the peak, and whether the final keyframe holds the strike pose instead of returning to neutral.
 - **`RAILS_FEET=2`** in `test_rails_and_muscles`: a row per foot per frame (position along the walk relative to the hips, height over the support, offset from the anchor, tilt, contacts, the hip drive's command against the thigh's angle).
+- **`RAILS_PERF=1` and `RAILS_WAKES=1`** in `test_rails_and_muscles` (and its window): the cost witness, a row per 30 frames with the update's wall time, the solver's rows and iterations, the awake bodies, the gluons and the contacts, and every world body's wakes counted by reason with the floor's seams against the sleep tolerance. The `[perf]` summary is always printed.
 - **The creation door: nothing is born inside anything (INV-37).** A body
   created overlapping a live body by more than `SLOP` is now REFUSED at
   `ParticleSystem::add_particle`, the one point every birth crosses: the

@@ -87,6 +87,7 @@ int main() {
     const bool arms = std::getenv("RAILS_ARMS") != nullptr;
     if (arms) scene.arms_enable();
     const bool feet = std::getenv("RAILS_FEET") != nullptr;    // G-90: the rows (the measurement is always on)
+    const bool perf = std::getenv("RAILS_PERF") != nullptr;    // the cost rows per 30 frames (the summary is always on)
     const int replays = std::getenv("RAILS_REPLAY") ? std::max(1, std::atoi(std::getenv("RAILS_REPLAY"))) : 0;   // RAILS_REPLAY=n: n SPACE presses
     const bool replay = replays > 0;
     const int run_frames = std::getenv("RAILS_FRAMES") ? std::max(1, std::atoi(std::getenv("RAILS_FRAMES"))) : RUN_FRAMES;
@@ -99,6 +100,9 @@ int main() {
         const int fr = f % run_frames;                 // frame within the run (the replay restarts at 0)
         scene.step(engine, fr);
         if (arms && scene.arms_observe(engine, f)) std::printf("  %s\n", scene.arms_last_row.c_str());
+        if (perf && !scene.perf_row.empty()) std::printf("  %s\n", scene.perf_row.c_str());
+        if (!scene.wakes_row.empty()) std::printf("  %s\n", scene.wakes_row.c_str());
+        if (!scene.seam_row.empty()) std::printf("  %s\n", scene.seam_row.c_str());
         if (feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) std::printf("  %s\n", scene.feet_last_row.c_str()); if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
@@ -231,6 +235,7 @@ int main() {
         }
     }
     std::printf("  [measure] %s\n", scene.feet_summary().c_str());
+    std::printf("  [measure] %s\n", scene.perf_summary().c_str());
     if (arms) std::printf("  [arms] first second with a wrist swing over 0.10 m: %d; first second with a COMMANDED shoulder swing over 0.10 rad: %d (-1 = never)\n", scene.arms_first_swing_s, scene.arms_first_cmd_s);
     std::printf("\n  [measure] drive children: %zu, of which %d STALE (no joint names them)", scene.muscles.size(), scene.muscles_stale);
     std::printf("\n  [measure] hands on muscles: %d records over %d of %d frames; sites: %s\n",

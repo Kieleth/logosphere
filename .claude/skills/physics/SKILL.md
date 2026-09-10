@@ -263,7 +263,20 @@ asin(half stride / leg reach)); the gait is symmetric from the fourth
 stance. The standing start is the wall: a full first stance from under the
 hips makes the ride dive 28 cm and jump 29 cm (ruling 7). After a SPACE the
 walk resumes mid-phase and the dive does not happen: read a window's first
-step and its replays as two different experiments. Before any claim about a gait, read the feet rows; the walk
+step and its replays as two different experiments.
+
+**The cost is witnessed, never read off a stall line (2026-09-09, G-93).**
+`RAILS_PERF=1` prints the engine's step per 30 frames (update wall time,
+rows, iterations, awake bodies, gluons, contacts) and the `[perf]` summary
+is always printed; `RAILS_WAKES=1` traces every world body and counts its
+wakes by reason with the floor's seams against the sleep tolerance. Read
+those before naming a slowdown's cause. The window's `[STALL-FRAME]` and
+`[PHYSICS-SPIKE]` lines are meaningful only on frames whose update ran
+(a held scene printed 65 ms for 8500 frames whose wall clock read 18 ms);
+the log's timestamps are the wall clock. What the witness read: the ledger's
+reach test wakes the tiles under a walker by bounding spheres (4 ms a frame
+against 1), and a rail-held foot with unbounded drives presses its tile
+9-12 mm and wakes the floor in a wave (rulings 9 and 10 on the board). Before any claim about a gait, read the feet rows; the walk
 gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in

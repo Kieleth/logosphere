@@ -3546,3 +3546,24 @@ lifts them 29 cm in one frame at the next plant (1.230 -> 1.512); the hip
 and spine nails open 0.29-0.30 m, the second stance lands short (+0.19)
 and the third long (+0.41). Ruling 7 owed before the flip; options on the
 board, (a) recommended: standing is mid-stance.
+
+## 2026-09-09 - The cost of the walk, witnessed (owner: "argus this for performance")
+
+The shared scene carries a cost witness: per frame the update's wall time,
+the solver's rows and iterations, the awake bodies, the gluons and the
+contacts (RAILS_PERF=1 rows, the summary always); with RAILS_WAKES=1 every
+world body is traced so its wakes are counted by reason, with the floor's
+seams against the sleep tolerance and the floor bodies that moved.
+Read on one binary: (i) the lever world's baseline 4.0 ms a frame against
+1.2 by default and 1.0 with the ledger off - INV-39's reach test wakes 5-10
+tiles per 30 frames by bounding spheres (a 4 m tile's is 2.8 m); (ii) the
+slowdown is a wave: the stance foot, held by a rail and driven by unbounded
+muscles, presses its tile 9-12 mm into the stratum and tilts it, the seams
+exceed 3 mm, the judge wakes the neighbours, 20-45 tiles wake across 40 m
+for 60-150 frames (10-25 ms a frame headless, 40-80 ms a step windowed),
+at step 4 and in the default world alike; idle across two teleports 0.4 ms;
+(iii) the window's stall lines printed stale timers on every frame of the
+hold and misled the first reading - fixed to print only when an update
+ran. G-93 registered after the measurement, and says so. Rulings 9 (the
+reach test's box geometry) and 10 (the rail-held foot's push bounded by
+the walker's weight) on the board.
