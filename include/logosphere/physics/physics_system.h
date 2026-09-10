@@ -176,6 +176,13 @@ public:
     //     setting use_quat_target=true alongside a non-identity
     //     target_relative_q. Stage 2+ of the rotational-DOF upgrade.
     bool angular_drive_enabled = false;
+    // INV-40 / INV-13 / G-94: a drive that is a MUSCLE, not a rigid weld:
+    // its angular rows take the same torque budget a force-bounded bond
+    // does, (angular_stiffness * |error| + angular_damping * |spin|) * dt,
+    // so it sags past its strength instead of shoving the world (a
+    // rail-held foot moved a 12 t slab 9-12 mm). The nail's position rows
+    // stay rigid: the bone does not stretch, the muscle yields.
+    bool drive_torque_bounded = false;
 
     // 3-axis quaternion target. Represents the desired rotation of
     // particle_b relative to particle_a. Identity = child matches

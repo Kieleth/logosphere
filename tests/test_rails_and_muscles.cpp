@@ -267,6 +267,7 @@ int main() {
           std::string("INV-39/INV-11/G-83: the ledger never reads a replant as a velocity") + (ledger ? "" : " [default: no ledger, vacuous]"));
     check(Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max), "INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)");
     check(Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max), "INV-40/G-90: a planted foot stands on its support (bottom within 2 SLOP of it)");
+    check(Scene::support_stands(scene.feet_stances, scene.feet_support_move_max), "INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP over a stance or a swing)");
 
     std::printf("\n  %s\n", failures == 0 ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40");
     engine.shutdown();

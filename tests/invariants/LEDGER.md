@@ -3567,3 +3567,19 @@ hold and misled the first reading - fixed to print only when an update
 ran. G-93 registered after the measurement, and says so. Rulings 9 (the
 reach test's box geometry) and 10 (the rail-held foot's push bounded by
 the walker's weight) on the board.
+
+## 2026-09-09 - G-94, the floor under a foot (owner: "very wrong"; "TDD, make it RED, physics first")
+
+The law is born red in both drivers: the support body under either foot
+moves by no more than SLOP over a stance or a swing. Measured: 9.5 mm at
+step 7 (the right foot's last swing), 4.0 at step 4, 0.0 by default.
+Physics first: the torque-bounded drive landed behind INV40_STEP=8 (every
+muscle's angular rows take the budget a force-bounded bond already had,
+k = 2000 N.m/rad from the writer's profile) and did not stop the push
+(9.4 mm). MUSCLE_K at 200 and 50 N.m/rad: 8.4 and 2.0 mm with the seams
+still 10-14 mm deep. Placed: no ride and the strike held, 5.3 mm; idle,
+0.0; every move lateral at the seam Eva crosses near frame 235, under the
+swing foot's toe-off scrape. The pusher is the hips rail dragging the
+swing foot through rigid bones into the next tile's edge. Ruling 10
+re-stated on the board: the refused-momentum book drained by the harness
+(recommended), the toe lifted before the drag, the seams' own front.

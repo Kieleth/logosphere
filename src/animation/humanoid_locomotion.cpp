@@ -49,6 +49,9 @@ namespace logosphere::animation {
 //         leg's length: the compass gait's bob (G-91, owner ruling '6')
 //   >= 7  the walk clip's heel strike is the step's end, its hip flexion
 //         asin(half stride / leg reach): one data path (G-92, ruling '5')
+//   >= 8  every muscle's drive is torque-bounded by its own profile
+//         (k * error + c * spin per step; G-94, ruling '10'): a leg asked
+//         to reach past its length sags instead of moving the floor
 // Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
 static int inv40_step() {
     static const int v = [] {
@@ -2260,7 +2263,11 @@ static void apply_physics_drive_legs_init(
         "right_hip", "right_knee", "right_ankle", "right_toe",
         "left_hip",  "left_knee",  "left_ankle",  "left_toe",
     };
-    const float LEG_ANG_STIFFNESS = 2000.0f;
+    // MUSCLE_K=<N.m/rad>: A/B lever on the muscles' angular stiffness (G-94: with the
+    // drive torque-bounded at k * error, k IS the muscle's strength). Unset = 2000.
+    static const float muscle_k = [] { const char* e = std::getenv("MUSCLE_K"); return e ? static_cast<float>(std::atof(e)) : 0.0f; }();
+    if (muscle_k > 0.0f) std::cout << "[HumanoidLocomotion] MUSCLE_K=" << muscle_k << " N.m/rad on every muscle (A/B lever)" << std::endl;
+    const float LEG_ANG_STIFFNESS = muscle_k > 0.0f ? muscle_k : 2000.0f;
     const float LEG_ANG_DAMPING   = 60.0f;
     for (const char* name : leg_joints) {
         Joint* j = parts.joint_hierarchy.get_joint(name);
@@ -2270,6 +2277,7 @@ static void apply_physics_drive_legs_init(
             j->parent_particle, j->child_particle);
         if (!gluon) continue;
         gluon->angular_stiffness = LEG_ANG_STIFFNESS;
+        gluon->drive_torque_bounded = inv40_step() >= 8;   // INV-40 step 8 / G-94: the muscle's torque is bounded by its own profile
         gluon->angular_damping   = LEG_ANG_DAMPING;
         gluon->use_quat_target = true;
         gluon->angular_drive_enabled = true;
@@ -2311,7 +2319,8 @@ static void apply_physics_drive_upper_body_init(
         "right_shoulder", "right_elbow", "right_wrist",
         "left_shoulder",  "left_elbow",  "left_wrist",
     };
-    const float UPPER_ANG_STIFFNESS = 2000.0f;
+    static const float muscle_k_u = [] { const char* e = std::getenv("MUSCLE_K"); return e ? static_cast<float>(std::atof(e)) : 0.0f; }();
+    const float UPPER_ANG_STIFFNESS = muscle_k_u > 0.0f ? muscle_k_u : 2000.0f;
     // NOTE: the 3-axis quat drive in the solver is a velocity-level
     // constraint with Baumgarte bias; it reads neither linear stiffness
     // nor angular_damping (verified 2026-06-12 — changing this value
@@ -2345,6 +2354,7 @@ static void apply_physics_drive_upper_body_init(
             j->parent_particle, j->child_particle);
         if (!gluon) continue;
         gluon->angular_stiffness = UPPER_ANG_STIFFNESS;
+        gluon->drive_torque_bounded = inv40_step() >= 8;   // INV-40 step 8 / G-94
         gluon->angular_damping   = UPPER_ANG_DAMPING;
         gluon->use_quat_target = true;
         gluon->angular_drive_enabled = true;

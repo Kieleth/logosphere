@@ -3188,7 +3188,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                         // contacts, which refused all of it (journal 16d).
                         c_k.angular_bias = ANGULAR_BETA * ecomp[k] / dt * bias_scale;
                         c_k.angular_bias_saturated = bias_capped;
-                        if (gluon->force_bounded()) {
+                        // G-94: a torque-bounded drive (a muscle) takes the same budget.
+                        if (gluon->force_bounded() || gluon->drive_torque_bounded) {
                             const float tb = (gluon->angular_stiffness * std::fabs(ecomp[k]) +
                                               gluon->angular_damping * std::fabs(wcomp[k])) * dt;
                             c_k.min_angular_impulse = -tb;
@@ -3240,7 +3241,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // drive held segments upright with unbounded torque and
                     // a pushed chain could only shear (rung 3: rot 0.0 deg,
                     // joints gaping 717 mm).
-                    if (gluon->force_bounded()) {
+                    if (gluon->force_bounded() || gluon->drive_torque_bounded) {   // G-94: a muscle's drive is bounded too
                         const float wrel = std::fabs(
                             (pa.omega_x - pb.omega_x) * c_axis.angular_axis_x +
                             (pa.omega_y - pb.omega_y) * c_axis.angular_axis_y +

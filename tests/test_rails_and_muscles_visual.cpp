@@ -93,7 +93,8 @@ int main() {
                          + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)")
                          + (std::getenv("PHYSICS_HZ") ? std::string(", PHYSICS_HZ=") + std::getenv("PHYSICS_HZ") : ", physics 30 Hz");
         const int st = Scene::inv40_step();
-        mode += st >= 7 ? ": the plant declared where the foot is, the harness riding over it, the strike derived from the stride."
+        mode += st >= 8 ? ": the declared plant, the harness riding over it, the strike from the stride, every muscle torque-bounded."
+              : st >= 7 ? ": the plant declared where the foot is, the harness riding over it, the strike derived from the stride."
               : st >= 6 ? ": the plant declared where the foot is, the harness riding over it on the leg's length."
               : st >= 5 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground, the plant is declared where the foot is."
               : st >= 4 ? ": no hand on any muscle, the muscles weigh, the harness reads the ground."
@@ -123,6 +124,7 @@ int main() {
                [&]{ return Scene::ledger_quiet(scene.replants, scene.replants_ledger_loud); });
     add_assert("INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)", [&]{ return Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max); });
     add_assert("INV-40/G-90: a planted foot stands on its support (within 2 SLOP)",           [&]{ return Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max); });
+    add_assert("INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP)", [&]{ return Scene::support_stands(scene.feet_stances, scene.feet_support_move_max); });
     auto* l_arms = add_line(engine, 6, 220, 200, 140);
     l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
     if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");

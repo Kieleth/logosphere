@@ -191,6 +191,7 @@ struct Scene {
     static bool ledger_quiet(int n, int loud)     { return n > 0 && loud == 0; }
     static bool stance_holds(int stances, float slide_max) { return stances > 0 && slide_max <= STANCE_SLIDE_MAX; }
     static bool stance_stands(int stances, float gap_max)  { return stances > 0 && gap_max <= STANCE_GAP_MAX; }
+    static bool support_stands(int stances, float move_max) { return stances > 0 && move_max <= PhysicsV4::SLOP; }   // G-94: the floor under either foot does not move (stance or swing)
 
     void build(Engine& engine) {
         auto& ps       = engine.get_particle_system();
@@ -546,6 +547,7 @@ struct Scene {
         forward = prev_forward = 0.0f; backward_frames = 0; walk_frames = 0;
         ph_l = FootPhase{}; ph_r = FootPhase{}; feet_stances = feet_swings = feet_swing_contact_frames = feet_swing_frames = 0;
         feet_stance_slide_max = feet_stance_slide_sum = feet_stance_early_sum = feet_stance_peak_max = 0.0f; feet_swing_lift_max = feet_stance_gap_max = -1e9f; feet_worst.clear();
+        feet_support_move_max = feet_support_tilt_max = 0.0f; feet_support_worst.clear();
         joint_gap_max = 0.0f; joint_gap_worst.clear(); joint_gap_frame = -1; reach_over_max = -1e9f; reach_worst.clear(); nails.clear();
         argus.reset_milestones(box_a); argus.reset_milestones(arm);
     }
@@ -702,6 +704,8 @@ struct Scene {
         bool active = false, stance = false; int start = -1, frames = 0, contact_frames = 0;
         float px = 0, py = 0, slide = 0, slide_early = 0, slide_touching = 0, peak_speed = 0, lift_max = -1e9f, gap_max = -1e9f;
         float sep_start = -1, sep_end = -1, blend_start = -1, blend_end = -1;
+        // G-94: the support body under the planted foot, named at the stance's first frame; how far it moved and tilted since
+        int sup_id = -1; float sup_x0 = 0, sup_y0 = 0, sup_z0 = 0, sup_move_max = 0, sup_tilt_max = 0; logosphere::Quat sup_q0;
     };
     bool feet_on = false;
     int foot_l = -1, foot_r = -1, toe_l = -1, toe_r = -1, thigh_l = -1, thigh_r = -1;
@@ -709,6 +713,7 @@ struct Scene {
     std::string feet_last_row;
     int feet_stances = 0, feet_swings = 0, feet_swing_contact_frames = 0, feet_swing_frames = 0;
     float feet_stance_slide_max = 0, feet_stance_slide_sum = 0, feet_stance_early_sum = 0, feet_stance_peak_max = 0, feet_swing_lift_max = -1e9f, feet_stance_gap_max = -1e9f;
+    float feet_support_move_max = 0, feet_support_tilt_max = 0; std::string feet_support_worst;   // G-94
     bool feet_rows = false;                              // RAILS_FEET=1: print every phase's row; the measurement itself is always on
     int feet_rows_level = 0;                             // RAILS_FEET=2: a row per foot per frame (the landing offset, the height, the anchor, the tilt, the contacts)
     std::string feet_frame_rows;
@@ -740,6 +745,7 @@ struct Scene {
     bool wakes_on = false; std::string wakes_row;
     std::map<std::string, int> wake_reasons; int wake_n = 0, rest_n = 0, births = 0, deaths = 0; size_t bodies_prev = 0;
     int awake_world = 0; float aw_xmin = 0, aw_xmax = 0, aw_ymin = 0, aw_ymax = 0;
+    float leg_len0_l = 0, leg_len0_r = 0;   // G-94: the hips-to-foot distance at the run's first frame (standing: the straight leg), per side
     int seam_n = 0, seam_deep = 0; float seam_max = 0;      // world-to-world contact events per window: all, deeper than the sleep tolerance, the deepest
     std::string seam_row;                                   // the deepest seam of the window: who, how wide, where from the hips, how vertical; and how many world bodies moved
     int seam_a = -1, seam_b = -1; float seam_ax = 0, seam_ay = 0, seam_bx = 0, seam_by = 0, seam_aw = 0, seam_bw = 0, seam_nz = 0, seam_hx = 0, seam_hy = 0;
@@ -856,7 +862,8 @@ struct Scene {
             if (e.penetration > 0.0f) { ++contacts; pen_max = std::max(pen_max, e.penetration); } else ++near;   // touching is overlap; a proximity event is not a touch
         }
         const bool right = (foot == foot_r);
-        float x, y, bottom, sep = -1.0f, blend = 0.0f, support_top = -1e9f; bool stance = false;
+        float x, y, bottom, sep = -1.0f, blend = 0.0f, support_top = -1e9f; bool stance = false; int support_id = -1;
+        float sup_move = 0, sup_tilt = 0;   // this frame: the phase's support body's displacement and tilt since the phase began
         {
             auto v = engine.get_particle_system().lock_particles_for_read();
             const Particle& p = v[foot];
@@ -867,7 +874,7 @@ struct Scene {
                 if (std::fabs(q.x - x) > 0.5f * q.width + 0.15f || std::fabs(q.y - y) > 0.5f * q.height + 0.15f) continue;
                 const float top = q.z + 0.5f * q.thickness;
                 if (top > bottom + 0.05f) continue;
-                support_top = std::max(support_top, top);
+                if (top > support_top) { support_top = top; support_id = (int)i; }
             }
             float sep_z = 0.0f;
             if (const auto* parts = humanoid.get_humanoid_parts(hips)) {
@@ -875,6 +882,12 @@ struct Scene {
                 const int anchor = right ? parts->right_plant_anchor_id : parts->left_plant_anchor_id;
                 if (anchor >= 0 && (size_t)anchor < v.size()) { const float dx = x - v[anchor].x, dy = y - v[anchor].y; sep = std::sqrt(dx * dx + dy * dy); sep_z = p.z - v[anchor].z; }
                 blend = stance ? parts->plant_blend : 0.0f;
+            }
+            if (ph.active && ph.stance == stance && ph.sup_id >= 0 && (size_t)ph.sup_id < v.size()) {
+                const Particle& sp = v[ph.sup_id];
+                const float dx = sp.x - ph.sup_x0, dy = sp.y - ph.sup_y0, dz = sp.z - ph.sup_z0;
+                sup_move = std::sqrt(dx * dx + dy * dy + dz * dz);
+                sup_tilt = qangle((ph.sup_q0.conjugate() * sp.rotation_q).normalized());
             }
             float hip_cmd = -1.0f, hip_act = -1.0f, hip_err = -1.0f;    // the hip drive: commanded vs actual relative angle (deg)
             if (const int thigh = right ? thigh_r : thigh_l; thigh >= 0)
@@ -891,6 +904,9 @@ struct Scene {
                     hip_act = qangle(rel) * 57.2958f;
                     hip_err = qangle((nail->target_relative_q.conjugate() * rel).normalized()) * 57.2958f;
                 }
+            float& leg0 = right ? leg_len0_r : leg_len0_l;
+            const float leg_len = std::sqrt((x - v[hips].x) * (x - v[hips].x) + (y - v[hips].y) * (y - v[hips].y) + (p.z - v[hips].z) * (p.z - v[hips].z));
+            if (leg0 <= 0.0f) leg0 = leg_len;
             if (feet_rows_level >= 2) {
                 // the row per frame: where the foot is along the walk relative to the hips (the clip's reach at
                 // landing, the leg's stretch at toe-off), its height over the support, its offset from its
@@ -899,10 +915,10 @@ struct Scene {
                 float dx = h.vx, dy = h.vy; const float sp = std::sqrt(dx * dx + dy * dy);
                 if (sp > 0.1f) { dx /= sp; dy /= sp; } else { dx = std::sin(h.rotation_z); dy = std::cos(h.rotation_z); }
                 const float ahead = (x - h.x) * dx + (y - h.y) * dy;
-                char row[300];
-                std::snprintf(row, sizeof(row), "  [foot f%3d] %s %s: ahead of hips %+.3f m | bottom - support %+.4f | to anchor dxy %.4f dz %+.4f | tilt rx %+.1f ry %+.1f deg | contacts %d pen max %.4f | hip cmd %.1f act %.1f err %.1f | hips z %.3f\n",
+                char row[340];
+                std::snprintf(row, sizeof(row), "  [foot f%3d] %s %s: ahead of hips %+.3f m | bottom - support %+.4f | to anchor dxy %.4f dz %+.4f | tilt rx %+.1f ry %+.1f deg | contacts %d pen max %.4f | hip cmd %.1f act %.1f err %.1f | hips z %.3f | leg %.4f (%+.1f mm)\n",
                               f, side, stance ? "STANCE" : "swing ", ahead, support_top > -1e8f ? bottom - support_top : 0.0f, stance ? sep : -1.0f, stance ? sep_z : 0.0f,
-                              p.rotation_x * 57.2958f, p.rotation_y * 57.2958f, contacts, pen_max, hip_cmd, hip_act, hip_err, h.z);
+                              p.rotation_x * 57.2958f, p.rotation_y * 57.2958f, contacts, pen_max, hip_cmd, hip_act, hip_err, h.z, leg_len, (leg_len - leg0) * 1000.0f);
                 feet_frame_rows += row;
             }
         }
@@ -913,25 +929,33 @@ struct Scene {
         bool ended = false;
         auto close = [&]() {
             ended = true;
-            char row[360];
+            char row[440];
             if (ph.stance) {
                 ++feet_stances; feet_stance_slide_sum += ph.slide; feet_stance_early_sum += ph.slide_early;
                 feet_stance_peak_max = std::max(feet_stance_peak_max, ph.peak_speed);
                 if (ph.slide > feet_stance_slide_max) { feet_stance_slide_max = ph.slide; char b[48]; std::snprintf(b, sizeof(b), "%s stance f%d", side, ph.start); feet_worst = b; }
                 feet_stance_gap_max = std::max(feet_stance_gap_max, ph.gap_max);
-                std::snprintf(row, sizeof(row), "[feet] %s STANCE f%d-f%d (%d fr, touching %d): slide %.3f m, first %d fr %.3f, peak %.2f m/s, above support up to %.3f | anchor sep %.3f -> %.3f | pin blend %.2f -> %.2f",
-                              side, ph.start, ph.start + ph.frames - 1, ph.frames, ph.contact_frames, ph.slide, BLEND_FRAMES, ph.slide_early, ph.peak_speed, ph.gap_max, ph.sep_start, ph.sep_end, ph.blend_start, ph.blend_end);
+                if (ph.sup_move_max > feet_support_move_max) { feet_support_move_max = ph.sup_move_max; char b[48]; std::snprintf(b, sizeof(b), "%s stance f%d", side, ph.start); feet_support_worst = b; }
+                feet_support_tilt_max = std::max(feet_support_tilt_max, ph.sup_tilt_max);
+                std::snprintf(row, sizeof(row), "[feet] %s STANCE f%d-f%d (%d fr, touching %d): slide %.3f m, first %d fr %.3f, peak %.2f m/s, above support up to %.3f | anchor sep %.3f -> %.3f | pin blend %.2f -> %.2f | support P%d moved %.1f mm, tilted %.2f deg",
+                              side, ph.start, ph.start + ph.frames - 1, ph.frames, ph.contact_frames, ph.slide, BLEND_FRAMES, ph.slide_early, ph.peak_speed, ph.gap_max, ph.sep_start, ph.sep_end, ph.blend_start, ph.blend_end, ph.sup_id, ph.sup_move_max * 1000.0f, ph.sup_tilt_max * 57.2958f);
             } else {
                 ++feet_swings; feet_swing_frames += ph.frames; feet_swing_contact_frames += ph.contact_frames;
                 feet_swing_lift_max = std::max(feet_swing_lift_max, ph.lift_max);
-                std::snprintf(row, sizeof(row), "[feet] %s swing  f%d-f%d (%d fr, touching %d): lift max %.3f m over the support, slide while touching %.3f m, peak %.2f m/s",
-                              side, ph.start, ph.start + ph.frames - 1, ph.frames, ph.contact_frames, ph.lift_max, ph.slide_touching, ph.peak_speed);
+                if (ph.sup_move_max > feet_support_move_max) { feet_support_move_max = ph.sup_move_max; char b[48]; std::snprintf(b, sizeof(b), "%s swing f%d", side, ph.start); feet_support_worst = b; }
+                feet_support_tilt_max = std::max(feet_support_tilt_max, ph.sup_tilt_max);
+                std::snprintf(row, sizeof(row), "[feet] %s swing  f%d-f%d (%d fr, touching %d): lift max %.3f m over the support, slide while touching %.3f m, peak %.2f m/s | support P%d moved %.1f mm, tilted %.2f deg",
+                              side, ph.start, ph.start + ph.frames - 1, ph.frames, ph.contact_frames, ph.lift_max, ph.slide_touching, ph.peak_speed, ph.sup_id, ph.sup_move_max * 1000.0f, ph.sup_tilt_max * 57.2958f);
             }
             if (!feet_last_row.empty()) feet_last_row += "\n  ";
             feet_last_row += row;
         };
         if (ph.active && ph.stance != stance) { close(); ph.active = false; }
-        if (!ph.active) { ph = FootPhase{}; ph.active = true; ph.stance = stance; ph.start = f; ph.px = x; ph.py = y; ph.sep_start = sep; ph.blend_start = blend; }
+        if (!ph.active) {
+            ph = FootPhase{}; ph.active = true; ph.stance = stance; ph.start = f; ph.px = x; ph.py = y; ph.sep_start = sep; ph.blend_start = blend;
+            if (support_id >= 0) { auto v = engine.get_particle_system().lock_particles_for_read(); const Particle& sp = v[support_id];
+                ph.sup_id = support_id; ph.sup_x0 = sp.x; ph.sup_y0 = sp.y; ph.sup_z0 = sp.z; ph.sup_q0 = sp.rotation_q; }
+        }
         else {
             const float d = std::sqrt((x - ph.px) * (x - ph.px) + (y - ph.py) * (y - ph.py));
             ph.slide += d;
@@ -942,6 +966,7 @@ struct Scene {
         ph.frames++; if (touching) ph.contact_frames++;
         if (support_top > -1e8f) { ph.lift_max = std::max(ph.lift_max, bottom - support_top); ph.gap_max = std::max(ph.gap_max, bottom - support_top); }
         ph.px = x; ph.py = y; ph.sep_end = sep; ph.blend_end = blend;
+        ph.sup_move_max = std::max(ph.sup_move_max, sup_move); ph.sup_tilt_max = std::max(ph.sup_tilt_max, sup_tilt);
         return ended;
     }
     // Call after step() every frame when feet_on. Returns true when a phase ended.
@@ -959,10 +984,11 @@ struct Scene {
         return l || r;
     }
     std::string feet_summary() const {
-        char b[320];
-        std::snprintf(b, sizeof(b), "[feet] %d stances: slide max %.3f m (%s, bar %.3f), mean %.3f m, of which the first %d frames mean %.3f m, peak %.2f m/s, above support up to %.3f m (bar %.3f) | %d swings: touching the floor %d of %d swing frames, lift max %.3f m",
+        char b[420];
+        std::snprintf(b, sizeof(b), "[feet] %d stances: slide max %.3f m (%s, bar %.3f), mean %.3f m, of which the first %d frames mean %.3f m, peak %.2f m/s, above support up to %.3f m (bar %.3f) | %d swings: touching the floor %d of %d swing frames, lift max %.3f m | the floor under a foot moved up to %.1f mm (%s, bar %.1f), tilted up to %.2f deg",
                       feet_stances, feet_stance_slide_max, feet_worst.c_str(), STANCE_SLIDE_MAX, feet_stances ? feet_stance_slide_sum / feet_stances : 0.0f, BLEND_FRAMES,
-                      feet_stances ? feet_stance_early_sum / feet_stances : 0.0f, feet_stance_peak_max, feet_stance_gap_max, STANCE_GAP_MAX, feet_swings, feet_swing_contact_frames, feet_swing_frames, feet_swing_lift_max);
+                      feet_stances ? feet_stance_early_sum / feet_stances : 0.0f, feet_stance_peak_max, feet_stance_gap_max, STANCE_GAP_MAX, feet_swings, feet_swing_contact_frames, feet_swing_frames, feet_swing_lift_max,
+                      feet_support_move_max * 1000.0f, feet_support_worst.c_str(), PhysicsV4::SLOP * 1000.0f, feet_support_tilt_max * 57.2958f);
         return b;
     }
 

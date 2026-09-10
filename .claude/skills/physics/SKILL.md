@@ -276,7 +276,11 @@ those before naming a slowdown's cause. The window's `[STALL-FRAME]` and
 the log's timestamps are the wall clock. What the witness read: the ledger's
 reach test wakes the tiles under a walker by bounding spheres (4 ms a frame
 against 1), and a rail-held foot with unbounded drives presses its tile
-9-12 mm and wakes the floor in a wave (rulings 9 and 10 on the board). Before any claim about a gait, read the feet rows; the walk
+9-12 mm and wakes the floor in a wave (rulings 9 and 10 on the board). G-94 says it as law, born red: the floor under either
+foot moves by no more than SLOP. The torque-bounded drive (`INV40_STEP=8`)
+is the muscle's law and not that fix: the push is a rail dragging rigid
+bones into a seam edge, and only the book (INV-7) or a lifted toe answers
+it. When a bound does not change a number, the pusher is not a force. Before any claim about a gait, read the feet rows; the walk
 gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in
