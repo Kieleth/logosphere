@@ -280,7 +280,12 @@ against 1), and a rail-held foot with unbounded drives presses its tile
 foot moves by no more than SLOP. The torque-bounded drive (`INV40_STEP=8`)
 is the muscle's law and not that fix: the push is a rail dragging rigid
 bones into a seam edge, and only the book (INV-7) or a lifted toe answers
-it. When a bound does not change a number, the pusher is not a force. Before any claim about a gait, read the feet rows; the walk
+it. When a bound does not change a number, the pusher is not a force.
+The book drained by the harness (`INV40_STEP=9`) is the law's shape
+and held G-94 in one run, not across replays; as a raw per-frame velocity
+kick it runs away at 60 Hz physics with a teleport (G-95): a drain is a
+controller, and a controller through a rail's own rows needs its own
+dynamics. The [perf] row's `book` column reads what the rail refused. Before any claim about a gait, read the feet rows; the walk
 gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in

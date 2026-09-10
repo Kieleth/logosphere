@@ -23,6 +23,8 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
 - **`RAILS_PERF=1` and `RAILS_WAKES=1`** in `test_rails_and_muscles` (and its window): the cost witness, a row per 30 frames with the update's wall time, the solver's rows and iterations, the awake bodies, the gluons and the contacts, and every world body's wakes counted by reason with the floor's seams against the sleep tolerance. The `[perf]` summary is always printed.
 - **`INV40_STEP=8`: torque-bounded muscles.** A gluon can declare its drive `drive_torque_bounded`, and its angular rows then take the same per-step budget a force-bounded bond has, `(angular_stiffness * error + angular_damping * spin) * dt`; behind the lever every humanoid muscle does. `MUSCLE_K=<N.m/rad>` is an A/B lever on the muscles' angular stiffness. Default off.
 - **G-94 law line** in `test_rails_and_muscles` (and its panel): the floor body under either foot moves by no more than SLOP over a stance or a swing; the feet rows name the support and how far it moved.
+- **`INV40_STEP=9`: the harness feels the world.** Each frame the humanoid harness drains the impulse the solver booked as refused by its hips rail and absorbs the horizontal part as a body of the walker's mass would; the vertical part is reported on the parts. Default off; known runaway with `PHYSICS_HZ=60` and a teleport.
+- **`INV40_STEP=10`: the walk clip's toe-off lifts** (ankle and toe dorsiflexed) instead of pointing the toe into the floor. Default off.
 - **The creation door: nothing is born inside anything (INV-37).** A body
   created overlapping a live body by more than `SLOP` is now REFUSED at
   `ParticleSystem::add_particle`, the one point every birth crosses: the

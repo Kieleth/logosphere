@@ -746,6 +746,7 @@ struct Scene {
     std::map<std::string, int> wake_reasons; int wake_n = 0, rest_n = 0, births = 0, deaths = 0; size_t bodies_prev = 0;
     int awake_world = 0; float aw_xmin = 0, aw_xmax = 0, aw_ymin = 0, aw_ymax = 0;
     float leg_len0_l = 0, leg_len0_r = 0;   // G-94: the hips-to-foot distance at the run's first frame (standing: the straight leg), per side
+    float book_xy_sum = 0, book_xy_max = 0, book_z_sum = 0, harness_v_min = 1e9f; int book_n = 0;   // G-95: the hips rail's book per window, the harness's slowest speed
     int seam_n = 0, seam_deep = 0; float seam_max = 0;      // world-to-world contact events per window: all, deeper than the sleep tolerance, the deepest
     std::string seam_row;                                   // the deepest seam of the window: who, how wide, where from the hips, how vertical; and how many world bodies moved
     int seam_a = -1, seam_b = -1; float seam_ax = 0, seam_ay = 0, seam_bx = 0, seam_by = 0, seam_aw = 0, seam_bw = 0, seam_nz = 0, seam_hx = 0, seam_hy = 0;
@@ -811,14 +812,20 @@ struct Scene {
         if (perf_ms.empty()) perf_gluons_first = gl;
         perf_gluons_last = gl;
         perf_ms.push_back((float)upd_ms); perf_rows_v.push_back((float)ls.rows); perf_awake.push_back((float)awake);
+        if (const auto* parts = engine.get_humanoid_locomotion().get_humanoid_parts(hips)) {
+            const float bxy = std::sqrt(parts->harness_book_jx * parts->harness_book_jx + parts->harness_book_jy * parts->harness_book_jy);
+            book_xy_sum += bxy; book_xy_max = std::max(book_xy_max, bxy); book_z_sum += parts->harness_book_jz; ++book_n;
+            harness_v_min = std::min(harness_v_min, std::sqrt(parts->harness_vx * parts->harness_vx + parts->harness_vy * parts->harness_vy));
+        }
         pw.n++; pw.ms_sum += upd_ms; pw.ms_max = std::max(pw.ms_max, upd_ms); pw.rows_sum += ls.rows; pw.rows_max = std::max(pw.rows_max, ls.rows);
         pw.it_sum += ls.iterations; pw.awake_sum += awake; pw.awake_max = std::max(pw.awake_max, awake); pw.ct_sum += ct;
         perf_row.clear();
         if (f % 30 == 29 && pw.n > 0) {
-            char row[300];
-            std::snprintf(row, sizeof(row), "[perf run %d f%3d] update %.1f ms mean, %.1f max | rows %.0f mean, %d max | iters %.1f | awake %.0f mean, %d max | gluons %zu | contacts %.0f | solver exit %s",
-                          perf_run, f, pw.ms_sum / pw.n, pw.ms_max, (double)pw.rows_sum / pw.n, pw.rows_max, (double)pw.it_sum / pw.n, (double)pw.awake_sum / pw.n, pw.awake_max, gl, (double)pw.ct_sum / pw.n, ls.exit);
-            perf_row = row; pw = PerfWin{};
+            char row[400];
+            std::snprintf(row, sizeof(row), "[perf run %d f%3d] update %.1f ms mean, %.1f max | rows %.0f mean, %d max | iters %.1f | awake %.0f mean, %d max | gluons %zu | contacts %.0f | solver exit %s | book xy %.2f N.s mean, %.2f max, z %.1f mean | harness v min %.2f",
+                          perf_run, f, pw.ms_sum / pw.n, pw.ms_max, (double)pw.rows_sum / pw.n, pw.rows_max, (double)pw.it_sum / pw.n, (double)pw.awake_sum / pw.n, pw.awake_max, gl, (double)pw.ct_sum / pw.n, ls.exit,
+                          book_n ? book_xy_sum / book_n : 0.0f, book_xy_max, book_n ? book_z_sum / book_n : 0.0f, harness_v_min < 1e8f ? harness_v_min : 0.0f);
+            perf_row = row; pw = PerfWin{}; book_xy_sum = book_xy_max = book_z_sum = 0; book_n = 0; harness_v_min = 1e9f;
         }
     }
     std::string perf_summary() const {

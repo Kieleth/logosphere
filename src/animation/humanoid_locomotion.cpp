@@ -52,6 +52,10 @@ namespace logosphere::animation {
 //   >= 8  every muscle's drive is torque-bounded by its own profile
 //         (k * error + c * spin per step; G-94, ruling '10'): a leg asked
 //         to reach past its length sags instead of moving the floor
+//   >= 9  the harness drains the hips rail's refused-momentum book and
+//         absorbs its plane part as the walker's momentum (G-95, 'a')
+//   >= 10 the walk clip's toe-off lifts the foot instead of pointing the
+//         toe into the floor (G-96, 'b')
 // Unset or 0: today's behaviour. Steps 0 and 1 are unconditional.
 static int inv40_step() {
     static const int v = [] {
@@ -1899,6 +1903,20 @@ void HumanoidLocomotion::register_humanoid_direct(
             std::cout << "[HumanoidLocomotion] INV40_STEP>=7: walk strike " << walk_profile.hip_flex_strike
                       << " rad = asin(" << half << " / " << reach << "), held to the step's end" << std::endl;
         }
+    }
+    // INV-40 step 10 / G-96 (owner ruling 'b', 2026-09-09): the toe lifts
+    // before the rail drags it. The authored toe-off points the ankle and
+    // the toe DOWN while the foot is still on the floor; with the pin
+    // released at the boundary and the harness carrying the body, that is
+    // a scrape, not a push-off, and a scraping foot dragged by a rail
+    // catches every proud slab edge (85 of 275 swing frames touching).
+    // From step 10 the toe-off keyframe dorsiflexes the ankle and the toe
+    // by the swing's own clearance values.
+    if (inv40_step() >= 10) {
+        walk_profile.ankle_push_off = walk_profile.ankle_dorsi_swing;
+        walk_profile.toe_push_off   = walk_profile.toe_dorsi_swing;
+        std::cout << "[HumanoidLocomotion] INV40_STEP>=10: the toe-off lifts (ankle " << walk_profile.ankle_push_off
+                  << ", toe " << walk_profile.toe_push_off << " rad)" << std::endl;
     }
     register_walk_clips(hips_id,
         create_fk_walk_step(Side::RIGHT, walk_profile), create_fk_walk_step(Side::LEFT, walk_profile));
@@ -4806,6 +4824,23 @@ void HumanoidLocomotion::update_locomotion(HumanoidParts& parts, double delta_ti
     // INV-40 / G-83: in the lever world the harness's command is its own
     // state; the hips' field is the ledger (the derivation overwrites it).
     const bool harness_state = inv40_step() >= 3;
+    // INV-40 step 9 / G-95 (owner ruling 'a', 2026-09-09): the harness feels
+    // the world. The solver books every impulse the hips rail refused; the
+    // harness drains it here, before the controller reads its own velocity,
+    // and absorbs the plane's part as a body of the walker's mass would.
+    // The vertical part is the belt's carry, kept for the prover. Read
+    // before it: a swing foot dragged into a slab's edge shoved a 12 t
+    // slab 9.5 mm with the rail's unlimited authority (G-94).
+    parts.harness_book_jx = parts.harness_book_jy = parts.harness_book_jz = 0.0f;
+    if (inv40_step() >= 9 && harness_state && parts.mass > 0.0f) {
+        float jx = 0.0f, jy = 0.0f, jz = 0.0f;
+        if (impl_->get_physics_system().take_refused_impulse(parts.hips, jx, jy, jz)) {
+            parts.harness_vx += jx / parts.mass;
+            parts.harness_vy += jy / parts.mass;
+            parts.harness_book_jx = jx; parts.harness_book_jy = jy; parts.harness_book_jz = jz;
+            parts.harness_book_xy_max = std::max(parts.harness_book_xy_max, std::sqrt(jx * jx + jy * jy));
+        }
+    }
     float vx = harness_state ? parts.harness_vx : hips.vx;
     float vy = harness_state ? parts.harness_vy : hips.vy;
     float current_speed = std::sqrt(vx * vx + vy * vy);

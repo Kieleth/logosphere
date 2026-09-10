@@ -3583,3 +3583,18 @@ swing foot's toe-off scrape. The pusher is the hips rail dragging the
 swing foot through rigid bones into the next tile's edge. Ruling 10
 re-stated on the board: the refused-momentum book drained by the harness
 (recommended), the toe lifted before the drag, the seams' own front.
+
+## 2026-09-09 - "a then b": the harness drains the book (step 9), the toe lifts (step 10)
+
+Step 9 (G-95): the floor under a foot 9.4 -> 0.7 mm in the base run, G-94
+green for the first time in a lever world; 3.5-3.6 mm across two replays;
+no wave; the nails 0.30 -> 0.07; the harness feels the stance leg's
+tension (12.5 N.s a frame, 750 N) and slows to 0.64 m/s: the walk 3.7-4.1
+of 5 m; the belt carries a third to a half of her weight. At 60 Hz
+physics with a replay the drain runs away and the world detonates: a raw
+velocity kick per frame is positive feedback through the rail's rows.
+Step 10 (G-96): the scrape 69-85 -> 50 frames, the floor still moves: the
+scrape is the drive's turnaround lag at full extension. Rulings 11 (the
+drain's form) and 12 (the leg never straight at the boundary) on the
+board. My own headless 60 Hz attribution run was stopped after its
+runaway was on record; no window was killed.

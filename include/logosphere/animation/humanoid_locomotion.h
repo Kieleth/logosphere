@@ -208,6 +208,12 @@ struct HumanoidParts {
     // INV40_STEP >= 3 the ground correction and the on-ground decision
     // measure the hips against this, never the muscles.
     float harness_rest_height = 0.0f;
+    // INV-40 step 9 / G-95: what the hips rail refused this frame (N.s), read
+    // from the solver's book and drained by the harness: the plane's part
+    // becomes the walker's momentum (harness_vx/vy += j / mass), the vertical
+    // is the belt's carry, kept for the prover.
+    float harness_book_jx = 0.0f, harness_book_jy = 0.0f, harness_book_jz = 0.0f;
+    float harness_book_xy_max = 0.0f;
     // INV-40 / G-83: the harness's commanded velocity is its own state,
     // not the hips' ledger field (which INV-39's derivation overwrites each
     // physics step). From INV40_STEP >= 3 the controller reads and writes
