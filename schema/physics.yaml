@@ -1395,6 +1395,22 @@ classes:
           so resting forests stay asleep, far below any real strain.
           Earned on rotation-ladder rung 1: a rotated KINEMATIC
           parent's sleeping child ignored the moved anchor entirely.
+      GLUON_WAKE_ANGLE:
+        range: float
+        ifabsent: float(0.1)
+        unit: { ucum_code: rad }
+        description: >-
+          Wake-on-strain for a drive (G-98, INV-18's drive half): a
+          quaternion-driven joint whose angular error to its command
+          exceeds this wakes both DYNAMIC endpoints at row build. Below
+          it a quiet muscle may sleep, so the angle is the muscle's
+          dead-band: a command that starts moving is followed once it is
+          this far ahead. Was the 0.1f literal on the elastic e_mag gate
+          (rotation-ladder rung 3: the chain STAYED BENT at 0.70 m
+          because nothing woke on angle error). Registered 2026-09-19
+          when the immovable exit was found to precede that gate, so no
+          sleeping pair with a closed nail ever reached it; under
+          DRIVE_WAKE=1 the check also runs before the exit.
       WAKE_TRANSFER_SPEED:
         range: float
         ifabsent: float(1.0)

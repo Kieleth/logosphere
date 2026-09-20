@@ -840,6 +840,46 @@ static bool wake_resolver_on() {
     return on;
 }
 
+// G-98: a driven muscle never sleeps against its command. The drive's angle
+// to its command is a strain, and its wake is checked BEFORE the immovable
+// exit of the row build, the way the bond's length is. Default OFF until
+// the owner's QA: DRIVE_WAKE=1.
+static bool drive_wake_on() {
+    static const bool on = std::getenv("DRIVE_WAKE") != nullptr;
+    return on;
+}
+
+// The orientation a drive row reads for an endpoint: the solver keeps
+// rotation_q current on a quaternion-driven body (a nested joint); any other
+// body's truth is its Euler triple (FK-owned), synced here so the error
+// reflects the world.
+static inline logosphere::Quat drive_frame(const Particle& p) {
+    return p.is_quat_driven ? p.rotation_q
+                            : logosphere::Quat::from_euler(p.rotation_x, p.rotation_y, p.rotation_z);
+}
+
+// The drive's angular error to its command: the Rodrigues vector of
+// q_err = q_b * q_a^-1 * target^-1, computed directly from the quaternion
+// components, 2*(x,y,z)/sinc(theta/2) -> 2*(x,y,z) at small theta, so the
+// error decays smoothly to zero with no division blowup and |e| = |theta|.
+// to_axis_angle's axis/sin_half division is stable for large rotations but
+// at small theta amplifies floating-point noise on the "zero" axes into
+// full unit magnitudes: a pure-X rotation's near-identity residual emerged
+// with a phantom Y or Z axis, the row applied impulse along it, and
+// cross-axis omega pumped on every drive particle and rang through chains.
+// w < 0 is negated so the -180..+180 wrap corrects the short way. One form
+// for the wake before the immovable exit (G-98) and the row's own error.
+static inline float drive_angle_error(const logosphere::Quat& q_a, const logosphere::Quat& q_b,
+                                      const logosphere::Quat& target,
+                                      float& ex, float& ey, float& ez) {
+    const logosphere::Quat q_err = q_b * q_a.conjugate() * target.conjugate();
+    ex = 2.0f * q_err.x;
+    ey = 2.0f * q_err.y;
+    ez = 2.0f * q_err.z;
+    if (q_err.w < 0.0f) { ex = -ex; ey = -ey; ez = -ez; }
+    return std::sqrt(ex*ex + ey*ey + ez*ez);
+}
+
 // An axis-aligned box as an OBB: the merged surface of a tile family handed
 // to the oriented narrow phase (night 2026-09-04, journal 8).
 static inline OBB obb_of_aabb(const AABB6& b) {
@@ -2449,6 +2489,25 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // survive to update_rest_state.
     if (constraint_dissatisfied_.size() != particles.size())
         constraint_dissatisfied_.assign(particles.size(), 0);
+    // One wake for every kind of strain a row can carry (a bond's length,
+    // a drive's angle): both endpoints marked dissatisfied so the judge
+    // cannot re-sleep them this frame, the DYNAMIC ones freed. Clearing
+    // is_at_rest alone is the hysteresis trap: the rest counter stays high,
+    // the damper crushes the first small correction, and sleep re-latches
+    // within the frame (the lying-blade probe saw rest=1 every sample while
+    // this wake fired every frame). Freedom resets the counter, same as
+    // wake-on-break.
+    auto wake_on_strain = [&](size_t a, size_t b, int line) {
+        for (size_t id : {a, b}) {
+            if (id < constraint_dissatisfied_.size())
+                { constraint_dissatisfied_[id] = 1; dissat_note(id, line, 0.0f, -1); }
+            Particle& p = particles[id];
+            if (p.solver_mode == ParticleSolverMode::KINEMATIC) continue;
+            if (p.is_at_rest) note_sleep(id, false, "row dissatisfied");
+            p.is_at_rest = false;
+            p.low_velocity_frames = 0;
+        }
+    };
     size_t gluon_slot_counter = 0;
     for (const auto& gluon : gluon_constraints_v2_) {
         const size_t this_gluon_slot = gluon_slot_counter++;
@@ -2632,28 +2691,8 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // Wake-on-strain (see GLUON_WAKE_STRAIN): a bond under
                 // geometric strain wakes its bodies, whatever moved the
                 // anchor (kinematic rotation, teleport, mass change).
-                if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
-                    if (body_a < constraint_dissatisfied_.size())
-                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
-                    if (body_b < constraint_dissatisfied_.size())
-                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
-                    // Clearing is_at_rest alone is the hysteresis trap: the
-                    // rest counter stays high, the damper crushes the first
-                    // small correction, and sleep re-latches within the
-                    // frame (the lying-blade probe saw rest=1 every sample
-                    // while this wake fired every frame). Freedom resets
-                    // the counter, same as wake-on-break.
-                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
-                        if (particles[body_a].is_at_rest) note_sleep(body_a, false, "row dissatisfied");
-                        particles[body_a].is_at_rest = false;
-                        particles[body_a].low_velocity_frames = 0;
-                    }
-                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
-                        if (particles[body_b].is_at_rest) note_sleep(body_b, false, "row dissatisfied");
-                        particles[body_b].is_at_rest = false;
-                        particles[body_b].low_velocity_frames = 0;
-                    }
-                }
+                if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN)
+                    wake_on_strain(body_a, body_b, __LINE__);
                 // Project error along separation direction to get per-axis correction
                 float scale = error / current_dist;
                 separation[0] = sep_x * scale;
@@ -2668,13 +2707,46 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
 
         // A bond between two immovable bodies builds no rows. The wake-on-
         // strain check above already ran, so a strained sleeping bond woke
-        // its endpoints this substep and does not take this exit. What
-        // remains is the sleeping, satisfied majority of the world: their
-        // rows are guaranteed zeros (eff mass 0 on every axis), and Eden
-        // was visiting 58k of them 15+ iterations x 4 substeps a frame for
-        // nothing. Identity-safe: consumers resolve via gluon_slot, same as
-        // the both-KINEMATIC skip above.
+        // its endpoints this substep. A DRIVE's strain is its angle to its
+        // command, and that wake lives in the angular row BELOW this exit
+        // (G-98: written three days before the exit, which then claimed it
+        // had run), so a sleeping muscle with a closed nail never reached
+        // it and ignored its command until something else woke it (G-89,
+        // the rig asleep 240 of 240 frames under a command 0.8 rad away).
+        // Under DRIVE_WAKE=1 the drive's strain is checked here as well;
+        // either way the woken pair's rows carry this substep's zero mass
+        // (RowMassRefresh is shrink-only) and act from the next, as the
+        // positional wake's do. What remains is the sleeping, satisfied
+        // majority of the world: their rows are guaranteed zeros (eff mass
+        // 0 on every axis), and Eden was visiting 58k of them 15+
+        // iterations x 4 substeps a frame for nothing. Identity-safe:
+        // consumers resolve via gluon_slot, same as the both-KINEMATIC skip
+        // above.
         if (inv_mass_momentum(pa) == 0.0f && inv_mass_momentum(pb) == 0.0f) {
+            if (drive_wake_on() && gluon->enable_angular_constraint &&
+                gluon->angular_drive_enabled && gluon->use_quat_target) {
+                float ex, ey, ez;
+                const float e_mag = drive_angle_error(drive_frame(pa), drive_frame(pb), gluon->target_relative_q, ex, ey, ez);
+                if (e_mag > PhysicsV4::GLUON_WAKE_ANGLE) {
+                    static const bool dbg = std::getenv("DRIVE_WAKE_DEBUG") != nullptr;
+                    if (dbg) {   // diagnostic only: who wakes on its command, and in what state
+                        const logosphere::CreationBody ba = logosphere::describe_creation_body(static_cast<int>(body_a), pa);
+                        const logosphere::CreationBody bb = logosphere::describe_creation_body(static_cast<int>(body_b), pb);
+                        std::printf("[DRIVE_WAKE] P%zu(mode %d rest %d owner %d %s half %.3fx%.3fx%.3f z %.3f) <-> "
+                                    "P%zu(mode %d rest %d owner %d %s half %.3fx%.3fx%.3f z %.3f) e=%.3f rad\n",
+                                    body_a, (int)pa.solver_mode, (int)pa.is_at_rest, (int)pa.owner, ba.shape, ba.half[0], ba.half[1], ba.half[2], pa.z,
+                                    body_b, (int)pb.solver_mode, (int)pb.is_at_rest, (int)pb.owner, bb.shape, bb.half[0], bb.half[1], bb.half[2], pb.z, e_mag);
+                    }
+                    // Attribution probe (DRIVE_WAKE_UNTIL=k): only the first k
+                    // pre-exit wakes fire, to bisect which wake a downstream
+                    // verdict depends on. Diagnostic only; unset = all.
+                    static const int until = std::getenv("DRIVE_WAKE_UNTIL") ? std::atoi(std::getenv("DRIVE_WAKE_UNTIL")) : -1;
+                    static int n_wakes = 0;
+                    ++n_wakes;
+                    if (until < 0 || n_wakes <= until)
+                        wake_on_strain(body_a, body_b, __LINE__);
+                }
+            }
             continue;
         }
 
@@ -3044,45 +3116,13 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     if ((qn2++ % 240) == 0) printf("[QDBG] quat path entered\n");
                 }
                 namespace lm = logosphere;
-                // Parent orientation source: if the parent is itself
-                // quat-driven (nested joint), its rotation_q is kept
-                // current by the solver. Otherwise it's FK-owned; sync
-                // from its Euler triple on-the-fly so the error term
-                // reflects the current world orientation.
-                lm::Quat q_a = pa.is_quat_driven
-                    ? pa.rotation_q
-                    : lm::Quat::from_euler(pa.rotation_x, pa.rotation_y, pa.rotation_z);
-                lm::Quat q_b = pb.is_quat_driven
-                    ? pb.rotation_q
-                    : lm::Quat::from_euler(pb.rotation_x, pb.rotation_y, pb.rotation_z);
-                lm::Quat q_err = q_b * q_a.conjugate() * gluon->target_relative_q.conjugate();
-
-                // Rodrigues error vector, computed directly from the
-                // quaternion components to avoid the axis/sin_half
-                // division that to_axis_angle does. That division is
-                // stable for large rotations but at small theta it
-                // amplifies floating-point noise on the "zero" axes
-                // into full unit magnitudes — a pure-X rotation's
-                // residual near-identity q_err would emerge with a
-                // phantom Y or Z axis pointing somewhere meaningless,
-                // and the constraint would then apply impulse along
-                // that noisy direction, pumping cross-axis omega on
-                // every physics-drive particle and ringing through
-                // chains.
-                //
-                // For a unit quaternion q = (w, x, y, z) with w >= 0,
-                // the Rodrigues vector is 2*(x, y, z) / sinc(theta/2).
-                // At small theta, sinc(theta/2) -> 1 so e ~ 2*(x,y,z).
-                // Using this directly means the error vector decays
-                // smoothly to zero with no division blowup, and the
-                // constraint row's magnitude equals |e| = |theta|.
-                // Sign of w handles the "short way" (if w<0, negate
-                // so we correct the -180..+180 wrap correctly).
-                float ex = 2.0f * q_err.x;
-                float ey = 2.0f * q_err.y;
-                float ez = 2.0f * q_err.z;
-                if (q_err.w < 0.0f) { ex = -ex; ey = -ey; ez = -ez; }
-                float e_mag = std::sqrt(ex*ex + ey*ey + ez*ez);
+                // The endpoints' frames and the error to the command: the
+                // same two helpers the wake before the immovable exit reads
+                // (G-98), so the row and the wake cannot disagree.
+                lm::Quat q_a = drive_frame(pa);
+                lm::Quat q_b = drive_frame(pb);
+                float ex, ey, ez;
+                float e_mag = drive_angle_error(q_a, q_b, gluon->target_relative_q, ex, ey, ez);
 
                 // Wake-on-angular-strain: a joint bent away from its target
                 // is mid-recovery; sleep would freeze it bent (rung 3: the
@@ -3091,24 +3131,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 if (qhit) {
                     static int qn3 = 0;
                     if ((qn3++ % 240) == 0)
-                        printf("[QDBG] e_mag=%.3f rad (wake at >0.1)\n", e_mag);
+                        printf("[QDBG] e_mag=%.3f rad (wake at >%.2f)\n", e_mag, PhysicsV4::GLUON_WAKE_ANGLE);
                 }
-                if (e_mag > 0.1f) {
-                    if (body_a < constraint_dissatisfied_.size())
-                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
-                    if (body_b < constraint_dissatisfied_.size())
-                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
-                    if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
-                        if (particles[body_a].is_at_rest) note_sleep(body_a, false, "row dissatisfied");
-                        particles[body_a].is_at_rest = false;
-                        particles[body_a].low_velocity_frames = 0;
-                    }
-                    if (pb.solver_mode != ParticleSolverMode::KINEMATIC) {
-                        if (particles[body_b].is_at_rest) note_sleep(body_b, false, "row dissatisfied");
-                        particles[body_b].is_at_rest = false;
-                        particles[body_b].low_velocity_frames = 0;
-                    }
-                }
+                if (e_mag > PhysicsV4::GLUON_WAKE_ANGLE)
+                    wake_on_strain(body_a, body_b, __LINE__);
                 // PLASTIC YIELD: absorb deformation beyond the yield angle
                 // into the rest pose. rel = q_b * q_a^-1; the new target
                 // keeps exactly 'yield' of elastic error along the current

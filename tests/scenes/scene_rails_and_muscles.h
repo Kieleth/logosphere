@@ -140,9 +140,10 @@ struct Scene {
     float c_err = 0, c_err_max = 0, c_lag = 0, c_lag_max = 0;  // the load against the FK (m); the shin's pitch against the command (rad)
     float c_adv_ratio_min = 1e9f;                             // actual / FK advance when the command reaches the arc's end, worst sweep
     float c_sweep_x0 = 0;                                     // the load's x when a sweep's command starts
-    std::string rig_row, rig_frame_row;                       // a sweep's verdict row (always); RAILS_RIG=1: a row per 3 frames
+    std::string rig_row, rig_frame_row, rig_sleep_row;        // a sweep's verdict row (always); RAILS_RIG=1: a row per 3 frames, the sleep transitions
     bool  rig_rows = false, rig_wake = false;                // RAILS_RIG_WAKE=1: a staging, the three bodies woken every frame the command moves (G-89 separated from convergence)
     int   c_asleep_frames = 0;                               // frames after the hold with any rig body asleep
+    int   c_strained_asleep = 0;                             // G-98: frames after the hold with a rig body asleep while the ankle's command is more than GLUON_WAKE_ANGLE away
     float c_knee_err = 0, c_knee_err_max = 0;                 // the thigh's pitch against the shin's, minus the knee's command (rad)
     float c_gap[3] = {0, 0, 0}, c_gap_max = 0;                // the three nails' attachment gaps (ankle, knee, weld), m
     float c_load_kg = 0;                                      // RAILS_RIG_LOAD=<kg>: a staging, the load's mass overridden (the mass-ratio control)
@@ -228,6 +229,7 @@ struct Scene {
     static bool support_stands(int stances, float move_max) { return stances > 0 && move_max <= PhysicsV4::SLOP; }   // G-94: the floor under either foot does not move (stance or swing)
     static bool rig_carries(int sweeps, float err_max)     { return sweeps >= C_SWEEPS && err_max <= C_PATH_ERR_MAX; }   // G-97: the load on the command's path
     static bool rig_advances(int sweeps, float ratio_min)  { return sweeps >= C_SWEEPS && ratio_min >= C_ADVANCE_MIN; }  // G-97: the load keeps up with the arc
+    static bool rig_awake(int sweeps, int strained_asleep) { return sweeps >= C_SWEEPS && strained_asleep == 0; }       // G-98: a driven muscle never sleeps against its command
 
     void build(Engine& engine) {
         auto& ps       = engine.get_particle_system();
@@ -683,6 +685,10 @@ struct Scene {
         std::printf("  [rig] station C at x %.1f: the load %.1f kg (a %.2f m stone cube) on a leg of %.3f + %.3f m (Eva's right shin + thigh), the arc +-%.2f rad in %d frames x %d, hold %d\n",
                     C_X, c_mass, c_side, c_ls, c_lt, C_SWEEP, C_SWEEP_FRAMES, C_SWEEPS, C_HOLD);
         if (rig_wake) std::printf("  [rig] RAILS_RIG_WAKE=1: a staging, never the claim - the three bodies are woken every frame the command moves\n");
+        if (rig_rows) {                                  // the INV-18 witness on the rig: every sleep transition, with its reason
+            auto& tr = engine.get_particle_tracer();
+            tr.trace(c_foot, "rig/foot"); tr.trace(c_shin, "rig/shin"); tr.trace(c_thigh, "rig/thigh"); tr.trace(c_load, "rig/load");
+        }
     }
     void rig_command(Engine& engine, int frame) {
         if (c_load < 0) return;
@@ -697,7 +703,7 @@ struct Scene {
         if (rig_wake && frame >= C_HOLD) for (int id : {c_shin, c_thigh, c_load}) engine.get_physics_system().wake_particle((size_t)id);
     }
     void rig_measure(Engine& engine, int frame) {
-        rig_row.clear(); rig_frame_row.clear();
+        rig_row.clear(); rig_frame_row.clear(); rig_sleep_row.clear();
         if (c_load < 0) return;
         const auto* L = argus.latest(c_load); const auto* Sh = argus.latest(c_shin);
         if (!L || !Sh) return;
@@ -726,7 +732,7 @@ struct Scene {
         }
         int asleep = 0;
         { auto v = engine.get_particle_system().lock_particles_for_read(); for (int id : {c_shin, c_thigh, c_load}) if (v[id].is_at_rest) ++asleep; }
-        if (frame >= C_HOLD) { if (c_err > c_err_max) c_err_max = c_err; if (c_lag > c_lag_max) c_lag_max = c_lag; if (c_knee_err > c_knee_err_max) c_knee_err_max = c_knee_err; if (asleep) ++c_asleep_frames; }
+        if (frame >= C_HOLD) { if (c_err > c_err_max) c_err_max = c_err; if (c_lag > c_lag_max) c_lag_max = c_lag; if (c_knee_err > c_knee_err_max) c_knee_err_max = c_knee_err; if (asleep) ++c_asleep_frames; if (asleep && c_lag > PhysicsV4::GLUON_WAKE_ANGLE) ++c_strained_asleep; }
         char b[400];
         if (frame == C_HOLD - 1) {
             std::snprintf(b, sizeof(b), "[rig hold] %d frames at %+.2f rad under %.1f kg: the load %.4f m off the FK, the shin %.4f rad off its command, load at (%.3f, %.3f) v %.3f m/s, asleep %d of 3",
@@ -742,14 +748,24 @@ struct Scene {
                 const float ratio = std::fabs(adv_fk) > 1e-6f ? adv / adv_fk : 0.0f;
                 if (ratio < c_adv_ratio_min) c_adv_ratio_min = ratio;
                 ++c_sweeps_done;
-                std::snprintf(b, sizeof(b), "[rig sweep %d] %+.2f -> %+.2f rad in %d frames: the load advanced %+.3f of the FK's %+.3f m (%.0f %%); now %.4f m off the path (max %.4f), the shin %.4f rad behind its command (max %.4f), the knee %.4f rad off (max %.4f), nails open %.3f/%.3f/%.3f m (max %.3f), asleep %d of 3, asleep frames so far %d",
-                              k + 1, from, to, C_SWEEP_FRAMES, adv, adv_fk, ratio * 100.0f, c_err, c_err_max, c_lag, c_lag_max, c_knee_err, c_knee_err_max, c_gap[0], c_gap[1], c_gap[2], c_gap_max, asleep, c_asleep_frames);
+                std::snprintf(b, sizeof(b), "[rig sweep %d] %+.2f -> %+.2f rad in %d frames: the load advanced %+.3f of the FK's %+.3f m (%.0f %%); now %.4f m off the path (max %.4f), the shin %.4f rad behind its command (max %.4f), the knee %.4f rad off (max %.4f), nails open %.3f/%.3f/%.3f m (max %.3f), asleep %d of 3, asleep frames so far %d, asleep against the command %d",
+                              k + 1, from, to, C_SWEEP_FRAMES, adv, adv_fk, ratio * 100.0f, c_err, c_err_max, c_lag, c_lag_max, c_knee_err, c_knee_err_max, c_gap[0], c_gap[1], c_gap[2], c_gap_max, asleep, c_asleep_frames, c_strained_asleep);
                 rig_row = b;
             } else if (u == C_SWEEP_FRAMES + C_PAUSE - 1) {   // the pause's last frame: what the load caught up
                 std::snprintf(b, sizeof(b), "[rig pause %d] %d frames held at %+.2f rad: the load %.4f m off the FK, the shin %.4f rad off, the knee %.4f rad off, load at (%.3f, %.3f) v %.3f m/s, asleep %d of 3",
                               k + 1, C_PAUSE, th, c_err, c_lag, c_knee_err, L->x, L->z, std::sqrt(L->vx * L->vx + L->vz * L->vz), asleep);
                 rig_row = b;
             }
+        }
+        if (rig_rows && tracer_) {                        // the rig's sleep transitions this frame (note-only records, never hands)
+            std::string sl;
+            for (const auto& r : tracer_->records()) {
+                if (r.particle_id != c_shin && r.particle_id != c_thigh && r.particle_id != c_load && r.particle_id != c_foot) continue;
+                if (std::strncmp(r.site, "sleep.", 6) != 0) continue;
+                char sb[160]; std::snprintf(sb, sizeof(sb), " %s %s [%s]", tracer_->label_of(r.particle_id).c_str(), r.site, r.note ? r.note : "");
+                sl += sb;
+            }
+            if (!sl.empty()) { char sb[400]; std::snprintf(sb, sizeof(sb), "[rig sleep f%03d]%s", frame, sl.c_str()); rig_sleep_row = sb; }
         }
         if (rig_rows && frame % 3 == 0) {
             std::snprintf(b, sizeof(b), "[rig f%03d] cmd %+.3f shin %+.3f (lag %.4f) | load (%.3f, %.3f) fk (%.3f, %.3f) err %.4f m | v (%+.3f, %+.3f) | knee %.4f | nails %.3f/%.3f/%.3f | asleep %d/3",
@@ -769,7 +785,7 @@ struct Scene {
         }
         if (auto* g = physics.get_gluon_mut((size_t)c_foot, (size_t)c_shin)) g->target_relative_q = logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, c_theta0);
         for (int id : {c_shin, c_thigh, c_load}) physics.forget_body((size_t)id);
-        c_sweeps_done = 0; c_sweep_k = -1; c_err = c_err_max = c_lag = c_lag_max = 0.0f; c_adv_ratio_min = 1e9f; c_asleep_frames = 0; c_knee_err = c_knee_err_max = 0.0f; c_gap[0] = c_gap[1] = c_gap[2] = c_gap_max = 0.0f;
+        c_sweeps_done = 0; c_sweep_k = -1; c_err = c_err_max = c_lag = c_lag_max = 0.0f; c_adv_ratio_min = 1e9f; c_asleep_frames = 0; c_strained_asleep = 0; c_knee_err = c_knee_err_max = 0.0f; c_gap[0] = c_gap[1] = c_gap[2] = c_gap_max = 0.0f;
         rig_row.clear(); rig_frame_row.clear();
         argus.reset_milestones(c_load);
     }

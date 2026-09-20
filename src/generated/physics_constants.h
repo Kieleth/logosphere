@@ -386,6 +386,18 @@ constexpr float    REST_GROWTH_FLOOR = 0.001f;   // unit: m/s
 // entirely.
 constexpr float    GLUON_WAKE_STRAIN = 0.02f;   // unit: m
 
+// Wake-on-strain for a drive (G-98, INV-18's drive half): a
+// quaternion-driven joint whose angular error to its command exceeds
+// this wakes both DYNAMIC endpoints at row build. Below it a quiet
+// muscle may sleep, so the angle is the muscle's dead-band: a command
+// that starts moving is followed once it is this far ahead. Was the
+// 0.1f literal on the elastic e_mag gate (rotation-ladder rung 3: the
+// chain STAYED BENT at 0.70 m because nothing woke on angle error).
+// Registered 2026-09-19 when the immovable exit was found to precede
+// that gate, so no sleeping pair with a closed nail ever reached it;
+// under DRIVE_WAKE=1 the check also runs before the exit.
+constexpr float    GLUON_WAKE_ANGLE = 0.1f;   // unit: rad
+
 // Momentum-transfer wake gate for dynamic movers: wake when
 // m_active/(m_active+m_sleeper) * v_active exceeds this. A 10-tonne
 // boulder at 19 m/s wakes a 500 kg tile (~18 m/s transfer); a 1 kg

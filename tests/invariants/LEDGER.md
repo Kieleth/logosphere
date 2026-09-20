@@ -3645,3 +3645,74 @@ Ruling 14 owed: whether the belt stays as the measured world meanwhile
 or the derived rail (B) bridges. Also landed: Argus::rekey (the witness
 lost the rig at a streaming swap at frame 6; the eye now follows the
 swap as the tracer's label does).
+
+## 2026-09-19 - G-98 landed behind DRIVE_WAKE=1: a driven muscle never sleeps against its command
+
+Ruling 13's dependency (i), law first. The cause was never the sleep
+judge. In the row build of physics_system_v4.cpp the immovable exit (a
+bond whose two endpoints both have zero momentum mass: asleep or
+KINEMATIC; written 2026-08-12 for Eden's 58k sleeping bonds) sits four
+hundred lines ABOVE the quaternion drive's own wake-on-angle (written
+2026-08-09), and its comment claimed "the wake-on-strain check above
+already ran". That was true of the bond's length only. A sleeping
+muscle with a closed nail exited before its command was ever read, and
+the tracer's sleep witness showed it: sleep.rest at f019 on the rig's
+shin, thigh and load, never a sleep.wake, 240 of 240 frames asleep
+under a command up to 0.8 rad away.
+
+Mechanism, under DRIVE_WAKE=1 (default off until owner QA): the drive's
+angle to its command is checked before that exit, through the one wake
+form every row now uses (both endpoints marked dissatisfied so the judge
+cannot re-sleep them this frame, the DYNAMIC ones freed). The angle is
+GLUON_WAKE_ANGLE (0.1 rad), registered in schema/physics.yaml from the
+0.1f literal on the drive row (INV-29 residual table 3 -> 2); the row
+and the new check read the same constant through the same helper, so
+they cannot disagree. The woken pair's rows carry that substep's zero
+mass (RowMassRefresh is shrink-only) and act from the next, as the
+positional wake's do.
+
+Evidence: station C's third law line, "a driven muscle is never asleep
+while its command is more than GLUON_WAKE_ANGLE away". Lever off, every
+world: red, the rig asleep 240 of 240 frames, load 0 % of the arc.
+Lever on: green, 0 frames, and the rig shows the chain's own numbers
+(55 / 33 / 33 % of the arc, nails 0.145 m open), exactly the
+RAILS_RIG_WAKE staging's, so the sleep gap is closed and what remains
+on station C is dependency (ii), the chain solve. The walker's default
+and lever worlds are byte-identical with the lever on and off (same
+hands, nails, walk; the writer's hands never let a muscle sleep there).
+
+Residuals, named and not fixed here: (1) the wake angle is the muscle's
+dead-band; a command that starts moving is followed once it is 0.1 rad
+ahead. (2) A row wake resets the damper's counter (low_velocity_frames)
+and never the judge's (frames_at_rest), the convention every row and
+break wake follows, so a muscle the drive moves by position repair
+alone (no velocity: the load's vx reads 0.000 on every row) is "quiet
+and satisfied" at the frame's end and re-slept the frame it was turned
+(f065), until its nails' strain fetched shin, thigh and load (f067).
+Whether a strain wake should also reset the judge's counter is put to
+the owner as a design question, not patched. (3) The scalar (Euler-Z)
+angular path has no wake at all.
+
+Owner rulings owed: the flip of DRIVE_WAKE (recommended: on, once the
+window is seen; it changes nothing in the default world's prover), and
+the counter question above.
+
+COST SHEET BY VERDICT (sweep alone, same binary, same day): default
+world MOLES 43 (new-red 0, gone-green 0, unaudited 43); DRIVE_WAKE=1
+the same aggregate with one verdict moved, test_leg_geometry_choreography
+PASS -> FAIL (KNOWN-OPEN), worst hips drop 0.550 m on the long march
+home NW, the 2026-09-02 fingerprint. Traced, not the wake: the bisect by
+wake count (DRIVE_WAKE_UNTIL=k) keeps it green through the tenth of
+twelve wakes, the last wake before the fall is 830 frames earlier, and
+the door's log names the cause. At f4990 the creation door (INV-37)
+refused 14 tile births of chunk (-5,-1) in the column x = -82 because the
+eastern tiles of chunk (-4,-1) had crept west by 2 to 13 mm and tilted;
+the lever world's path (1.2 m south of the default's, the wakes having
+moved her through the turn-in-place phases) crosses that seam into a
+three-layer, 4 m hole and she free-falls to the turtle. The default
+world refuses 13 births of the same class at seams off her path: its
+green is the drift lottery; tiles she never touched had crept 1 to 4 mm.
+G-99 written; the front STRATA SEAM HOLES on the board as NEEDS DESIGN
+with the owner's ruling owed (a slab that creeps, or a birth that respects
+its neighbour). The DRIVE_WAKE flip is judged on this sheet: the lever
+moves nothing but the lottery's draw.

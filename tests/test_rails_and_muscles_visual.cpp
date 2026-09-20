@@ -93,7 +93,8 @@ int main() {
     {
         std::string mode = std::string("INV40_STEP=") + std::to_string(Scene::inv40_step()) + (ledger ? ", KINEMATIC_LEDGER=1" : ", default ledger")
                          + (std::getenv("GLUON_OFFSETS_CW") ? ", GLUON_OFFSETS_CW=1" : ", offsets anticlockwise (legacy)")
-                         + (std::getenv("PHYSICS_HZ") ? std::string(", PHYSICS_HZ=") + std::getenv("PHYSICS_HZ") : ", physics 30 Hz");
+                         + (std::getenv("PHYSICS_HZ") ? std::string(", PHYSICS_HZ=") + std::getenv("PHYSICS_HZ") : ", physics 30 Hz")
+                         + (std::getenv("DRIVE_WAKE") ? ", DRIVE_WAKE=1 (G-98: a muscle wakes on its command)" : ", muscles sleep against their command (DRIVE_WAKE unset)");
         const int st = Scene::inv40_step();
         mode += st >= 10 ? ": the declared plant, the ride, the strike from the stride, bounded muscles, the harness feels the world, the toe lifts."
               : st >= 9 ? ": the declared plant, the ride, the strike from the stride, bounded muscles, the harness feels the world."
@@ -131,6 +132,7 @@ int main() {
     add_assert("INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP)", [&]{ return Scene::support_stands(scene.feet_stances, scene.feet_support_move_max); });
     add_assert("INV-13/INV-40/G-97: a driven leg carries her mass on the command's path (load within 5 cm of the FK)", [&]{ return Scene::rig_carries(scene.c_sweeps_done, scene.c_err_max); });
     add_assert("G-97: the load keeps up with the arc (>= 90 % of the FK's advance per sweep)",              [&]{ return Scene::rig_advances(scene.c_sweeps_done, scene.c_adv_ratio_min); });
+    add_assert("INV-18/INV-40/G-98: a driven muscle is never asleep against its command (> GLUON_WAKE_ANGLE)", [&]{ return Scene::rig_awake(scene.c_sweeps_done, scene.c_strained_asleep); });
     auto* l_arms = add_line(engine, 6, 220, 200, 140);
     l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
     if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");
@@ -156,6 +158,7 @@ int main() {
         if (live && feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
         if (live && !scene.rig_row.empty()) { std::printf("  %s\n", scene.rig_row.c_str()); l_rig->set_text(scene.rig_row.substr(0, 150)); }
         if (live && !scene.rig_frame_row.empty()) std::printf("  %s\n", scene.rig_frame_row.c_str());
+        if (live && !scene.rig_sleep_row.empty()) std::printf("  %s\n", scene.rig_sleep_row.c_str());
         if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
@@ -206,7 +209,7 @@ int main() {
     std::printf("  [measure] %s\n", scene.perf_summary().c_str());
     std::printf("  [measure] hands %d records; walk %.3f m; replants %d/%d declared; A drop %.3f; arm err %.4f\n",
                 scene.hand_records, scene.forward, scene.replants_declared, scene.replants, scene.a_drop_max, scene.arm_err_max);
-    std::printf("  [measure] station C: %d of %d sweeps; the load off the FK max %.4f m; the shin behind max %.4f rad; advance ratio min %.3f\n", scene.c_sweeps_done, C_SWEEPS, scene.c_err_max, scene.c_lag_max, scene.c_adv_ratio_min);
+    std::printf("  [measure] station C: %d of %d sweeps; the load off the FK max %.4f m; the shin behind max %.4f rad; advance ratio min %.3f; asleep against the command %d frames\n", scene.c_sweeps_done, C_SWEEPS, scene.c_err_max, scene.c_lag_max, scene.c_adv_ratio_min, scene.c_strained_asleep);
     std::printf("\n  %s (%d/%zu)\n", passing == (int)panel.size() ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40", passing, panel.size());
     engine.shutdown();
     return passing == (int)panel.size() ? 0 : 1;

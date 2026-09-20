@@ -30,6 +30,8 @@
 #include "logosphere/worldgen/humanoid_generator.h"
 #include "logosphere/worldgen/strata_floor_generator.h"
 #include "logosphere/animation/humanoid_locomotion.h"
+#include "logosphere/physics/creation_door.h"
+#include <algorithm>
 
 #include <cmath>
 #include <cstdio>
@@ -201,6 +203,25 @@ int main() {
                     }
                 }
                 float drop = rest_hips_z - hz;
+                static const bool rows = std::getenv("LEG_CHOREO_ROWS") != nullptr;
+                if (rows) {   // diagnostic rows: the hips' height and the lowest leg particle, per 10 frames and at each new worst
+                    static int fr = 0; ++fr;
+                    float lowest = 1e9f; for (int id : parts) lowest = std::fmin(lowest, v[id].z);
+                    static bool dumped = false;   // the floor around the hips the frame a sink begins (found 2026-09-19: a seam hole, G-99)
+                    if (!dumped && drop > 0.03f) {
+                        dumped = true;
+                        for (size_t i = 0; i < v.size(); ++i) {
+                            const auto& q = v[i];
+                            if (std::fabs(q.x - hx) > 3.0f || std::fabs(q.y - hy) > 3.0f || q.z > 1.0f) continue;
+                            if (std::find(parts.begin(), parts.end(), (int)i) != parts.end() || (int)i == hips) continue;
+                            const logosphere::CreationBody b = logosphere::describe_creation_body((int)i, q);
+                            std::printf("  [floor f%d] P%zu %s half %.2fx%.2fx%.3f at (%.2f, %.2f, %.3f) top %.3f mode %d rest %d owner %d\n",
+                                        fr, i, b.shape, b.half[0], b.half[1], b.half[2], q.x, q.y, q.z, q.z + b.half[2], (int)q.solver_mode, (int)q.is_at_rest, (int)q.owner);
+                        }
+                    }
+                    if (fr % 10 == 0 || drop > worst_drop + 0.02f)
+                        std::printf("  [choreo f%d] %s: hips (%.2f, %.2f) z %.3f (rest %.3f, drop %.3f) lowest leg z %.3f\n", fr, ph.name, hx, hy, hz, rest_hips_z, drop, lowest);
+                }
                 if (drop > worst_drop) {
                     worst_drop = drop;
                     worst_drop_phase = ph.name;

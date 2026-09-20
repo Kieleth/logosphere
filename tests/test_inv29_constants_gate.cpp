@@ -175,7 +175,7 @@ static const std::map<std::string, std::map<std::string, int>> KNOWN_RESIDUALS =
         {"0.01f", 5},    // canary floor, seg radius, half-length pad x2, turtle support reach (fallback inertia DESTROYED 2026-08-13, silent-fallback purge B3)
         {"0.05f", 1},    // wake check: mover-top vs sleeper-bottom gap (m)
         {"0.15f", 1},    // persistent-contact max gap 150 mm
-        {"0.1f", 3},     // horizontal-normal classifier x2, elastic e_mag gate
+        {"0.1f", 2},     // horizontal-normal classifier x2 (the elastic e_mag gate registered as GLUON_WAKE_ANGLE 2026-09-19, G-98)
         {"0.3f", 3},     // receding-speed wake gate, support-normal component x2
         {"0.95f", 1},    // damping impulse clamp fraction
         {"0.999f", 2},   // angular-bias cap guard fraction x2

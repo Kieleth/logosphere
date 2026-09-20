@@ -227,12 +227,38 @@ transitions are tracer records now (`sleep.rest` / `sleep.wake`, field
 `asleep`, note = the reason: the INV-18 witness,
 `PhysicsSystem::set_particle_tracer`, wired by the engine). When a body
 ignores its command or hangs where it should not, trace it and read
-WHEN it slept and WHAT woke it before any other hypothesis. Two
-mechanisms are owner rulings on the board: a driven muscle never sleeps
-against its command, and the drives' convergence on a light
-intermediate bone (the shoulder drive turns the bridge, not the arm:
-INV-13's two_joints family; the joint block solver branch is the
-candidate).
+WHEN it slept and WHAT woke it before any other hypothesis. The first
+mechanism landed 2026-09-19 behind `DRIVE_WAKE=1` (G-98): a driven
+muscle never sleeps against its command. The cause was never the
+judge. The row build's immovable exit (both endpoints with zero
+momentum mass, 2026-08-12) sits four hundred lines ABOVE the drive's
+own wake-on-angle (2026-08-09) and its comment claimed that wake had
+run, so a sleeping muscle with a closed nail never read its command.
+Under the lever the drive's angle to its command (`GLUON_WAKE_ANGLE`,
+registered from the 0.1f literal) is checked before the exit through
+the one wake form every row uses. Read the counters before judging a
+wake: a row wake frees `is_at_rest` and resets the damper's counter
+(`low_velocity_frames`), never the judge's (`frames_at_rest`), so a
+muscle the drive moves by position repair alone reads quiet and can
+re-sleep the frame it is turned, until its nails' strain fetches it
+(f065 / f067 in the rig's log). The second mechanism, the drives'
+convergence on a light intermediate bone (the shoulder drive turns the
+bridge, not the arm: INV-13's two_joints family; the joint block solver
+branch is the candidate), is ruling 13's dependency (ii).
+
+**The floor is a lottery at chunk seams (G-99, 2026-09-19).** A strata
+stack creeps by millimetres as it settles on the turtle, and the
+creation door (INV-37) refuses the next chunk's tile where a crept
+neighbour intrudes past SLOP: a hole three layers deep and 4 m wide,
+at a seam that depends on the drift's direction. A walker test that
+goes red on a march across chunks with a 0.55 m hips drop has fallen
+into one; the free fall (the sink grows by g dt^2 per frame) and the
+writer's "NO FLOOR FOUND" are the signature. Before any humanoid
+hypothesis: dump the floor around the hips the frame the sink begins
+(`LEG_CHOREO_ROWS=1` does it in the choreography) and read the door's
+refusals (`CREATION_DOOR_VERBOSE=1`). A lever that moves the walker's
+path by a metre re-rolls the draw, so a cost sheet's moved verdict
+must be traced to the seam before it is booked against the lever.
 
 **The window's log is evidence.** When the owner's eye sees an onset the
 headless run does not reproduce, the probe goes into the SHARED scene so
