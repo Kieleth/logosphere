@@ -38,6 +38,7 @@
 #include <chrono>
 #include "core/engine.h"
 #include "core/argus.h"
+#include "logosphere/dynamics/two_bone_ik.h"          // compute_bone_length: the rig's leg is Eva's own
 #include "core/particle_tracer.h"
 #include "logosphere/animation/humanoid_locomotion.h"
 #include "logosphere/physics/physics_system.h"
@@ -92,6 +93,25 @@ constexpr float JOINT_GAP_MAX = 10.0f * PhysicsV4::SLOP;    // m, per nail, whol
 constexpr float STANCE_SLIDE_MAX = 10.0f * PhysicsV4::SLOP;   // m, per stance
 constexpr float STANCE_GAP_MAX   = 2.0f * PhysicsV4::SLOP;    // m, foot bottom above its support, at any stance frame
 constexpr float REACH_SLACK   = 0.15f;                       // m beyond the standing reach
+// STATION C (G-97, owner ruling 13, 2026-09-19): a driven leg carries the
+// walker's mass. A KINEMATIC foot block on the floor (the nailed foot), a
+// DYNAMIC shin and thigh of Eva's own bone lengths with the shipped drive
+// profile, and a DYNAMIC stone load of Eva's own mass welded to the thigh's
+// top. The ankle drive sweeps the leg through one stance arc (+-C_SWEEP rad
+// in C_SWEEP_FRAMES) three times, the knee holds stance_knee_flex; the law
+// reads the load against the FK of the command every frame after the hold.
+constexpr float C_X            = B_X + 4.5f;                 // 8.5 m east of Eva's start; she walks north, never met
+constexpr float C_FOOT         = 0.20f;                      // the foot block's side, on the floor
+constexpr float C_BONE_W       = 0.08f;                      // a bone's section
+constexpr float C_GAP          = 0.05f;                      // between a bone's end and the next body (INV-37: no overlapping birth)
+constexpr float C_SWEEP        = 0.40f;                      // rad: the stance arc's half angle (the clip's strike, asin(0.325/0.9))
+constexpr float C_KNEE         = 0.10f;                      // rad: the profile's stance_knee_flex
+constexpr int   C_HOLD         = 60;                         // frames held at the arc's start before the first sweep
+constexpr int   C_SWEEP_FRAMES = 36;                         // 600 ms at 60 Hz: one stance
+constexpr int   C_PAUSE        = 12;                         // 200 ms: the double support, held at the arc's end
+constexpr int   C_SWEEPS       = 3;
+constexpr float C_PATH_ERR_MAX = 0.05f;                      // m: the load within 5 cm of the FK of the command (3 deg on a 0.9 m leg)
+constexpr float C_ADVANCE_MIN  = 0.90f;                      // of the FK's advance, per sweep, when the command reaches the arc's end
 
 struct Scene {
     logosphere::Argus argus;
@@ -112,6 +132,20 @@ struct Scene {
     // station B, latched
     float a_z0 = 0, b_z0 = 0, a_drop_max = 0, b_drift_max = 0;
     float arm_err_max = 0, arm_sep0 = -1.0f, arm_sep_drift_max = 0;
+    // station C (G-97): the driven leg under the walker's mass
+    int   c_foot = -1, c_shin = -1, c_thigh = -1, c_load = -1;
+    float c_mass = 0, c_side = 0, c_ls = 0, c_lt = 0;          // the load's mass and side; joint-to-joint lengths (Eva's right leg)
+    float c_theta = 0, c_theta0 = 0;                          // the ankle's command (rad about +Y: the leg's top toward +X)
+    int   c_sweeps_done = 0, c_sweep_k = -1;
+    float c_err = 0, c_err_max = 0, c_lag = 0, c_lag_max = 0;  // the load against the FK (m); the shin's pitch against the command (rad)
+    float c_adv_ratio_min = 1e9f;                             // actual / FK advance when the command reaches the arc's end, worst sweep
+    float c_sweep_x0 = 0;                                     // the load's x when a sweep's command starts
+    std::string rig_row, rig_frame_row;                       // a sweep's verdict row (always); RAILS_RIG=1: a row per 3 frames
+    bool  rig_rows = false, rig_wake = false;                // RAILS_RIG_WAKE=1: a staging, the three bodies woken every frame the command moves (G-89 separated from convergence)
+    int   c_asleep_frames = 0;                               // frames after the hold with any rig body asleep
+    float c_knee_err = 0, c_knee_err_max = 0;                 // the thigh's pitch against the shin's, minus the knee's command (rad)
+    float c_gap[3] = {0, 0, 0}, c_gap_max = 0;                // the three nails' attachment gaps (ankle, knee, weld), m
+    float c_load_kg = 0;                                      // RAILS_RIG_LOAD=<kg>: a staging, the load's mass overridden (the mass-ratio control)
     // the body: every rig particle, named; its nails; its standing reach
     std::vector<int> rig;
     std::unordered_set<int> rig_set;
@@ -192,6 +226,8 @@ struct Scene {
     static bool stance_holds(int stances, float slide_max) { return stances > 0 && slide_max <= STANCE_SLIDE_MAX; }
     static bool stance_stands(int stances, float gap_max)  { return stances > 0 && gap_max <= STANCE_GAP_MAX; }
     static bool support_stands(int stances, float move_max) { return stances > 0 && move_max <= PhysicsV4::SLOP; }   // G-94: the floor under either foot does not move (stance or swing)
+    static bool rig_carries(int sweeps, float err_max)     { return sweeps >= C_SWEEPS && err_max <= C_PATH_ERR_MAX; }   // G-97: the load on the command's path
+    static bool rig_advances(int sweeps, float ratio_min)  { return sweeps >= C_SWEEPS && ratio_min >= C_ADVANCE_MIN; }  // G-97: the load keeps up with the arc
 
     void build(Engine& engine) {
         auto& ps       = engine.get_particle_system();
@@ -284,6 +320,8 @@ struct Scene {
         ps.add_swap_callback([this, &tracer](size_t o, size_t n) {
             auto fix = [&](int& id) { if (id == (int)o) id = (int)n; };
             fix(eva.hips_id); fix(eva.head_id); fix(hips); fix(box_a); fix(box_b); fix(post); fix(arm);
+            fix(c_foot); fix(c_shin); fix(c_thigh); fix(c_load);
+            argus.rekey((int)o, (int)n);                    // the witness follows the swap (it lost station C at frame 6)
             for (int& id : eva.body_ids) fix(id);
             for (int& id : eva.left_leg_ids) fix(id);
             for (int& id : eva.right_leg_ids) fix(id);
@@ -333,6 +371,7 @@ struct Scene {
                 rest_reach[id] = std::sqrt(dx * dx + dy * dy + dz * dz);
             }
         }
+        rig_build(engine, parts);                          // station C (G-97): needs the rig's mass and Eva's leg
         tracer.trace(hips, "rail/hips");
         tracer_ = &tracer;
         perf_rows = std::getenv("RAILS_PERF") != nullptr;
@@ -342,6 +381,7 @@ struct Scene {
         argus.watch(eva.head_id, "head");
         argus.watch(box_a, "box_a"); argus.watch(box_b, "box_b");
         argus.watch(post, "post");   argus.watch(arm, "arm");
+        if (c_load >= 0) { argus.watch(c_foot, "c_foot"); argus.watch(c_shin, "c_shin"); argus.watch(c_thigh, "c_thigh"); argus.watch(c_load, "c_load"); }
         {
             auto v = ps.lock_particles_for_read();
             hx0 = v[hips].x; hy0 = v[hips].y;
@@ -371,6 +411,7 @@ struct Scene {
 
         tracer.clear_records();
         if (wakes_on) wakes_trace(engine);
+        rig_command(engine, frame);                         // station C: this frame's command, before the solver runs
         const auto t_upd = std::chrono::steady_clock::now();
         engine.update(DT);
         const double upd_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_upd).count();
@@ -504,6 +545,7 @@ struct Scene {
             const float sd = std::fabs(sep - arm_sep0);
             if (sd > arm_sep_drift_max) arm_sep_drift_max = sd;
         }
+        rig_measure(engine, frame);                         // station C (G-97)
     }
 
     // SPACE: the run replays. Eva returns to where she started through the
@@ -550,6 +592,186 @@ struct Scene {
         feet_support_move_max = feet_support_tilt_max = 0.0f; feet_support_worst.clear();
         joint_gap_max = 0.0f; joint_gap_worst.clear(); joint_gap_frame = -1; reach_over_max = -1e9f; reach_worst.clear(); nails.clear();
         argus.reset_milestones(box_a); argus.reset_milestones(arm);
+        rig_rearm(engine);
+    }
+
+    // ---- STATION C (G-97, owner ruling 13): a driven leg carries the walker's mass ----
+    // The FK of the command: J0 the ankle (in the gap above the foot block),
+    // J1 the knee, J2 the hip; a rotation about +Y tilts a body's +Z toward
+    // +X (the solver's attach: x = o.z * sin ry). The load is read against
+    // this every frame after the hold; the drives never read it.
+    void rig_fk(float theta, float& sx, float& sz, float& tx, float& tz, float& lx, float& lz) const {
+        const float j0z = FLOOR_TOP + C_FOOT + C_GAP * 0.5f;
+        const float a = theta, b = theta - C_KNEE;
+        const float j1x = C_X + std::sin(a) * c_ls, j1z = j0z + std::cos(a) * c_ls;
+        const float j2x = j1x + std::sin(b) * c_lt, j2z = j1z + std::cos(b) * c_lt;
+        sx = C_X + std::sin(a) * c_ls * 0.5f;   sz = j0z + std::cos(a) * c_ls * 0.5f;
+        tx = j1x + std::sin(b) * c_lt * 0.5f;   tz = j1z + std::cos(b) * c_lt * 0.5f;
+        const float r = C_GAP * 0.5f + c_side * 0.5f;
+        lx = j2x + std::sin(b) * r;             lz = j2z + std::cos(b) * r;
+    }
+    static void rig_pose(Particle& p, float x, float z, float pitch) {
+        p.x = x; p.y = 0.0f; p.z = z;
+        p.vx = p.vy = p.vz = 0.0f; p.omega_x = p.omega_y = p.omega_z = 0.0f;
+        p.rotation_x = 0.0f; p.rotation_y = pitch; p.rotation_z = 0.0f;
+        p.rotation_q = logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, pitch);
+        p.is_at_rest = false; p.frames_at_rest = 0; p.low_velocity_frames = 0;
+    }
+    void rig_command_at(int frame, float& theta, int& k, int& u) const {
+        theta = c_theta0; k = -1; u = 0;
+        if (frame < C_HOLD) return;
+        const int t = frame - C_HOLD, period = C_SWEEP_FRAMES + C_PAUSE;
+        k = t / period; u = t % period;
+        const int kk = k < C_SWEEPS ? k : C_SWEEPS - 1;
+        const float from = (kk % 2 == 0) ? -C_SWEEP : +C_SWEEP, to = -from;
+        const float s = k >= C_SWEEPS ? 1.0f : std::min(1.0f, static_cast<float>(u) / static_cast<float>(C_SWEEP_FRAMES));
+        theta = from + (to - from) * s;
+    }
+    void rig_build(Engine& engine, const logosphere::animation::HumanoidParts* parts) {
+        auto& ps = engine.get_particle_system();
+        auto& physics = engine.get_physics_system();
+        rig_rows = std::getenv("RAILS_RIG") != nullptr;
+        rig_wake = std::getenv("RAILS_RIG_WAKE") != nullptr;
+        c_load_kg = std::getenv("RAILS_RIG_LOAD") ? static_cast<float>(std::atof(std::getenv("RAILS_RIG_LOAD"))) : 0.0f;
+        if (!parts) { std::printf("  [rig] no humanoid parts: station C not built\n"); return; }
+        logosphere::Vec3 hip_co{}, knee_po{}, knee_co{}, ankle_po{}; int found = 0;   // the hierarchy's own vector type
+        for (const auto& j : parts->joint_hierarchy.joints) {
+            if (j.name == "right_hip")   { hip_co = j.child_offset; ++found; }
+            if (j.name == "right_knee")  { knee_po = j.pivot_offset; knee_co = j.child_offset; ++found; }
+            if (j.name == "right_ankle") { ankle_po = j.pivot_offset; ++found; }
+        }
+        if (found != 3) { std::printf("  [rig] right leg joints found %d of 3: station C not built\n", found); return; }
+        c_lt = logosphere::compute_bone_length(hip_co, knee_po);
+        c_ls = logosphere::compute_bone_length(knee_co, ankle_po);
+        { auto v = ps.lock_particles_for_read(); c_mass = 0.0f; for (int id : rig) c_mass += v[id].GetMass(); }
+        if (c_load_kg > 0.0f) { std::printf("  [rig] RAILS_RIG_LOAD=%.1f: a staging, never the claim - the load is %.1f kg instead of Eva's %.1f\n", c_load_kg, c_load_kg, c_mass); c_mass = c_load_kg; }
+        c_side = std::cbrt(c_mass / Materials::GetDensity(Materials::Type::STONE));
+        c_theta0 = -C_SWEEP; c_theta = c_theta0;
+        // born upright (INV-37: nothing overlaps at birth), then posed at the arc's start
+        float sx, sz, tx, tz, lx, lz; rig_fk(0.0f, sx, sz, tx, tz, lx, lz);
+        c_foot  = ps.queue_particle_addition(box(C_X, 0.0f, FLOOR_TOP + C_FOOT * 0.5f, C_FOOT, C_FOOT, C_FOOT, Materials::Type::STONE, 0.35f, 0.38f, 0.45f));
+        c_shin  = ps.queue_particle_addition(box(sx, 0.0f, sz, C_BONE_W, C_BONE_W, c_ls - C_GAP, Materials::Type::WOOD_HARD, 0.55f, 0.8f, 0.4f));
+        c_thigh = ps.queue_particle_addition(box(tx, 0.0f, tz, C_BONE_W, C_BONE_W, c_lt - C_GAP, Materials::Type::WOOD_HARD, 0.55f, 0.8f, 0.4f));
+        c_load  = ps.queue_particle_addition(box(lx, 0.0f, lz, c_side, c_side, c_side, Materials::Type::STONE, 0.9f, 0.6f, 0.25f));
+        ps.flush_pending_particles();
+        {
+            auto v = ps.lock_particles_for_write();
+            v[c_foot].solver_mode = ParticleSolverMode::KINEMATIC; v[c_foot].owner = ParticleOwner::DYNAMICS; v[c_foot].is_at_rest = true;
+            for (int id : {c_shin, c_thigh}) {              // the drive children's exact flags: muscles
+                v[id].solver_mode = ParticleSolverMode::DYNAMIC; v[id].is_quat_driven = true;
+                v[id].owner = ParticleOwner::DYNAMICS; v[id].is_at_rest = false;
+            }
+            v[c_load].solver_mode = ParticleSolverMode::DYNAMIC; v[c_load].is_quat_driven = false;   // a load, never a muscle: it weighs in every world
+            v[c_load].owner = ParticleOwner::PHYSICS; v[c_load].is_at_rest = false;
+            rig_fk(c_theta0, sx, sz, tx, tz, lx, lz);
+            rig_pose(v[c_shin], sx, sz, c_theta0); rig_pose(v[c_thigh], tx, tz, c_theta0 - C_KNEE); rig_pose(v[c_load], lx, lz, c_theta0 - C_KNEE);
+        }
+        auto nail = [&](int a, int b, Vec3 oa, Vec3 ob, const logosphere::Quat& target) {
+            auto g = std::make_unique<NailGluon>();
+            g->offset_a = oa; g->offset_b = ob; g->target_distance = 0.0f; g->rotate_offsets = true;
+            g->breaking_force = 1.0e5f;
+            g->enable_angular_constraint = true; g->angular_drive_enabled = true; g->use_quat_target = true;
+            g->target_relative_q = target;
+            g->angular_stiffness = ANG_STIFF; g->angular_damping = ANG_DAMP;
+            g->max_relative_rotation = PhysicsV4::ANGULAR_LIMIT_UNLIMITED;
+            physics.add_gluon_between((size_t)a, (size_t)b, std::move(g));
+        };
+        const float hs = (c_ls - C_GAP) * 0.5f, ht = (c_lt - C_GAP) * 0.5f, hg = C_GAP * 0.5f;
+        nail(c_foot,  c_shin,  Vec3(0.0f, 0.0f, C_FOOT * 0.5f + hg), Vec3(0.0f, 0.0f, -hs - hg), logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, c_theta0));   // the ankle: the sweeping muscle
+        nail(c_shin,  c_thigh, Vec3(0.0f, 0.0f, hs + hg),            Vec3(0.0f, 0.0f, -ht - hg), logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, -C_KNEE));    // the knee: held at stance_knee_flex
+        nail(c_thigh, c_load,  Vec3(0.0f, 0.0f, ht + hg),            Vec3(0.0f, 0.0f, -c_side * 0.5f - hg), logosphere::Quat::identity());                         // the pelvis: welded to the thigh
+        std::printf("  [rig] station C at x %.1f: the load %.1f kg (a %.2f m stone cube) on a leg of %.3f + %.3f m (Eva's right shin + thigh), the arc +-%.2f rad in %d frames x %d, hold %d\n",
+                    C_X, c_mass, c_side, c_ls, c_lt, C_SWEEP, C_SWEEP_FRAMES, C_SWEEPS, C_HOLD);
+        if (rig_wake) std::printf("  [rig] RAILS_RIG_WAKE=1: a staging, never the claim - the three bodies are woken every frame the command moves\n");
+    }
+    void rig_command(Engine& engine, int frame) {
+        if (c_load < 0) return;
+        int k, u; rig_command_at(frame, c_theta, k, u);
+        if (k >= 0 && k < C_SWEEPS && u == 0) {             // a sweep's first command: latch where the load is
+            const auto* L = argus.latest(c_load);
+            float sx, sz, tx, tz, lx, lz; rig_fk(c_theta, sx, sz, tx, tz, lx, lz);
+            c_sweep_x0 = L ? L->x : lx; c_sweep_k = k;
+        }
+        if (auto* g = engine.get_physics_system().get_gluon_mut((size_t)c_foot, (size_t)c_shin))
+            g->target_relative_q = logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, c_theta);
+        if (rig_wake && frame >= C_HOLD) for (int id : {c_shin, c_thigh, c_load}) engine.get_physics_system().wake_particle((size_t)id);
+    }
+    void rig_measure(Engine& engine, int frame) {
+        rig_row.clear(); rig_frame_row.clear();
+        if (c_load < 0) return;
+        const auto* L = argus.latest(c_load); const auto* Sh = argus.latest(c_shin);
+        if (!L || !Sh) return;
+        float sx, sz, tx, tz, lx, lz; rig_fk(c_theta, sx, sz, tx, tz, lx, lz);
+        c_err = std::sqrt((L->x - lx) * (L->x - lx) + L->y * L->y + (L->z - lz) * (L->z - lz));
+        float vx, vy, vz; Sh->q.rotate_vector(0.0f, 0.0f, 1.0f, vx, vy, vz);
+        const float pitch = std::atan2(vx, vz);
+        c_lag = std::fabs(pitch - c_theta);
+        float tpitch = pitch;
+        if (const auto* Th = argus.latest(c_thigh)) { float tx_, ty_, tz_; Th->q.rotate_vector(0.0f, 0.0f, 1.0f, tx_, ty_, tz_); tpitch = std::atan2(tx_, tz_); }
+        c_knee_err = std::fabs((tpitch - pitch) + C_KNEE);      // the command: thigh = shin - C_KNEE
+        {   // the nails' gaps: each attachment point through its body's quaternion (the solver's own attach uses the Euler ledger it keeps in step)
+            auto at = [&](int id, float oz, float& x, float& y, float& z) {
+                const auto* B = argus.latest(id); if (!B) { x = y = z = 0; return false; }
+                float rx, ry, rz; B->q.rotate_vector(0.0f, 0.0f, oz, rx, ry, rz); x = B->x + rx; y = B->y + ry; z = B->z + rz; return true; };
+            const float hs = (c_ls - C_GAP) * 0.5f, ht = (c_lt - C_GAP) * 0.5f, hg = C_GAP * 0.5f;
+            const float oa[3] = { C_FOOT * 0.5f + hg, hs + hg, ht + hg }, ob[3] = { -hs - hg, -ht - hg, -c_side * 0.5f - hg };
+            const int ia[3] = { c_foot, c_shin, c_thigh }, ib[3] = { c_shin, c_thigh, c_load };
+            for (int n = 0; n < 3; ++n) {
+                float ax, ay, az, bx, by, bz;
+                if (at(ia[n], oa[n], ax, ay, az) && at(ib[n], ob[n], bx, by, bz)) {
+                    c_gap[n] = std::sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by) + (az - bz) * (az - bz));
+                    if (frame >= C_HOLD && c_gap[n] > c_gap_max) c_gap_max = c_gap[n];
+                }
+            }
+        }
+        int asleep = 0;
+        { auto v = engine.get_particle_system().lock_particles_for_read(); for (int id : {c_shin, c_thigh, c_load}) if (v[id].is_at_rest) ++asleep; }
+        if (frame >= C_HOLD) { if (c_err > c_err_max) c_err_max = c_err; if (c_lag > c_lag_max) c_lag_max = c_lag; if (c_knee_err > c_knee_err_max) c_knee_err_max = c_knee_err; if (asleep) ++c_asleep_frames; }
+        char b[400];
+        if (frame == C_HOLD - 1) {
+            std::snprintf(b, sizeof(b), "[rig hold] %d frames at %+.2f rad under %.1f kg: the load %.4f m off the FK, the shin %.4f rad off its command, load at (%.3f, %.3f) v %.3f m/s, asleep %d of 3",
+                          C_HOLD, c_theta, c_mass, c_err, c_lag, L->x, L->z, std::sqrt(L->vx * L->vx + L->vz * L->vz), asleep);
+            rig_row = b;
+        }
+        int k, u; float th; rig_command_at(frame, th, k, u);
+        if (k >= 0 && k < C_SWEEPS) {
+            const float from = (k % 2 == 0) ? -C_SWEEP : +C_SWEEP, to = -from;
+            if (u == C_SWEEP_FRAMES) {                        // the command has just reached the arc's end
+                float x0, z0, x1, z1, d0, d1, f0, f1; rig_fk(from, x0, z0, d0, d1, f0, x1); rig_fk(to, x0, z0, d0, d1, f1, z1);
+                const float adv_fk = f1 - f0, adv = L->x - c_sweep_x0;
+                const float ratio = std::fabs(adv_fk) > 1e-6f ? adv / adv_fk : 0.0f;
+                if (ratio < c_adv_ratio_min) c_adv_ratio_min = ratio;
+                ++c_sweeps_done;
+                std::snprintf(b, sizeof(b), "[rig sweep %d] %+.2f -> %+.2f rad in %d frames: the load advanced %+.3f of the FK's %+.3f m (%.0f %%); now %.4f m off the path (max %.4f), the shin %.4f rad behind its command (max %.4f), the knee %.4f rad off (max %.4f), nails open %.3f/%.3f/%.3f m (max %.3f), asleep %d of 3, asleep frames so far %d",
+                              k + 1, from, to, C_SWEEP_FRAMES, adv, adv_fk, ratio * 100.0f, c_err, c_err_max, c_lag, c_lag_max, c_knee_err, c_knee_err_max, c_gap[0], c_gap[1], c_gap[2], c_gap_max, asleep, c_asleep_frames);
+                rig_row = b;
+            } else if (u == C_SWEEP_FRAMES + C_PAUSE - 1) {   // the pause's last frame: what the load caught up
+                std::snprintf(b, sizeof(b), "[rig pause %d] %d frames held at %+.2f rad: the load %.4f m off the FK, the shin %.4f rad off, the knee %.4f rad off, load at (%.3f, %.3f) v %.3f m/s, asleep %d of 3",
+                              k + 1, C_PAUSE, th, c_err, c_lag, c_knee_err, L->x, L->z, std::sqrt(L->vx * L->vx + L->vz * L->vz), asleep);
+                rig_row = b;
+            }
+        }
+        if (rig_rows && frame % 3 == 0) {
+            std::snprintf(b, sizeof(b), "[rig f%03d] cmd %+.3f shin %+.3f (lag %.4f) | load (%.3f, %.3f) fk (%.3f, %.3f) err %.4f m | v (%+.3f, %+.3f) | knee %.4f | nails %.3f/%.3f/%.3f | asleep %d/3",
+                          frame, c_theta, pitch, c_lag, L->x, L->z, lx, lz, c_err, L->vx, L->vz, c_knee_err, c_gap[0], c_gap[1], c_gap[2], asleep);
+            rig_frame_row = b;
+        }
+    }
+    void rig_rearm(Engine& engine) {
+        if (c_load < 0) return;
+        auto& ps = engine.get_particle_system();
+        auto& physics = engine.get_physics_system();
+        c_theta = c_theta0;
+        {
+            auto v = ps.lock_particles_for_write();
+            float sx, sz, tx, tz, lx, lz; rig_fk(c_theta0, sx, sz, tx, tz, lx, lz);
+            rig_pose(v[c_shin], sx, sz, c_theta0); rig_pose(v[c_thigh], tx, tz, c_theta0 - C_KNEE); rig_pose(v[c_load], lx, lz, c_theta0 - C_KNEE);
+        }
+        if (auto* g = physics.get_gluon_mut((size_t)c_foot, (size_t)c_shin)) g->target_relative_q = logosphere::Quat::from_axis_angle(0.0f, 1.0f, 0.0f, c_theta0);
+        for (int id : {c_shin, c_thigh, c_load}) physics.forget_body((size_t)id);
+        c_sweeps_done = 0; c_sweep_k = -1; c_err = c_err_max = c_lag = c_lag_max = 0.0f; c_adv_ratio_min = 1e9f; c_asleep_frames = 0; c_knee_err = c_knee_err_max = 0.0f; c_gap[0] = c_gap[1] = c_gap[2] = c_gap_max = 0.0f;
+        rig_row.clear(); rig_frame_row.clear();
+        argus.reset_milestones(c_load);
     }
 
     // ---- THE ARM SWING (G-89), through Argus; both drivers print the rows ----

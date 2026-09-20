@@ -52,6 +52,12 @@
 //   ARM (DYNAMIC drive child on a nail): orientation ASSERTED against its
 //     target (INV-13), separation from the post ASSERTED (the nail is rigid);
 //     x, y, z otherwise follow the nail; WAIVED.
+//   STATION C (G-97, owner ruling 13): a driven leg of Eva's bone lengths under
+//     a stone load of her mass, the foot a rail. The load's x and z ASSERTED
+//     against the FK of the command every frame after the hold, and its
+//     advance per sweep ASSERTED against the FK's; y: no lateral force,
+//     WAIVED; orientation: welded to the thigh, WAIVED; the foot's stay is
+//     box B's claim, WAIVED here.
 #include "scenes/scene_rails_and_muscles.h"
 #include <algorithm>
 #include <cmath>
@@ -104,6 +110,8 @@ int main() {
         if (!scene.wakes_row.empty()) std::printf("  %s\n", scene.wakes_row.c_str());
         if (!scene.seam_row.empty()) std::printf("  %s\n", scene.seam_row.c_str());
         if (feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) std::printf("  %s\n", scene.feet_last_row.c_str()); if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
+        if (!scene.rig_row.empty()) std::printf("  %s\n", scene.rig_row.c_str());
+        if (!scene.rig_frame_row.empty()) std::printf("  %s\n", scene.rig_frame_row.c_str());
         if (diag && fr < 40) {                          // the harness and a foot: height, velocity, hands
             auto& tracer = engine.get_particle_tracer();
             const int foot = scene.eva.left_leg_ids.empty() ? -1 : scene.eva.left_leg_ids[0];
@@ -253,6 +261,8 @@ int main() {
     std::printf("  [measure] worst nails: %s\n", scene.nails_summary().c_str());
     std::printf("  [measure] box A drop max %.3f m (bar > %.3f by frame %d); box B drift %.4f m; arm pose err max %.4f rad, sep drift %.5f m\n\n",
                 scene.a_drop_max, FALL_MIN, FALL_FRAMES, scene.b_drift_max, scene.arm_err_max, scene.arm_sep_drift_max);
+    std::printf("  [measure] station C: %.1f kg on a %.3f + %.3f m leg; %d of %d sweeps; the load off the FK max %.4f m (bar %.3f); the shin behind its command max %.4f rad; the knee off max %.4f rad; the nails open max %.3f m; advance ratio min %.3f (bar %.2f); frames after the hold with a rig body asleep %d%s%s\n\n",
+                scene.c_mass, scene.c_ls, scene.c_lt, scene.c_sweeps_done, C_SWEEPS, scene.c_err_max, C_PATH_ERR_MAX, scene.c_lag_max, scene.c_knee_err_max, scene.c_gap_max, scene.c_adv_ratio_min, C_ADVANCE_MIN, scene.c_asleep_frames, scene.rig_wake ? " [RAILS_RIG_WAKE=1 staging]" : "", scene.c_load_kg > 0.0f ? " [RAILS_RIG_LOAD staging]" : "");
 
     check(Scene::muscles_live(scene.muscles_stale),                   "hygiene/INV-35: the engine's drive children are live bodies (ids follow the swaps)");
     check(Scene::hands_off(scene.hand_records),                       "INV-40/INV-35/G-81: no hand but the solver's on any muscle, any frame");
@@ -268,6 +278,8 @@ int main() {
     check(Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max), "INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)");
     check(Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max), "INV-40/G-90: a planted foot stands on its support (bottom within 2 SLOP of it)");
     check(Scene::support_stands(scene.feet_stances, scene.feet_support_move_max), "INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP over a stance or a swing)");
+    check(Scene::rig_carries(scene.c_sweeps_done, scene.c_err_max),        "INV-13/INV-40/G-97: a driven leg carries the walker's mass on the command's path (the load within 5 cm of the FK, every frame after the hold)");
+    check(Scene::rig_advances(scene.c_sweeps_done, scene.c_adv_ratio_min), "G-97: the load keeps up with the arc (>= 90 % of the FK's advance when the command reaches the arc's end)");
 
     std::printf("\n  %s\n", failures == 0 ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40");
     engine.shutdown();

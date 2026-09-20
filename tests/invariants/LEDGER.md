@@ -3598,3 +3598,50 @@ scrape is the drive's turnaround lag at full extension. Rulings 11 (the
 drain's form) and 12 (the leg never straight at the boundary) on the
 board. My own headless 60 Hz attribution run was stopped after its
 runaway was on record; no window was killed.
+
+## 2026-09-19 - RULING 13: the walker propels herself (owner: "3 for sure, lets refocuse"); G-97 measured the same day
+
+The owner read the harness sentence ("moves forward at 1 m/s no matter
+what") and asked why. The review found the repo's own contract
+(docs/ARCHITECTURE.md, kinematic_root.h) deriving the hips from the
+pinned foot by reverse FK, the code that did it (the post-FK anchor
+shift) disabled since 2026-04-17 by a comment and no ruling ("walk speed
+43 % -> 100.5 % of intent", a gauge the feet rows have since shown
+blind), and INV-40 (2026-09-08) making the commanded-velocity belt honest
+as a rail with the concession named as balance, not propulsion. G-97
+(who moves the pelvis) was recorded before the options, three rigs: (A)
+the belt, (B) the derived rail (the contract as written), (C) the
+muscles.
+
+OWNER RULING 13: (C). "3 for sure, lets refocuse." The pelvis is a body
+with mass; the stance leg's muscles carry it over the nailed foot; the
+harness holds it upright and nothing else; the commanded speed becomes
+the clip's cadence and stride. INV-40's "two rails" sentence is amended
+(one rail, the stance clamp); the skill's "road beyond" clause is
+retired. Withdrawn: ruling 11's damped drain (damping as a patch, an
+engine invariant) and the "12 first" recommendation (the bent knee is
+clip authoring under (C)). The 2026-08-14 ruling stands: the clip drives
+the muscles; physics carries the pelvis.
+
+MEASURED THE SAME DAY, station C of test_rails_and_muscles (Eva's mass
+36.1 kg on her own shin 0.342 m and thigh 0.495 m, a nailed foot, the
+ankle drive sweeping +-0.40 rad in 600 ms, three times): ASLEEP (both
+worlds) the rig ignores its drive entirely - 240 frames asleep after the
+60-frame hold, the load never moves (G-89's gap, irreducible). AWAKE
+(RAILS_RIG_WAKE=1, a staging) the shin follows within 0.077 rad, the
+knee within 0.017, the load reaches 55 % then 33 % of the arc, 0.345 m
+off the path, the ankle nail 0.145 m open, the knee nail 0.102; the
+load's velocity ledger reads vx 0.000 on every row (the position repair
+moves it, the velocity pass does not). At 2 kg: 80 %, nails 0.023 m; at
+10 kg: 66 %. The prediction was wrong on the load and right on the
+shape and the branch. G-85's open nails reproduce with no writer and no
+rail in motion: the solver's nail chain under a heavy end; the bounded
+drive was never their mechanism.
+
+DEPENDENCIES for (C), in order: (i) G-89's mechanism, a driven muscle
+never sleeps against its command; (ii) the chain solve (the joint block
+solver branch). Both on the board; the harness rework waits on them.
+Ruling 14 owed: whether the belt stays as the measured world meanwhile
+or the derived rail (B) bridges. Also landed: Argus::rekey (the witness
+lost the rig at a streaming swap at frame 6; the eye now follows the
+swap as the tracer's label does).

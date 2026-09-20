@@ -150,12 +150,18 @@ animation layer may therefore do exactly two things to a body:
 **Nothing else exists.** No writer outside the solver writes position,
 velocity, orientation or angular velocity on a DYNAMIC body (INV-35, now
 STATE not just position). Gravity is keyed on `solver_mode` alone: rails
-do not fall, muscles do (INV-15). The humanoid is two rails (the pelvis
-harness, the stance clamp) and twenty muscles. **The harness IS the
-concession:** balance we cannot model is what a pelvis harness supplies,
-and a treadmill rig with a pelvis belt is an honest experiment. Physics
-originating locomotion to the root (a balance controller, the harness
-replaced by ground reaction) is the road beyond, not this contract.
+do not fall, muscles do (INV-15). **RULING 13 (owner, 2026-09-19): the
+walker propels herself.** The humanoid is one rail, the stance clamp (the
+planted foot), and its muscles; the pelvis is a body with mass that the
+stance leg's muscles carry over the nailed foot, and the harness holds
+it upright and nothing else. Balance we cannot model is the whole
+concession; propulsion is not part of it. The pelvis harness that
+integrates a commanded velocity (the belt, since 2026-04-17, when the
+KinematicRoot's derived hips were switched off by a comment) is the
+measured world until the muscles carry her, never the law. Its
+dependencies, in order: a driven muscle never sleeps against its command
+(G-89), and a chain solve that carries a drive's motion through nails to
+a heavy end (G-97, station C). Read G-97 before touching the harness.
 
 **What this rules out, by name.** The teleport-then-clean loop in
 `humanoid_locomotion.cpp maintain_entity_shape` (rigid translate, rest
@@ -290,6 +296,21 @@ gauge is blind to a glide, and so was the sweep. And never loop over
 lever strings in the shell (`for w in "A=1 B=2"; do env $w ...`):
 zsh hands the program one variable; write each world's command in
 full and read the banner before the numbers.
+
+**The leg under the load (2026-09-19, G-97).** Station C of the prover is
+the irreducible rig for ruling 13: a nailed foot, a driven shin and thigh
+of Eva's own lengths, her mass welded on top, the ankle drive sweeping
+the stance arc. What it read on today's solver: asleep, a muscle ignores
+its drive entirely (G-89, both worlds); awake (`RAILS_RIG_WAKE=1`, a
+staging), the light bone follows its command and the heavy end does not:
+the nails open 0.145 m, the load reaches a third of the arc, its velocity
+ledger reads zero while the position repair drags it. G-85's open nails
+are this, not the two rails' disagreement; a bounded drive never closes a
+position row. `RAILS_RIG=1` prints a row per 3 frames, `RAILS_RIG_LOAD=<kg>`
+is the mass-ratio control (2 kg: 80 %), the window's C key looks at the
+rig. The witness follows index swaps (`Argus::rekey` in the scene's swap
+callback): a watched body that streams to a new id is otherwise lost
+silently, as the rig was at frame 6.
 
 ## Instrument the INTERACTIONS, not just the outcomes (directive)
 

@@ -62,7 +62,9 @@ int main() {
     if (arms) scene.arms_enable();
     const bool feet = std::getenv("RAILS_FEET") != nullptr;
     const bool perf = std::getenv("RAILS_PERF") != nullptr;      // the cost rows per 30 frames into this log (the summary at close)      // G-90: the rows into this log and onto the panel (the measurement is always on)
+    bool focus_c = false;                                   // C: the camera on station C (G-97), C again: back on Eva
     auto centre = [&](float& cx, float& cy, float& cz) {
+        if (focus_c) { cx = C_X; cy = 0.0f; cz = FLOOR_TOP + 0.9f; return; }
         auto v = ps.lock_particles_for_read();
         cx = v[scene.hips].x + B_X * 0.5f; cy = v[scene.hips].y; cz = 1.0f;
     };
@@ -85,7 +87,7 @@ int main() {
     l_c->set_position(PANEL_X, base_y + 44);
     auto* l_demo = add_line(engine, 3, 190, 220, 255);
     l_demo->set_position(PANEL_X, 40);
-    l_demo->set_text("DEMONSTRATING INV-40: animation is a rail or a muscle; nobody else moves a physics body.");
+    l_demo->set_text("DEMONSTRATING INV-40: animation is a rail or a muscle; nobody else moves a physics body. Station C (G-97): a driven leg carries her mass [C looks at it].");
     auto* l_demo2 = add_line(engine, 5, 190, 220, 255);
     l_demo2->set_position(PANEL_X, 62);
     {
@@ -127,17 +129,22 @@ int main() {
     add_assert("INV-40/INV-2/G-90: a planted foot does not slide over its stance (<= 10 SLOP)", [&]{ return Scene::stance_holds(scene.feet_stances, scene.feet_stance_slide_max); });
     add_assert("INV-40/G-90: a planted foot stands on its support (within 2 SLOP)",           [&]{ return Scene::stance_stands(scene.feet_stances, scene.feet_stance_gap_max); });
     add_assert("INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP)", [&]{ return Scene::support_stands(scene.feet_stances, scene.feet_support_move_max); });
+    add_assert("INV-13/INV-40/G-97: a driven leg carries her mass on the command's path (load within 5 cm of the FK)", [&]{ return Scene::rig_carries(scene.c_sweeps_done, scene.c_err_max); });
+    add_assert("G-97: the load keeps up with the arc (>= 90 % of the FK's advance per sweep)",              [&]{ return Scene::rig_advances(scene.c_sweeps_done, scene.c_adv_ratio_min); });
     auto* l_arms = add_line(engine, 6, 220, 200, 140);
     l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
     if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");
     auto* l_feet = add_line(engine, 7, 220, 200, 140);
     l_feet->set_position(PANEL_X, 96 + prow * 22 + 56);
     if (feet) l_feet->set_text("[feet] RAILS_FEET=1: each contact episode prints when the foot leaves the floor");
+    auto* l_rig = add_line(engine, 9, 255, 225, 160);
+    l_rig->set_position(PANEL_X, 96 + prow * 22 + 78);
+    l_rig->set_text("[rig] station C: the hold's row arrives after 60 frames, a sweep's every 48");
     auto* l_verdict = add_line(engine, 4, 255, 120, 120);
     l_verdict->set_position(PANEL_X, 96 + prow * 22 + 10);
     std::printf("\n=== INV-40: rails and muscles (%s) ===\n", interactive ? "WINDOW" : "headless");
     if (interactive) std::printf("  ESC or the red X quits.  SPACE replays the run (Eva back to the start through the teleport door).  Z zooms in.\n\n");
-    bool space_was_down = false, z_was_down = false, quit = false;
+    bool space_was_down = false, z_was_down = false, c_was_down = false, quit = false;
     int frame = 0; char buf[256];
     while (interactive ? (!quit && engine.should_continue()) : (frame < RUN_FRAMES)) {
         const auto t0 = std::chrono::steady_clock::now();
@@ -147,6 +154,8 @@ int main() {
         if (live && !scene.wakes_row.empty()) std::printf("  %s\n", scene.wakes_row.c_str());
         if (live && !scene.seam_row.empty()) std::printf("  %s\n", scene.seam_row.c_str());
         if (live && feet) { if (!scene.feet_frame_rows.empty()) std::fputs(scene.feet_frame_rows.c_str(), stdout); if (!scene.feet_last_row.empty()) { std::printf("  %s\n", scene.feet_last_row.c_str()); l_feet->set_text(scene.feet_last_row.substr(0, 150)); } if (!scene.feet_height_row.empty()) std::printf("  %s\n", scene.feet_height_row.c_str()); }
+        if (live && !scene.rig_row.empty()) { std::printf("  %s\n", scene.rig_row.c_str()); l_rig->set_text(scene.rig_row.substr(0, 150)); }
+        if (live && !scene.rig_frame_row.empty()) std::printf("  %s\n", scene.rig_frame_row.c_str());
         if (live && arms && scene.arms_observe(engine, frame)) { std::printf("  %s\n", scene.arms_last_row.c_str()); l_arms->set_text(scene.arms_last_row.find("|| sleep:") != std::string::npos ? scene.arms_last_row.substr(scene.arms_last_row.find("|| sleep:"), 150) : scene.arms_last_row.substr(0, 150)); }
         centre(cx, cy, cz);
         cam.set_position(cx, cy, cz);
@@ -180,6 +189,9 @@ int main() {
                 const bool down = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
                 if (down && !space_was_down) { scene.rearm(engine); frame = 0; }
                 space_was_down = down;
+                const bool ck = glfwGetKey(win, GLFW_KEY_C) == GLFW_PRESS;
+                if (ck && !c_was_down) focus_c = !focus_c;
+                c_was_down = ck;
                 const bool zk = glfwGetKey(win, GLFW_KEY_Z) == GLFW_PRESS;
                 if (zk && !z_was_down && ppu < 200.0f) { ppu *= 1.15f; if (ppu > 200.0f) ppu = 200.0f; cam.set_pixels_per_unit(ppu); }
                 z_was_down = zk;
@@ -194,6 +206,7 @@ int main() {
     std::printf("  [measure] %s\n", scene.perf_summary().c_str());
     std::printf("  [measure] hands %d records; walk %.3f m; replants %d/%d declared; A drop %.3f; arm err %.4f\n",
                 scene.hand_records, scene.forward, scene.replants_declared, scene.replants, scene.a_drop_max, scene.arm_err_max);
+    std::printf("  [measure] station C: %d of %d sweeps; the load off the FK max %.4f m; the shin behind max %.4f rad; advance ratio min %.3f\n", scene.c_sweeps_done, C_SWEEPS, scene.c_err_max, scene.c_lag_max, scene.c_adv_ratio_min);
     std::printf("\n  %s (%d/%zu)\n", passing == (int)panel.size() ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40", passing, panel.size());
     engine.shutdown();
     return passing == (int)panel.size() ? 0 : 1;

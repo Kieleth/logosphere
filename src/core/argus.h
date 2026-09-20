@@ -71,6 +71,16 @@ public:
         e.ring.resize(capacity_);
     }
     void unwatch(int id) { eyes_.erase(id); }
+    // Index swaps (strata streaming) move a watched body to a new id; the
+    // eye follows, as the tracer's label does. The old key's memory moves
+    // whole: peaks, ring, milestones.
+    void rekey(int old_id, int new_id) {
+        auto it = eyes_.find(old_id);
+        if (it == eyes_.end() || old_id == new_id) return;
+        Eye e = std::move(it->second);
+        eyes_.erase(it);
+        eyes_[new_id] = std::move(e);
+    }
     bool watching() const { return !eyes_.empty(); }
     void set_capacity(size_t frames) { capacity_ = frames; }
 
