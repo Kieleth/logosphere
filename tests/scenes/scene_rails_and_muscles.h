@@ -229,7 +229,7 @@ struct Scene {
     static bool support_stands(int stances, float move_max) { return stances > 0 && move_max <= PhysicsV4::SLOP; }   // G-94: the floor under either foot does not move (stance or swing)
     static bool rig_carries(int sweeps, float err_max)     { return sweeps >= C_SWEEPS && err_max <= C_PATH_ERR_MAX; }   // G-97: the load on the command's path
     static bool rig_advances(int sweeps, float ratio_min)  { return sweeps >= C_SWEEPS && ratio_min >= C_ADVANCE_MIN; }  // G-97: the load keeps up with the arc
-    static bool rig_awake(int sweeps, int strained_asleep) { return sweeps >= C_SWEEPS && strained_asleep == 0; }       // G-98: a driven muscle never sleeps against its command
+    static bool rig_awake(int sweeps, int strained_asleep, bool running) { return strained_asleep == 0 && (sweeps >= C_SWEEPS || running); }  // G-98: a driven muscle never sleeps against its command (a 'never' law: true until violated; a finished run must have completed the sweeps)
 
     void build(Engine& engine) {
         auto& ps       = engine.get_particle_system();

@@ -281,7 +281,7 @@ int main() {
     check(Scene::support_stands(scene.feet_stances, scene.feet_support_move_max), "INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP over a stance or a swing)");
     check(Scene::rig_carries(scene.c_sweeps_done, scene.c_err_max),        "INV-13/INV-40/G-97: a driven leg carries the walker's mass on the command's path (the load within 5 cm of the FK, every frame after the hold)");
     check(Scene::rig_advances(scene.c_sweeps_done, scene.c_adv_ratio_min), "G-97: the load keeps up with the arc (>= 90 % of the FK's advance when the command reaches the arc's end)");
-    check(Scene::rig_awake(scene.c_sweeps_done, scene.c_strained_asleep),   "INV-18/INV-40/G-98: a driven muscle is never asleep while its command is more than GLUON_WAKE_ANGLE away (0 frames after the hold)");
+    check(Scene::rig_awake(scene.c_sweeps_done, scene.c_strained_asleep, false),   "INV-18/INV-40/G-98: a driven muscle is never asleep while its command is more than GLUON_WAKE_ANGLE away (0 frames after the hold)");
 
     std::printf("\n  %s\n", failures == 0 ? "TWO RAILS AND TWENTY MUSCLES" : "RED: INV-40");
     engine.shutdown();

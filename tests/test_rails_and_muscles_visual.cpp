@@ -116,6 +116,7 @@ int main() {
         engine.get_ui_system()->add_widget(l);
         panel.push_back({l, text, std::move(eval)}); ++prow;
     };
+    int frame = 0; char buf[256];
     add_assert("hygiene/INV-35: the drive children are live bodies",         [&]{ return Scene::muscles_live(scene.muscles_stale); });
     add_assert("INV-40/INV-35/G-81: no hand but the solver's on any muscle",  [&]{ return Scene::hands_off(scene.hand_records); });
     add_assert("G-81 gauge: the limbs follow the rail and she walks",          [&]{ return Scene::walks(scene.forward, scene.walk_frames); });
@@ -132,7 +133,7 @@ int main() {
     add_assert("INV-40/INV-13/G-94: the floor under a foot does not move (<= SLOP)", [&]{ return Scene::support_stands(scene.feet_stances, scene.feet_support_move_max); });
     add_assert("INV-13/INV-40/G-97: a driven leg carries her mass on the command's path (load within 5 cm of the FK)", [&]{ return Scene::rig_carries(scene.c_sweeps_done, scene.c_err_max); });
     add_assert("G-97: the load keeps up with the arc (>= 90 % of the FK's advance per sweep)",              [&]{ return Scene::rig_advances(scene.c_sweeps_done, scene.c_adv_ratio_min); });
-    add_assert("INV-18/INV-40/G-98: a driven muscle is never asleep against its command (> GLUON_WAKE_ANGLE)", [&]{ return Scene::rig_awake(scene.c_sweeps_done, scene.c_strained_asleep); });
+    add_assert("INV-18/INV-40/G-98: a driven muscle is never asleep against its command (> GLUON_WAKE_ANGLE)", [&]{ return Scene::rig_awake(scene.c_sweeps_done, scene.c_strained_asleep, frame < RUN_FRAMES); });
     auto* l_arms = add_line(engine, 6, 220, 200, 140);
     l_arms->set_position(PANEL_X, 96 + prow * 22 + 34);
     if (arms) l_arms->set_text("[arms] RAILS_ARMS=1: the first second's row arrives after 60 frames");
@@ -147,7 +148,6 @@ int main() {
     std::printf("\n=== INV-40: rails and muscles (%s) ===\n", interactive ? "WINDOW" : "headless");
     if (interactive) std::printf("  ESC or the red X quits.  SPACE replays the run (Eva back to the start through the teleport door).  Z zooms in.\n\n");
     bool space_was_down = false, z_was_down = false, c_was_down = false, quit = false;
-    int frame = 0; char buf[256];
     while (interactive ? (!quit && engine.should_continue()) : (frame < RUN_FRAMES)) {
         const auto t0 = std::chrono::steady_clock::now();
         const bool live = frame < RUN_FRAMES;
