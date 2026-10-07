@@ -79,7 +79,10 @@ int main(int argc, char** argv) {
     humanoid_gen.initialize(&engine, &kg);
 
     HumanoidSpec spec = HumanoidSpec::hunter();
-    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec, false);
+    // world_z is the FEET'S BOTTOM and this floor's top is 0.10: spawning at
+    // zero buried every foot 80 mm inside the slab (INV-37).
+    const float floor_top = floor.z + floor.thickness * 0.5f;
+    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, floor_top, -1, spec, false);
 
     engine.get_humanoid_locomotion().register_humanoid_direct(
         h.hips_id,

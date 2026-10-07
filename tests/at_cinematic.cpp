@@ -74,7 +74,18 @@ static kg::EntityID spawn_stand_in_bike(Engine& engine,
     for (int i = 0; i < 3; ++i) {
         Particle p = {};
         p.shape = ParticleShape::BOX;
-        p.x = float(i) * 0.3f;
+        // 0.4 m boxes, so they stand 0.4 m apart and touch. At 0.3 each was
+        // born 0.1 m inside the one before it, which INV-37 refuses: the
+        // stand-in would have had one particle and the alpha assert below
+        // would have been reading a body that is not there.
+        //
+        // And they stand CLEAR of where the cinematic pops the Program in
+        // (centre + kProgramOffsetX = 1.1 m): the stand-in used to sit right
+        // on top of that point, so the Program's foot was born inside the
+        // bike and refused, and "Program rig must add particles" failed on a
+        // rig that was never made. What the cinematic does with a REAL bike
+        // at that offset is the game's own question and is not this AT's.
+        p.x = 3.0f + float(i) * 0.4f;
         p.y = 0.0f;
         p.z = 0.5f;
         p.width = 0.4f; p.height = 0.4f; p.thickness = 0.4f;

@@ -72,15 +72,36 @@ struct VolumeRig {
         view[medium].interaction_profile_id = profile_id;
     }
 
+    // THE BALL IS PUT INTO THE COLUMN, NOT BORN IN IT — and that is a
+    // LIMITATION on the record, not a preference (INV-37, owner decree
+    // 2026-09-01).
+    //
+    // A medium is a body. A ball inside water is two bodies in one place,
+    // and the creation door refuses the second one: born at the column's
+    // centre the ball measured 10.15 m of penetration and was never created,
+    // so every reading here was of a ball that did not exist. It is born
+    // ABOVE the column, in clear air, and written to its measuring position
+    // before the first step - the same INV-30 external write the other
+    // interlock fixtures use.
+    //
+    // WHAT THIS EXPOSES, for the owner: the engine currently cannot SPAWN a
+    // body inside a declared medium. The solver already refuses to build a
+    // contact row for a declared-passable pair
+    // (physics_system_v4.cpp, interaction_->should_contact), so none of the
+    // harm INV-37 names - a separating impulse, a repair that never
+    // completes, a sleep veto that never lifts - can occur for such a pair;
+    // but the door does not read that declaration. Whether it should is an
+    // amendment to the decree and the owner's to make. Boarded.
     int ball(float x, float y, float z, float vx, float vy, float vz) {
         Particle p = {};
         p.shape = ParticleShape::SPHERE;
-        p.x = x; p.y = y; p.z = z;
+        p.x = x; p.y = y; p.z = z + 60.0f;   // born in clear air above the column
         p.width = 0.3f; p.height = 0.3f; p.thickness = 0.3f;
         p.size = 0.3f;
         p.SetMaterial(Materials::Type::STONE);
         int id = engine.add_particle(p);
         auto view = engine.get_particle_system().lock_particles_for_write();
+        view[id].x = x; view[id].y = y; view[id].z = z;   // ...then placed
         view[id].solver_mode = ParticleSolverMode::DYNAMIC;
         view[id].is_at_rest = false;
         view[id].vx = vx; view[id].vy = vy; view[id].vz = vz;

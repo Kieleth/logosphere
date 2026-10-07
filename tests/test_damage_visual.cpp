@@ -24,6 +24,12 @@
 #include <string>
 #include <GLFW/glfw3.h>
 
+// The floor these scenes build is 0.1 m thick with its bottom on the
+// turtle, so its walking surface is 0.10 m. world_z for a humanoid is
+// the FEET'S BOTTOM: spawning at 0.0 buried them 80 mm in the slab,
+// which the creation door refuses (INV-37).
+static constexpr float FLOOR_TOP = 0.10f;
+
 // Sequence timing (in frames at 60fps)
 static constexpr int WALK_START = 0;
 static constexpr int HIT_1 = 120;   // 2.0s: first hit
@@ -85,7 +91,8 @@ int main(int argc, char* argv[]) {
     HumanoidGenerator humanoid_gen;
     humanoid_gen.initialize(&engine, &kg);
     HumanoidSpec spec = HumanoidSpec::hunter();
-    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec, false);
+    // world_z is the feet's BOTTOM; the floor's top is 0.10 (INV-37).
+    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP, -1, spec, false);
     h.create_kg_entities(kg, "Humanoid", 200.0f, 600.0f);
 
     engine.get_humanoid_locomotion().register_humanoid_direct(

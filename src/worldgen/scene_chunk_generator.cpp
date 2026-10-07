@@ -560,8 +560,23 @@ void SceneChunkGenerator::activate_entity_now(kg::EntityID entity_id) {
         // the first in a test. Third instance of the same defect class: the
         // generator stored bonds, an activation path silently discarded them.
         // ====================================================================
+        // A BOND NEEDS BOTH ITS BODIES. add_particle answers -1 when the
+        // creation door refuses a body (INV-37), and a request naming a
+        // refused endpoint used to be handed to create_gluon_from_kg as
+        // render index -1: the pair key then read P18446744073709551615 and
+        // the GLUON door aborted the world on "a second live bond for pair
+        // P...<->P..." - the wrong defect, one system downstream of the real
+        // one. A refusal drops the bonds that named it, and says so.
         int gluons_created_now = 0;
+        int gluons_orphaned = 0;
         for (const auto& req : result.gluon_requests) {
+            if (req.particle_a_index < render_indices.size() &&
+                req.particle_b_index < render_indices.size() &&
+                (render_indices[req.particle_a_index] < 0 ||
+                 render_indices[req.particle_b_index] < 0)) {
+                gluons_orphaned++;
+                continue;
+            }
             if (req.particle_a_index < render_indices.size() &&
                 req.particle_b_index < render_indices.size()) {
                 engine_->get_entity_manager().create_gluon_from_kg(
@@ -575,6 +590,12 @@ void SceneChunkGenerator::activate_entity_now(kg::EntityID entity_id) {
             SCENE_LOG << "[SceneChunkGenerator]   Created " << gluons_created_now
                       << " of " << result.gluon_requests.size()
                       << " gluons (direct activation)" << std::endl;
+        }
+        if (gluons_orphaned > 0) {
+            std::cerr << "[PHYSICS REFUSED] entity " << entity_id << ": "
+                      << gluons_orphaned << " bond(s) named a body the creation "
+                         "door refused (INV-37) and were NOT created. Fix the "
+                         "placement at its generator." << std::endl;
         }
     } else {
         SCENE_LOG << "[SceneChunkGenerator] Entity " << entity_id << " (" << type

@@ -1,4 +1,5 @@
 #include "logosphere/worldgen/physics_tree_generator.h"
+#include "logosphere/physics/narrow_phase.h"   // OBB: the branch clears its parent by the parent's own supporting plane
 #include "core/engine.h"
 #include "core/particle_system.h"
 #include "logosphere/physics/physics_system.h"
@@ -505,6 +506,67 @@ int PhysicsTreeGenerator::generate_branch(
         direction_angle, elevation_angle,
         spec, depth);
 
+    // A BRANCH STARTS OUTSIDE ITS PARENT (INV-37, GEDANKEN-70).
+    //
+    // The centre above puts the child's near FACE exactly on the parent's tip
+    // POINT, which is right for a face and wrong for a body: a tilted child's
+    // near-end CORNERS reach back past that face, and they reach back into
+    // the parent. Measured on Eden's oaks under the creation door: 57 of the
+    // crown's branches refused, the worst 88 mm inside the trunk, which is
+    // the 2026-08-02 "minimal overlap is accepted" policy stated as a number.
+    //
+    // The law, and it is exact rather than a margin: the parent's tip plane
+    // (normal n = the parent's own +Z axis) is a SUPPORTING plane of the
+    // parent's box, so a child entirely on its far side cannot touch the
+    // parent at all. The child's cross-section reaches back along -n by
+    //     r = hx |ax.n| + hy |ay.n|
+    // and travelling d along its own axis buys d (az.n) of that, so
+    //     d = r / (az.n).
+    // Geometry only: no gap constant, no size ratio, nothing to tune
+    // (INV-29). The bond's attachment on the child moves back with it, so
+    // the branch is still born at strain 1.0 against the parent's tip
+    // (INV-4). A child growing back down its parent (az.n <= 0) cannot be
+    // fixed by sliding along its own axis; it is left where it is and the
+    // door says so.
+    float branch_push = 0.0f;
+    {
+        auto pv = particles_->lock_particles_for_read();
+        const Particle &parent = pv[parent_id];
+        const OBB pob = obb_of_box_particle(parent, parent.z);
+        const OBB cob = obb_of_box_particle(branch, branch.z);
+        const float nx = pob.axis[2][0], ny = pob.axis[2][1], nz = pob.axis[2][2];
+        auto dot_n = [&](const float a[3]) { return a[0]*nx + a[1]*ny + a[2]*nz; };
+        const float along = dot_n(cob.axis[2]);
+        if (along > 1e-3f)
+        {
+            const float back_reach = cob.half[0] * std::fabs(dot_n(cob.axis[0]))
+                                   + cob.half[1] * std::fabs(dot_n(cob.axis[1]));
+            branch_push = back_reach / along;
+        }
+    }
+    branch.x += dir_x * branch_push;
+    branch.y += dir_y * branch_push;
+    branch.z += dir_z * branch_push;
+
+    // AND ITS SIBLINGS? NOT YET, AND THE ATTEMPT IS ON THE RECORD.
+    //
+    // Two branches leaving the same fork start in the same small ball of
+    // space, and the parent's plane says nothing about each other. Sliding
+    // each one along its own axis by the measured depth until it was clear
+    // WORKED geometrically and broke the tree: the joint gap it opened is
+    // large, and OrganicGluon does not hold a crown across one. Measured on
+    // test_foliage_stays_attached with the door OFF, so the only variable was
+    // the geometry:
+    //     no push, no slide   mean canopy drift 0.0056 m, PASS
+    //     push only           1.7305 m, peak leaf 4.53 m/s
+    //     push + slide        3.5574 m, peak leaf 11.14 m/s
+    // The slide is removed. The sibling pairs it would have separated (36
+    // branch-branch and 17 branch-trunk on Eden, 6 on the standard tree) are
+    // refused by the door instead, which drops those subtrees - loudly, and
+    // booked as F-CROWN on the physics board. GEDANKEN-70 anticipated exactly
+    // this outcome and named the alternative: a real junction body the
+    // siblings each abut, which is a generator redesign with its own cost.
+
     // Create OrganicGluon to attach branch to parent
     auto gluon = std::make_unique<OrganicGluon>();
 
@@ -542,9 +604,21 @@ int PhysicsTreeGenerator::generate_branch(
     // direction_to_euler establishes and the solver's rotate_full relies on —
     // so the end nearest the parent is simply -length/2 along local Z. The
     // rotation carries the direction; the offset must not carry it too.
+    // BOTH ANCHORS STAY ON THEIR BODIES, AND THE JOINT CARRIES THE GAP.
+    //
+    // The first version of this reached the child's anchor BACK to the
+    // parent's tip (offset_b = -(L/2 + push)), which put the anchor in empty
+    // space outside the branch and gave every bond a lever arm longer than
+    // the body it holds. Measured on test_foliage_stays_attached with the
+    // door OFF, so the only variable was the geometry: mean canopy drift
+    // 0.0056 m before, 3.5574 m after, peak leaf speed 11.14 m/s against a
+    // 2.00 limit. A floating anchor is not a joint.
+    //
+    // The anchor is the branch's own near face, and the separation the
+    // clearance created is what it is: the joint's rest LENGTH.
     gluon->offset_b = Vec3(0.0f, 0.0f, -length * 0.5f);
 
-    gluon->target_distance = 0.0f;
+    gluon->target_distance = branch_push;   // the gap the clearance opened
     gluon->contact_area = calculate_contact_area(thickness);
 
     // Add branch with gluon attachment
@@ -1142,10 +1216,43 @@ int PhysicsTreeGenerator::generate_root_system(
         // is precisely the gap the four root bonds were born with.
         float face_center_z = plate_center_z;
 
-        // Root center = face center + half root length outward
-        float root_center_x = face_center_x + dir_x * root_length * 0.5f;
-        float root_center_y = face_center_y + dir_y * root_length * 0.5f;
-        float root_center_z = face_center_z + dir_z * root_length * 0.5f;
+        // Root center = face center + half root length outward.
+        //
+        // OUTWARD IS THE FACE'S NORMAL, NOT THE RADIAL DIRECTION, on the axis
+        // the root's own box is long along. The root is an AXIS-ALIGNED box
+        // (no rotation, see above) whose length lies on the dominant axis,
+        // and displacing it along a DIAGONAL radial direction moves it less
+        // than half its length off the face: a root at 87 degrees ended up
+        // 3 mm inside the plate, which INV-37 refuses and which cost
+        // test_foliage_stays_attached a root. The off-axis component still
+        // rides on the radial direction, so the fan keeps its spread.
+        // The root leaves along the FACE'S NORMAL - the axis its own box is
+        // long along - and the radial direction decides WHERE ON THE FACE it
+        // leaves from, not which way it travels. Travelling along a diagonal
+        // radial moves an axis-aligned box less than half its length off the
+        // face, and a root at 87 degrees ended up 3 mm inside the plate,
+        // which INV-37 refuses and which cost test_foliage_stays_attached a
+        // root. The fan is kept, as a spread of anchor points across the
+        // face, clamped so every anchor is on the plate it holds.
+        const float half_len = root_length * 0.5f;
+        const bool  x_face = (face_offset_x != 0.0f);
+        const float out_n  = x_face ? ((radial_x > 0.0f) ? half_len : -half_len)
+                                    : ((radial_y > 0.0f) ? half_len : -half_len);
+        auto clamp_face = [&](float v) {
+            return std::max(-plate_half_w, std::min(plate_half_w, v));
+        };
+        const float lat_x = x_face ? 0.0f : clamp_face(dir_x * half_len);
+        const float lat_y = x_face ? clamp_face(dir_y * half_len) : 0.0f;
+
+        // The anchor: a point on the plate's side face.
+        const float anchor_x = face_center_x + lat_x;
+        const float anchor_y = face_center_y + lat_y;
+        const float anchor_z = face_center_z;
+
+        // The root's near face sits exactly on it.
+        float root_center_x = anchor_x + (x_face ? out_n : 0.0f);
+        float root_center_y = anchor_y + (x_face ? 0.0f : out_n);
+        float root_center_z = anchor_z;
 
         root.x = root_center_x;
         root.y = root_center_y;
@@ -1159,14 +1266,17 @@ int PhysicsTreeGenerator::generate_root_system(
         auto root_gluon = std::make_unique<OrganicGluon>();
         // Offset A: Attachment point on plate (side face center in plate's local coords)
         // Plate has no rotation, so local = world
-        root_gluon->offset_a = Vec3(face_offset_x, face_offset_y, 0.0f); // Side face at plate center Z
+        root_gluon->offset_a = Vec3(face_offset_x + lat_x, face_offset_y + lat_y,
+                                    0.0f);  // the anchor point on the side face
         // Offset B: Attachment point on root (inner end in WORLD coords)
         // Inner end is at root_center - half_length in the direction of the root
         // In world coords: inner_end = root_center - dir * root_length/2
         // So offset from root center to inner end = -dir * root_length/2
-        float inner_offset_x = -dir_x * root_length * 0.5f;
-        float inner_offset_y = -dir_y * root_length * 0.5f;
-        float inner_offset_z = -dir_z * root_length * 0.5f;
+        // The root's own near face, in its own frame (it carries no rotation),
+        // which is where the anchor is (INV-4, strain 1.0 at birth).
+        float inner_offset_x = x_face ? -out_n : 0.0f;
+        float inner_offset_y = x_face ? 0.0f : -out_n;
+        float inner_offset_z = 0.0f;
         root_gluon->offset_b = Vec3(inner_offset_x, inner_offset_y, inner_offset_z);
         root_gluon->target_distance = 0.0f;                         // Touch attachment
         root_gluon->contact_area = root_thickness * root_thickness; // Root cross-section
@@ -1228,12 +1338,23 @@ int PhysicsTreeGenerator::generate_root_system(
 
 int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y)
 {
-    // Search for a floor tile that contains (world_x, world_y)
-    // Returns particle ID if found, -1 otherwise
-    // NOTE: Floor tiles identified by position (z<1m) and shape (flat box)
-
+    // The TOP-most floor tile that contains (world_x, world_y), or -1.
+    // Floor tiles are identified by position (z<1m) and shape (flat box).
+    //
+    // THE HIGHEST ONE, NOT THE FIRST ONE. This used to return the first
+    // match in array order, which on a layered floor is the layer created
+    // first: on Eden's three-layer strata that is the BEDROCK, top 0.30,
+    // with sediment and organic stacked to 0.55 above it. Every tree then
+    // planted its trunk at 0.30 and was born straight through both upper
+    // layers - 250 mm of solid tile inside a 116 kg trunk, which INV-37
+    // refuses and which the solver, before the door, would have had to
+    // eject. A tree stands on the SURFACE, so the search answers with the
+    // surface.
     auto particles = particles_->lock_particles_for_read();
     const size_t count = particles.size();
+
+    int   best_id  = -1;
+    float best_top = 0.0f;
 
     for (size_t i = 0; i < count; ++i)
     {
@@ -1254,11 +1375,16 @@ int PhysicsTreeGenerator::find_floor_tile_at(float world_x, float world_y)
         if (world_x >= p.x - half_w && world_x <= p.x + half_w &&
             world_y >= p.y - half_h && world_y <= p.y + half_h)
         {
-            return static_cast<int>(i);
+            const float top = p.z + p.thickness * 0.5f;
+            if (best_id < 0 || top > best_top)
+            {
+                best_id  = static_cast<int>(i);
+                best_top = top;
+            }
         }
     }
 
-    return -1; // No floor tile found
+    return best_id; // No floor tile found -> -1
 }
 
 // ============================================================================

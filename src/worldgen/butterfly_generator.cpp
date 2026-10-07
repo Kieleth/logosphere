@@ -165,21 +165,45 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
 
     std::vector<unsigned int> all_particles;
 
+    // A REFUSED PART IS NOT WRITTEN INTO THE KG. add_particle answers -1 when
+    // the creation door refuses a body (INV-37); stored as an unsigned it
+    // becomes 4294967295, and the flight system's std::stoi on that string
+    // threw std::out_of_range and took the process down one system away from
+    // the defect. A butterfly missing a part keeps its entity and loses its
+    // flight properties, so the dynamics system skips it and the refusal
+    // line stays the only thing to read.
+    constexpr unsigned int NO_PARTICLE = static_cast<unsigned int>(-1);
+    bool part_refused = false;
+    auto born = [&](unsigned int id) {
+        if (id == NO_PARTICLE) part_refused = true;
+        return id != NO_PARTICLE;
+    };
+
     // Body layout along Y-axis (flight direction):
     // HEAD -> THORAX segments (variable, each with wings) -> ABDOMEN
+    //
+    // THE SEGMENTS ABUT, THEY DO NOT NEST (INV-37). create_body_segment
+    // elongates each segment along Y (height = size * 1.2), and the layout
+    // used to advance by `size`, so every segment was born 20% of its own
+    // length inside the one in front of it. The run now advances by the
+    // extent the body actually has.
+    const float SEGMENT_STRETCH = 1.2f;   // create_body_segment's own Y factor
+    auto y_extent = [&](float size) { return size * SEGMENT_STRETCH; };
 
-    float body_offset = 0.0f;  // Start from base position
+    float body_back = 0.0f;   // Y of the back face of the last segment placed
 
     // HEAD - Front of butterfly
+    const float head_len = y_extent(spec.head_size);
     unsigned int head = create_body_segment(
-        world_x, world_y + body_offset, world_z + spec.head_size/2,
+        world_x, world_y + body_back + head_len * 0.5f, world_z + spec.head_size/2,
         spec.head_size,
         spec.body_r, spec.body_g, spec.body_b,
         butterfly_entity
     );
     all_particles.push_back(head);
-    kg_->setProperty(butterfly_entity, "head_particle", std::to_string(head));
-    body_offset += spec.head_size;
+    if (born(head))
+        kg_->setProperty(butterfly_entity, "head_particle", std::to_string(head));
+    body_back += head_len;
 
     // THORAX SEGMENTS - Variable number (1-4), each with its own wing pair
     int num_thorax = spec.num_thorax_segments;
@@ -191,21 +215,35 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
     std::string thorax_list, left_wing_list, right_wing_list;
     unsigned int first_thorax = 0, first_left_wing = 0, first_right_wing = 0;
 
+    // THE WING PAIRS TILE ALONG THE BODY, THEY DO NOT SHARE ITS Y (INV-37).
+    // Each segment's wings used to be centred on their own segment while
+    // being wing_height long, so with more than one segment consecutive
+    // wings were born through each other (20 mm on Eden's butterflies). The
+    // pairs now abut, laid over the thorax run and centred on it: the
+    // silhouette keeps its span and its chord, and no two wings share space.
+    const float thorax_len   = y_extent(spec.thorax_size);
+    const float thorax_run   = thorax_len * (float)num_thorax;
+    const float wing_run     = spec.wing_height * (float)num_thorax;
+    const float wing_front_y = world_y + body_back + (thorax_run - wing_run) * 0.5f;
+
     // Create each thorax segment with its own wing pair
     for (int i = 0; i < num_thorax; i++) {
         // Create thorax segment
         unsigned int thorax = create_body_segment(
-            world_x, world_y + body_offset, world_z + spec.thorax_size/2,
+            world_x, world_y + body_back + thorax_len * 0.5f,
+            world_z + spec.thorax_size/2,
             spec.thorax_size,
             spec.body_r, spec.body_g, spec.body_b,
             butterfly_entity
         );
         all_particles.push_back(thorax);
-        if (i == 0) first_thorax = thorax;
-        if (!thorax_list.empty()) thorax_list += ",";
-        thorax_list += std::to_string(thorax);
+        if (born(thorax)) {
+            if (i == 0) first_thorax = thorax;
+            if (!thorax_list.empty()) thorax_list += ",";
+            thorax_list += std::to_string(thorax);
+        }
 
-        float wing_attach_y = world_y + body_offset;
+        float wing_attach_y = wing_front_y + spec.wing_height * ((float)i + 0.5f);
         float wing_attach_z = world_z + spec.thorax_size/2;
 
         // Get wing colors for this segment (from spec or fallback)
@@ -231,9 +269,11 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
             butterfly_entity
         );
         all_particles.push_back(left_wing);
-        if (i == 0) first_left_wing = left_wing;
-        if (!left_wing_list.empty()) left_wing_list += ",";
-        left_wing_list += std::to_string(left_wing);
+        if (born(left_wing)) {
+            if (i == 0) first_left_wing = left_wing;
+            if (!left_wing_list.empty()) left_wing_list += ",";
+            left_wing_list += std::to_string(left_wing);
+        }
 
         // Right wing for this segment
         float right_wing_x = world_x + spec.wing_span / 2.0f;
@@ -246,27 +286,31 @@ kg::EntityID ButterflyGenerator::generate_butterfly(float world_x, float world_y
             butterfly_entity
         );
         all_particles.push_back(right_wing);
-        if (i == 0) first_right_wing = right_wing;
-        if (!right_wing_list.empty()) right_wing_list += ",";
-        right_wing_list += std::to_string(right_wing);
+        if (born(right_wing)) {
+            if (i == 0) first_right_wing = right_wing;
+            if (!right_wing_list.empty()) right_wing_list += ",";
+            right_wing_list += std::to_string(right_wing);
+        }
 
-        body_offset += spec.thorax_size;
+        body_back += thorax_len;
     }
 
     // ABDOMEN (tail) - Rear segment
     unsigned int abdomen = create_body_segment(
-        world_x, world_y + body_offset, world_z + spec.abdomen_size/2,
+        world_x, world_y + body_back + y_extent(spec.abdomen_size) * 0.5f,
+        world_z + spec.abdomen_size/2,
         spec.abdomen_size,
         spec.body_r, spec.body_g, spec.body_b,
         butterfly_entity
     );
     all_particles.push_back(abdomen);
-    kg_->setProperty(butterfly_entity, "abdomen_particle", std::to_string(abdomen));
+    if (born(abdomen))
+        kg_->setProperty(butterfly_entity, "abdomen_particle", std::to_string(abdomen));
 
     // Full segment lists plus primary references (first segment) for
     // the dynamics system, which expects single particles under the
     // *_particle names.
-    if (num_thorax > 0) {
+    if (num_thorax > 0 && !part_refused) {
         kg_->setProperty(butterfly_entity, "thorax_particles", thorax_list);
         kg_->setProperty(butterfly_entity, "left_wing_particles", left_wing_list);
         kg_->setProperty(butterfly_entity, "right_wing_particles", right_wing_list);

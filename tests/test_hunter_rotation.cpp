@@ -657,7 +657,7 @@ bool test_hunter_rotation(TestContext& /* ctx */) {
 
     // Create Hunter
     PhysicsHumanoidResult hunter = humanoid_gen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, floor.z + floor.thickness * 0.5f,   // ON the floor (INV-37)
         -1,
         HumanoidSpec::hunter(),
         false

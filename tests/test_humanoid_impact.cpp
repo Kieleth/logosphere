@@ -776,7 +776,7 @@ bool test_humanoid_impact() {
 
     HumanoidState humanoid;
     humanoid.physics = gen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.0f,  // At origin
+        0.0f, 0.0f, floor.z + floor.thickness * 0.5f,  // ON the floor (INV-37)
         -1,                 // Create platform
         HumanoidSpec::hunter(),
         false               // No KG support

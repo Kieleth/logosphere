@@ -157,7 +157,10 @@ int main() {
     // Predator: an orange sphere, KINEMATIC, this loop owns its position.
     Particle pred{};
     pred.shape = ParticleShape::SPHERE;
-    pred.x = 8.0f; pred.y = 6.0f; pred.z = 0.8f;
+    // ON the tiles, not half inside them. The floor's top is 0.8 and the
+    // sphere is 1.6 across, so a centre at 0.8 buried exactly half of it -
+    // a birth INV-37 refuses.
+    pred.x = 8.0f; pred.y = 6.0f; pred.z = g_visual ? (0.8f + 0.8f) : 0.8f;
     pred.width = pred.height = pred.thickness = 1.6f;
     pred.size = 1.6f;
     pred.r = 0.95f; pred.g = 0.75f; pred.b = 0.20f; pred.a = 1.0f;
@@ -176,7 +179,10 @@ int main() {
     Particle carc{};
     carc.shape = ParticleShape::BOX;
     carc.particle_id = 7;
-    carc.x = 0.0f; carc.y = 0.0f; carc.z = 0.6f;
+    // Same: the 1 m cube stands ON the 0.8 m floor (INV-37); at 0.6 it was
+    // 0.7 m inside it.
+    carc.x = 0.0f; carc.y = 0.0f;
+    carc.z = (g_visual ? 0.8f : 0.0f) + kCarcassFull * 0.5f;
     carc.width = carc.height = carc.thickness = kCarcassFull;
     carc.size = kCarcassFull;
     carc.r = 0.90f; carc.g = 0.12f; carc.b = 0.10f; carc.a = 1.0f;

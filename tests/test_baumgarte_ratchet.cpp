@@ -166,12 +166,27 @@ bool test_baumgarte_ratchet() {
         auto& ps = engine.get_particle_system();
         add_floor(engine, 2);
 
-        // 0.30 m boxes with centres 0.15 m apart: overlapped by half.
+        // 0.30 m boxes overlapped by half: centres 0.15 m apart.
+        //
+        // THE OVERLAP IS DRIVEN IN, NOT BORN (INV-37, owner decree
+        // 2026-09-01). Spawning the pair already interlocked is a creation in
+        // overlap, which the door refuses: this scenario would have had one
+        // box to watch instead of two. They are BORN clear, half a metre
+        // apart, and the second is then written into the first before a
+        // single step runs. An external writer handing the solver a state it
+        // would never have produced is INV-30's case and this fixture is
+        // doing it deliberately; the solver still sees the same two boxes,
+        // the same 0.15 m inside each other, on frame one.
         const int a = add_box(engine, -0.075f, 0.0f, 0.26f, 0.30f,
                               Materials::Type::WOOD_HARD);
-        const int b = add_box(engine, +0.075f, 0.0f, 0.26f, 0.30f,
+        const int b = add_box(engine, +0.575f, 0.0f, 0.26f, 0.30f,
                               Materials::Type::WOOD_HARD);
         ps.flush_pending_particles();
+        {
+            auto v = ps.lock_particles_for_write();
+            v[b].x = +0.075f;
+            ps.mark_bvh_dirty();
+        }
 
         const Motion m = run_watching(engine, {a, b}, 240);
         float gap = 0.0f;
@@ -260,13 +275,25 @@ bool test_baumgarte_ratchet() {
         // rows that converge to v_rel = -4.00 on P3945<->P3946 are the three
         // GLUON axis rows, not contacts. This reproduces that and nothing else.
         constexpr float S = 0.30f, STEP = 0.20f, TARGET = 0.60f;
+        // BORN AT THEIR BONDS' TARGET, THEN COMPRESSED (INV-37, owner decree
+        // 2026-09-01). The column used to be SPAWNED at STEP, which is a
+        // birth 0.10 m inside the box below, and the creation door refuses
+        // it: four of the five boxes would never have existed. They are born
+        // TARGET apart - the spacing their bonds ask for, so nothing is
+        // created in overlap - and then squashed onto STEP before a single
+        // step runs, which is the same INV-30 external write the other two
+        // scenarios use. The solver still sees five boxes 0.20 m apart on
+        // bonds asking 0.60 m, on frame one.
         std::vector<int> col;
         for (int i = 0; i < 5; ++i)
-            col.push_back(add_box(engine, 0.0f, 0.0f, 0.30f + STEP * (float)i,
+            col.push_back(add_box(engine, 0.0f, 0.0f, 0.30f + TARGET * (float)i,
                                   S, Materials::Type::WOOD_HARD));
         ps.flush_pending_particles();
         {
             auto v = ps.lock_particles_for_write();
+            for (int i = 0; i < 5; ++i)
+                v[col[i]].z = 0.30f + STEP * (float)i;
+            ps.mark_bvh_dirty();
             v[col[0]].solver_mode = ParticleSolverMode::KINEMATIC;   // rooted
             v[col[0]].owner = ParticleOwner::DYNAMICS;
             v[col[0]].is_at_rest = true;

@@ -896,16 +896,27 @@ void test_a_filtered_touch_still_reports_itself() {
     creature.collides_with = 0u;          // no rigid contact between them
     interaction.register_profile(creature);
 
+    // THE OVERLAP IS DRIVEN IN, NOT BORN (INV-37, owner decree 2026-09-01).
+    // The two creatures are born clear of each other - a body created inside
+    // another is refused at the door and this case would have measured one
+    // sphere - and the second is moved onto the first before a step runs.
+    // Whether the door should read the interaction declaration the way the
+    // solver's broad phase does is an amendment to the decree and the
+    // owner's; until then a body cannot be BORN inside a medium or inside
+    // anything else, and a fixture that needs it says so and does it by
+    // hand (INV-30).
     const int a = h.add(ParticleShape::SPHERE, 0.0f, 0.0f, 1.0f, 2.0f,
                         0.9f, 0.7f, 0.2f);
-    const int b = h.add(ParticleShape::SPHERE, 1.0f, 0.0f, 1.0f, 2.0f,
+    const int b = h.add(ParticleShape::SPHERE, 4.0f, 0.0f, 1.0f, 2.0f,
                         0.85f, 0.25f, 0.25f);
     {
         auto w = h.engine.get_particle_system().lock_particles_for_write();
         auto& all = w.get_particles();
+        all[b].x = 1.0f;
         all[a].interaction_profile_id = creature.id;
         all[b].interaction_profile_id = creature.id;
     }
+    h.engine.get_particle_system().mark_bvh_dirty();
 
     int touches = 0;
     h.engine.get_event_bus().contact_filtered().subscribe(
@@ -1057,10 +1068,19 @@ void test_kinematic_bodies_still_collide() {
     // bottoms ON the turtle (z = size/2): the old rock z=1.0 sank a 3 m
     // cube half a metre below the world floor. Overlap region is
     // x [0, 1.5], z [0, 2] — still a full-contact pair.
+    // Born clear, then walked into each other (INV-37 at the birth, INV-30
+    // for the write): a body created inside another is refused at the door,
+    // and this case is about what the SOLVER reports for an overlap that
+    // exists, not about creating one.
     const int rock = h.add(ParticleShape::BOX, 0.0f, 0.0f, 1.5f, 3.0f,
                            0.5f, 0.5f, 0.5f);
-    const int walker = h.add(ParticleShape::SPHERE, 1.0f, 0.0f, 1.0f, 2.0f,
+    const int walker = h.add(ParticleShape::SPHERE, 6.0f, 0.0f, 1.0f, 2.0f,
                              0.9f, 0.3f, 0.2f);
+    {
+        auto w = h.engine.get_particle_system().lock_particles_for_write();
+        w.get_particles()[walker].x = 1.0f;
+    }
+    h.engine.get_particle_system().mark_bvh_dirty();
     h.settle();
 
     const auto& events = h.engine.get_physics_system().get_collision_events();

@@ -57,6 +57,12 @@
 #include <chrono>
 #include <thread>
 
+// The floor these scenes build is 0.1 m thick with its bottom on the
+// turtle, so its walking surface is 0.10 m. world_z for a humanoid is
+// the FEET'S BOTTOM: spawning at 0.0 buried them 80 mm in the slab,
+// which the creation door refuses (INV-37).
+static constexpr float FLOOR_TOP = 0.10f;
+
 // ========================================================================
 // Visual assertion tracking — shown live on HUD
 // ========================================================================
@@ -200,7 +206,8 @@ struct TestFixture {
         HumanoidGenerator humanoid_gen;
         humanoid_gen.initialize(&engine, &kg);
         HumanoidSpec spec = HumanoidSpec::hunter();
-        h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec, false);
+        // world_z is the feet's BOTTOM; the floor's top is 0.10 (INV-37).
+        h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP, -1, spec, false);
 
         // Build the KG body graph BEFORE registering with entity_id.
         // register_humanoid_direct(entity_id) derives DynamicsParams from
@@ -337,11 +344,12 @@ struct TestFixture {
             g.thickness = 0.12f + (std::rand() % 100) * 0.0028f;
             g.r = 0.15f; g.g = 0.45f; g.b = 0.10f;
         }
-        // Root the blade IN the floor slab (z 0..0.1): bottom lands at a
-        // random depth inside it, never below the turtle. The old fixed-z
-        // draws picked z and thickness independently, so tall blades
-        // dipped up to 5 cm under the world floor.
-        g.z = g.thickness * 0.5f + (std::rand() % 100) * 0.001f;
+        // The blade STANDS ON the floor, it is not rooted in it. Rooting it
+        // inside the slab (z 0..0.1) is a birth in overlap, which INV-37
+        // refuses at the door: the blade would simply not exist and the
+        // walker would cross bare ground. Its bottom sits on the surface and
+        // the old random draw survives as a small height jitter above it.
+        g.z = FLOOR_TOP + g.thickness * 0.5f + (std::rand() % 100) * 0.0002f;
         engine.add_particle(g);
     }
 

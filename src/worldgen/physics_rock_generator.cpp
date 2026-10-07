@@ -148,12 +148,22 @@ int PhysicsRockGenerator::create_rock_box(
     // Material pattern
     p.pattern_id = 2;  // PATTERN_STONE for rock texture
 
-    // COLLISION CHECK: Verify box doesn't overlap existing particles
-    // This is belt-and-suspenders with the geometric spacing in generate_rock_on_floor
+    // COLLISION CHECK: the box must not overlap anything that already exists.
+    // try_place_with_retry asks the engine's own overlap predicate now
+    // (ParticleSystem::deepest_overlap), which reads a tilted box as the
+    // solid it is - the tilts here are up to 0.2 rad and the old axis-aligned
+    // query was blind to them.
+    //
+    // AND THE ADD-ANYWAY PATH IS GONE. When the search failed this function
+    // added the box at its original position regardless, "geometry should
+    // have prevented overlap", which is a hope rather than a check: the
+    // creation door refuses that body anyway (INV-37) and the caller was then
+    // handed -1 and bonded to it. A box with nowhere to go is not created,
+    // and the rock is one box smaller.
     if (!particles_->try_place_with_retry(p, 10, 0.3f)) {
-        std::cout << "[PhysicsRockGenerator] WARNING: Box placement collision, using best-effort position"
-                  << std::endl;
-        // Still add the particle at original position - geometry should have prevented overlap
+        std::cout << "[PhysicsRockGenerator] no clear position for a rock box "
+                     "after 10 attempts - not created (INV-37)" << std::endl;
+        return -1;
     }
 
     return particles_->add_particle(p);
@@ -164,6 +174,11 @@ int PhysicsRockGenerator::create_rock_box(
 // ============================================================================
 
 void PhysicsRockGenerator::create_rock_gluon(int box_a, int box_b, float material_strength) {
+    // Both bodies or no bond (INV-37): a box the creation door refused has no
+    // index, and reading particles[-1] to derive the contact area produced a
+    // NaN force law that the GLUON door then aborted on - the wrong defect,
+    // one system downstream of the real one.
+    if (box_a < 0 || box_b < 0) return;
     Vec3 offset_a, offset_b;
     float contact_area;
 
@@ -278,8 +293,10 @@ PhysicsRockResult PhysicsRockGenerator::generate_rock_on_floor(
             random_range(-0.1f, 0.1f),
             r1, g1, b1, spec.density
         );
-        result.box_ids.push_back(result.core_id);
-        result.total_boxes++;
+        if (result.core_id >= 0) {
+            result.box_ids.push_back(result.core_id);
+            result.total_boxes++;
+        }
 
         // Side boxes (smaller) - NO OVERLAP with center
         // Center extends center_w/2 from origin. Side boxes must be placed
@@ -302,16 +319,19 @@ PhysicsRockResult PhysicsRockGenerator::generate_rock_on_floor(
                 random_range(-0.15f, 0.15f),
                 r, g, b, spec.density
             );
+            if (box_id < 0) continue;   // refused (INV-37): no id, no bond
             result.box_ids.push_back(box_id);
             result.total_boxes++;
 
             // Connect to center
-            create_rock_gluon(result.core_id, box_id, spec.material_strength);
+            if (result.core_id >= 0)
+                create_rock_gluon(result.core_id, box_id, spec.material_strength);
         }
 
         // Connect left to right for stability
         if (result.box_ids.size() >= 3) {
-            create_rock_gluon(result.box_ids[1], result.box_ids[2], spec.material_strength);
+            if (result.box_ids.size() > 2)
+                create_rock_gluon(result.box_ids[1], result.box_ids[2], spec.material_strength);
         }
     }
     // ========================================================================
@@ -337,8 +357,10 @@ PhysicsRockResult PhysicsRockGenerator::generate_rock_on_floor(
             random_range(-0.1f, 0.1f),
             r, g, b, spec.density
         );
-        result.box_ids.push_back(result.core_id);
-        result.total_boxes++;
+        if (result.core_id >= 0) {
+            result.box_ids.push_back(result.core_id);
+            result.total_boxes++;
+        }
 
         // Create surrounding boxes - NO OVERLAP with core
         // Core extends core_size/2 from center. Each box must be placed
@@ -371,15 +393,20 @@ PhysicsRockResult PhysicsRockGenerator::generate_rock_on_floor(
                 random_range(-0.2f, 0.2f),
                 r, g, b, spec.density
             );
+            // A box that was refused is not in the world, so it gets no id in
+            // the clump and no bonds: create_rock_gluon reads both particles
+            // by index and a -1 there indexes past the array.
+            if (box_id < 0) continue;
             result.box_ids.push_back(box_id);
             result.total_boxes++;
 
             // Connect to core
-            create_rock_gluon(result.core_id, box_id, spec.material_strength);
+            if (result.core_id >= 0)
+                create_rock_gluon(result.core_id, box_id, spec.material_strength);
         }
 
         // Add some cross-connections for structural stability
-        for (size_t i = 1; i < result.box_ids.size() - 1; i++) {
+        for (size_t i = 1; i + 1 < result.box_ids.size(); i++) {
             create_rock_gluon(result.box_ids[i], result.box_ids[i + 1], spec.material_strength);
         }
     }

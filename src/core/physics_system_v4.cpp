@@ -383,6 +383,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
         // contact build marks first, the gluon build marks later, the
         // sleep gate reads the union at frame end.
         constraint_dissatisfied_.assign(particles.size(), 0);
+        if (::logosphere::phystrace::level() >= 2) { dissat_line_.assign(particles.size(), 0); dissat_depth_.assign(particles.size(), 0.0f); dissat_partner_.assign(particles.size(), -1); }
         // PHASE 1-4: Apply gravity, predict, detect, solve constraints
         // V4.2: Angular constraints now solved alongside linear in same iteration loop
         EnergyBuckets e_before, e_after_solve, e_after_angular, e_after_integrate;
@@ -396,7 +397,7 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
                 return;
             for (size_t qi = 0; qi < particles.size(); ++qi) {
                 if (!::logosphere::phystrace::focused((int)qi, (int)qi)) continue;
-                PHYS_TRACE_F(::logosphere::phystrace::Solve, "omega_probe",
+                PHYS_TRACE_F(::logosphere::phystrace::Constraint, "omega_probe",  // per body per substep: level 5, not 2
                              (int)qi, (int)qi, site,
                              particles[qi].omega_x, particles[qi].omega_y,
                              particles[qi].omega_z);
@@ -497,6 +498,78 @@ void PhysicsSystem::update(double delta_time, int input_target_id) {
     {
         ::logosphere::telemetry::ScopedPhase _p(::logosphere::telemetry::Phase::PhysicsRestState);
         update_rest_state(particles);
+    }
+    // WHO holds whom awake (G-67's census, level >= 2): per body, which
+    // setter marked it dissatisfied (by source line) this frame.
+    if (::logosphere::phystrace::level() >= 2 && dissat_line_.size() == particles.size()) {
+        std::vector<std::pair<int,int>> held;   // (line, count)
+        std::map<int,int> by_line;
+        int quiet_held = 0;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest || dissat_line_[i] == 0) continue;
+            if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+            ++quiet_held; by_line[dissat_line_[i]]++;
+        }
+        for (auto& kv : by_line)
+            PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_by_line", kv.first, kv.second,
+                       "setter_line_count", (double)quiet_held, 0.0);
+        // the ten deepest quiet-held bodies, by their recorded depth
+        std::vector<std::pair<float,int>> deep;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest || dissat_line_[i] == 0) continue;
+            if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+            deep.push_back({dissat_depth_[i], (int)i});
+        }
+        // The gluon-held bodies carry no depth: name the first ten by line.
+        {
+            int shown = 0;
+            for (size_t i = 0; i < particles.size() && shown < 10; ++i) {
+                const Particle& p = particles[i];
+                if (p.is_at_rest || dissat_line_[i] == 0 || dissat_depth_[i] > 0.0f) continue;
+                if (p.rest_quiet_sq >= REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD) continue;
+                char why[200];
+                std::snprintf(why, sizeof why,
+                    "P%zu %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) z=%.3g bonds=%zu line=%d",
+                    i, p.shape == ParticleShape::BOX ? "BOX" : "SPH", (int)p.material_type,
+                    p.GetMass(), p.width, p.height, p.thickness, p.z,
+                    get_gluons_for_particle((int)i).size(), dissat_line_[i]);
+                PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_gluon_who", shown, 0, why, 0.0, 0.0);
+                ++shown;
+            }
+        }
+        std::sort(deep.begin(), deep.end(), [](auto& x, auto& y){ return x.first > y.first; });
+        for (size_t k = 0; k < deep.size() && k < 10; ++k) {
+            const Particle& p = particles[deep[k].second];
+            char why[200];
+            std::snprintf(why, sizeof why,
+                "P%d %s mat=%d m=%.4g dims=(%.3g,%.3g,%.3g) at(%.1f,%.1f,%.3f) bonds=%zu line=%d partner=P%d",
+                deep[k].second, p.shape == ParticleShape::BOX ? "BOX" : "SPH", (int)p.material_type,
+                p.GetMass(), p.width, p.height, p.thickness, p.x, p.y, p.z,
+                get_gluons_for_particle(deep[k].second).size(), dissat_line_[deep[k].second],
+                dissat_partner_[deep[k].second]);
+            PHYS_TRACE(::logosphere::phystrace::Frame, "dissat_who", (int)k, 0, why,
+                       (double)deep[k].first, 0.0);
+        }
+    }
+    // Level 1 FRAME record, as the trace header promises: bodies, how many
+    // sleep, how many are awake yet under the rest speed, and how many of
+    // those the dissatisfaction gate holds (G-67's census).
+    if (::logosphere::phystrace::level() >= 1) {
+        int asleep = 0, awake_quiet = 0, awake_dissatisfied = 0;
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const Particle& p = particles[i];
+            if (p.is_at_rest) { ++asleep; continue; }
+            if (p.GetMass() == 0.0f) continue;
+            if (p.rest_quiet_sq < REST_VELOCITY_THRESHOLD * REST_VELOCITY_THRESHOLD)
+                ++awake_quiet;
+            if (i < constraint_dissatisfied_.size() && constraint_dissatisfied_[i])
+                ++awake_dissatisfied;
+        }
+        PHYS_TRACE(::logosphere::phystrace::Frame, "frame", (int)particles.size(),
+                   asleep, "asleep_quiet_dissatisfied", (double)awake_quiet,
+                   (double)awake_dissatisfied);
     }
 
     // Cleanup broken gluons (and wake what they freed)
@@ -788,6 +861,21 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         canary_init = true;
         const char* env = std::getenv("CANARY_PID");
         if (env) canary_pid = std::atoi(env);
+        // CANARY_AT=x,y,z: pick the body nearest that point (ids follow the
+        // chunk streaming order and differ run to run; a place does not).
+        if (const char* at = std::getenv("CANARY_AT")) {
+            float ax = 0, ay = 0, az = 0;
+            if (std::sscanf(at, "%f,%f,%f", &ax, &ay, &az) == 3) {
+                float best = 1e30f;
+                for (size_t i = 0; i < count; ++i) {
+                    const Particle& q = particles[i];
+                    const float d = (q.x-ax)*(q.x-ax) + (q.y-ay)*(q.y-ay) + (q.z-az)*(q.z-az);
+                    if (d < best) { best = d; canary_pid = (int)i; }
+                }
+                std::cout << "[CANARY AT] (" << ax << "," << ay << "," << az << ") -> P"
+                          << canary_pid << std::endl;
+            }
+        }
         const char* env_min = std::getenv("CANARY_FRAME_MIN");
         if (env_min) canary_frame_min = std::atoi(env_min);
         const char* env_max = std::getenv("CANARY_FRAME_MAX");
@@ -1194,8 +1282,10 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
             // beyond the tolerance marks the body dissatisfied, so sleep
             // cannot freeze it mid-repair. Speculative gaps do not mark.
             if (penetration > SLEEP_PEN_TOLERANCE &&
-                i < constraint_dissatisfied_.size())
+                i < constraint_dissatisfied_.size()) {
                 constraint_dissatisfied_[i] = 1;
+                dissat_note(i, __LINE__, penetration, -1);
+            }
 
             // Turtle contacts provide equilibrium for BFS distance calculation
             active_contacts_.push_back(std::make_pair(i, i));
@@ -1799,10 +1889,14 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // Speculative rows (bias < 0, gap open) do not mark.
                     if (c.bias >= 0.0f &&
                         c.penetration > SLEEP_PEN_TOLERANCE) {
-                        if (c.body_a < constraint_dissatisfied_.size())
+                        if (c.body_a < constraint_dissatisfied_.size()) {
                             constraint_dissatisfied_[c.body_a] = 1;
-                        if (c.body_b < constraint_dissatisfied_.size())
+                            dissat_note(c.body_a, __LINE__, c.penetration, (int)c.body_b);
+                        }
+                        if (c.body_b < constraint_dissatisfied_.size()) {
                             constraint_dissatisfied_[c.body_b] = 1;
+                            dissat_note(c.body_b, __LINE__, c.penetration, (int)c.body_a);
+                        }
                     }
 
                     PHYS_TRACE_F(::logosphere::phystrace::Pair, "row_created",
@@ -2261,9 +2355,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 // anchor (kinematic rotation, teleport, mass change).
                 if (std::fabs(error) > PhysicsV4::GLUON_WAKE_STRAIN) {
                     if (body_a < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_a] = 1;
+                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
                     if (body_b < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_b] = 1;
+                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
                     // Clearing is_at_rest alone is the hysteresis trap: the
                     // rest counter stays high, the damper crushes the first
                     // small correction, and sleep re-latches within the
@@ -2719,9 +2813,9 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                 }
                 if (e_mag > 0.1f) {
                     if (body_a < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_a] = 1;
+                        { constraint_dissatisfied_[body_a] = 1; dissat_note(body_a, __LINE__, 0.0f, -1); }
                     if (body_b < constraint_dissatisfied_.size())
-                        constraint_dissatisfied_[body_b] = 1;
+                        { constraint_dissatisfied_[body_b] = 1; dissat_note(body_b, __LINE__, 0.0f, -1); }
                     if (pa.solver_mode != ParticleSolverMode::KINEMATIC) {
                         particles[body_a].is_at_rest = false;
                         particles[body_a].low_velocity_frames = 0;
@@ -3712,6 +3806,19 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
         return worst;
     };
 
+    // Level 2 ROW CENSUS: what the budget is spent on. a=turtle rows,
+    // b=body-body contact rows, v=(gluon linear rows, angular rows).
+    if (::logosphere::phystrace::level() >= 2) {
+        int n_turtle = 0, n_contact = 0, n_gluon = 0, n_ang = 0;
+        for (const Constraint& c : constraints) {
+            if (c.is_angular) ++n_ang;
+            else if (c.is_turtle_contact) ++n_turtle;
+            else if (c.is_contact) ++n_contact;
+            else ++n_gluon;
+        }
+        PHYS_TRACE(::logosphere::phystrace::Solve, "rows", n_turtle, n_contact,
+                   "gluon_angular", (double)n_gluon, (double)n_ang);
+    }
     for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
         ::logosphere::phystrace::set_iteration(iter);
         float max_impulse_this_iter = 0.0f;
@@ -4694,6 +4801,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
              max_domega_this_iter < PhysicsV4::ANGULAR_RESIDUAL_FLOOR)) {
             LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveConverged);
             solve_exit_recorded = true;
+            last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "impulse_under_absolute_threshold"};
             PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                        actual_iterations, "impulse_under_absolute_threshold",
                        max_impulse_this_iter, ABSOLUTE_THRESHOLD);
@@ -4743,6 +4851,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
                     // exit. S20: low improvement at a steady state is what a
                     // CONVERGED solve looks like, so the number is the whole
                     // story and the label is misleading on its own.
+                    last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "improvement_below_min_rate"};
                     PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                                actual_iterations, "improvement_below_min_rate",
                                improvement, MIN_IMPROVEMENT_RATE, max_impulse_this_iter);
@@ -4775,6 +4884,7 @@ void PhysicsSystem::solve_contacts_v3(ParticleSystem::WriteView& particles, floa
     // Neither door taken: the full budget ran without converging or plateauing.
     if (!solve_exit_recorded) {
         LOGO_COUNT(::logosphere::telemetry::Counter::PhysSolveExhausted);
+        last_solve_ = SolveStats{(int)constraints.size(), actual_iterations, "iteration_budget_exhausted"};
         PHYS_TRACE(::logosphere::phystrace::Solve, "solve_exit", (int)constraints.size(),
                    actual_iterations, "iteration_budget_exhausted",
                    (double)SOLVER_ITERATIONS);
@@ -6554,6 +6664,23 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
         return static_cast<size_t>(-1);
     }
 
+    // A CHILD OF A BODY THAT WAS NEVER BORN IS NOT PLACED AT THE ORIGIN.
+    // The placement law is pb = pa + offset_a - offset_b, and
+    // get_particle_copy answers Particle{} for an index it does not have —
+    // so a part whose parent the creation door refused used to be built at
+    // (0,0,0) and then reported by the TURTLE door, which named the wrong
+    // defect and aborted the world one generation downstream of the real
+    // one. Refuse here, name the parent, and let the generator's own
+    // `id < 0` guards unwind the limb.
+    if (particle_a_id >= particle_system_->count()) {
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_particle_with_gluon_to(P%zu, ...): there is "
+            "no such body to bond to (%zu live) — its own creation was refused "
+            "or removed. The part is NOT created; fix the parent's placement.\n",
+            particle_a_id, particle_system_->count());
+        return static_cast<size_t>(-1);
+    }
+
     // Get particle A's position (thread-safe copy)
     Particle pa = particle_system_->get_particle_copy(particle_a_id);
 
@@ -6569,7 +6696,23 @@ size_t PhysicsSystem::add_particle_with_gluon_to(
     }
 
     // Add particle B
-    size_t particle_b_id = particle_system_->add_particle(pb);
+    const int added_b = particle_system_->add_particle(pb);
+
+    // THE CREATION DOOR may have refused it (INV-37): the placement law
+    // pb = pa + offset_a - offset_b puts a bonded part wherever the offsets
+    // say, and "the generator drew it that way" is not a licence to be born
+    // inside something. A refused body gets NO BOND — a gluon whose B is
+    // (size_t)-1 would index past the array on its first solve, and a bond to
+    // a body that does not exist is a lie about the structure.
+    if (added_b < 0) {
+        std::fprintf(stderr,
+            "[PHYSICS REFUSED] add_particle_with_gluon_to(P%zu, ...): the "
+            "creation door refused body B (INV-37, see the line above) — the "
+            "bond was NOT created. Fix the part's placement at its generator.\n",
+            particle_a_id);
+        return static_cast<size_t>(-1);
+    }
+    size_t particle_b_id = static_cast<size_t>(added_b);
 
     // Setup gluon
     gluon->particle_a = particle_a_id;

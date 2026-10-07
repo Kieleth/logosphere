@@ -1091,3 +1091,176 @@ D6 is cheap, independent of the router's election machinery, and
 useful before Kamaji exists: the counter can be built and left running
 to gather the distribution while the rest is designed. Its vocabulary
 limit is boarded as R6.
+
+## OWNER RULING — THE FRAME COLLAPSE, TDD FIRST (2026-09-01)
+
+Owner: "I'd like to TDD all this first of any change." Eden's 3.4 s
+frames (G-67's RCA) are one chain: stones born inside strata tiles
+(Eden's rock.z = 0.15, INV-4), G-48's sleep veto reading a permanent
+overlap as a repair in progress, 30,000 contact rows from ~900 quiet
+bodies that cannot sleep, the solver's budget exhausted every substep.
+`test_jammed_sleep` (+ `_visual`) carries the chain as four born-red
+cases on a real stage (G-67 A/B, G-48 C as the guard, G-68 D), reading
+the solver's own verdict through the new `PhysicsSystem::last_solve()`.
+Instruments repaired in the same slice: the bench records the wall
+clock; the trace emits its frame record, a row census by kind, no
+per-body probe at level 2, and flushes at exit. NOTHING IS FIXED YET:
+Eden's rock placement, G-67's progress law and G-68's door contract
+each wait on their red and on the owner's order.
+
+## PARKED — at_logotron_full_game_loop segfaults intermittently (2026-09-01)
+
+Sweep on tdd/jammed-sleep: rc -11 at 0.2 s, once; three direct reruns
+and the previous sweep pass. A segfault is a real latent bug, not a
+phantom; it is not this slice's (the only default-path change here is
+a member assignment in the solver). Booked for its own hunt: run it
+under ASan (the heap-corruption chain in memory) when a physics round
+has room.
+
+## OWNER DECREE (2026-09-01): CREATION NEVER OVERLAPS — INV-37
+
+"Under no circumstances, any creation of particles should be allowed to
+overlap in space with another." Supersedes the creation-door merge note
+above: the door lands STRICT and UNCONDITIONAL, refusing (dropping from
+the flush, with a [PHYSICS REFUSED] line naming the pair) any creation
+that overlaps an existing body beyond SLOP. No class list. The crown's
+structural band and the humanoid's boxes become generator defects to
+fix, not exemptions. CLEAN NOW: port the door into this tree, strict;
+witnesses test_jammed_sleep A and D (red until then). Then Eden's rock
+scatter (rock.z = 0.15 inside the tile) gets refused on first run and
+is fixed at its source.
+
+## LANDED 2026-09-02 — THE CREATION DOOR AT THE CHOKE POINT (INV-37)
+
+Owner ruling 2026-09-02, choosing the design: "fresh at the choke point,
+with the incremental BVH cost measured on the headless bench before it
+ships, in TDD please", and on the audit's source fixes: "all of them need
+fixing, I'd just bundle it up with [the door]".
+
+WHERE. `ParticleSystem::add_particle`, before the `push_back` — the one
+point every birth crosses (the pending flush, `Engine::add_particle`,
+both chunk paths, entity activation, the generators' direct adds,
+`PhysicsSystem::add_particle_with_gluon_to`). A door at the flush
+boundary (the shape designed on `feat/creation-overlap-door`) misses
+every direct add until the next flush, and headless runs never flush.
+
+CONTRACT. A creation overlapping a live body deeper than SLOP is
+REFUSED: the body never enters the array, the call returns the invalid
+id `-1`, the reason is readable through `last_creation_refusal()`, and a
+`[PHYSICS REFUSED] add_particle(...)` line names both bodies and the
+depth in mm. No lenient switch and no class list (INV-37).
+`CREATION_DOOR=0` kills the door for A/B measurement only (INV-36's
+pattern: a diagnostic, never a shipping mode).
+
+COST. An incremental AABB tree owned by the door, insert per birth,
+refit only when the world has moved, rebuild only when indices shift.
+The batch audit on the old branch cost 20.4 ms for 12,440 bodies with a
+full BVH rebuild; that is the number to beat, and the headless Eden
+bench is the jury.
+
+THE SOURCE FIXES bundled with it (`docs/todo_plans/CREATION_OVERLAP_AUDIT.md`
+§2-4), each red before it is touched: Eden's literal heights against the
+0.55 m floor; the chunk re-created around leftover ad-hoc bodies (G-68);
+the humanoid rig's arm/hair/eye overlaps; the fourteen humanoid tests at
+`world_z = 0.0`; the generators by design (tree crown junctions, grass
+stem seams and tilted blades, grass foliage, the rock clump's tilt-blind
+check, the predator examples); `test_solver_residual`'s interlocked
+instrument and `test_humanoid_movement`'s grass rooted in the slab.
+
+OPEN QUESTIONS, registered before the code: GEDANKEN-69 (can a per-birth
+door be afforded, and what does a caller do with a refusal),
+GEDANKEN-70 (the crown placement law), GEDANKEN-71 (what Eden owes its
+ad-hoc bodies when their chunk comes back).
+
+### WHAT LANDED, AND WHAT IT COST
+
+The door is in `ParticleSystem::add_particle` before the `push_back`, and
+at `queue_particle_addition` so a refused body is never counted in a
+predicted index. INV-37 is `active`. Cost on Eden's world: 11,783 births
+judged, 45,523 exact narrow-phase tests, **9.01 ms total, 0.76 us per
+birth**, one index rebuild and two refits — against the batch design's
+20.4 ms for 12,440 bodies with a full BVH rebuild.
+
+Headless Eden bench, fixed instrument, 140 frames at 320x180:
+`[BENCH_STEADY] avg 2740.9 ms -> 822.4 ms` (median 2584.5 -> 759.7).
+3.33x. `test_jammed_sleep` went from 10 red to 0; `test_creation_door` is
+new and green at 31 of 31.
+
+### STILL OPEN, WITH NUMBERS
+
+**F-GRASS — the patch has no placement law (1670 refusals, the largest
+class).** leaf-into-stem 565, leaf-into-tiny 365, stem-into-leaf 266,
+stem-into-stem 262, leaf-into-tile 128, leaf-leaf 28. The within-blade
+retry landed and found almost nothing, which is the finding: these are
+CROSS-BLADE. A patch's blades are independent `generate()` calls that
+store into the KG, and the chunk activator materialises them by replaying
+the stored position verbatim, so no placement query stands anywhere in
+that path. Two candidate mechanisms, neither guessed at yet: derive blade
+spacing at the patch from blade girth + foliage radius, or query at
+activation and drop what cannot be placed. NEEDS DESIGN.
+
+**F-CROWN residual — 53 refusals (36 branch-branch, 17 branch-trunk,
+worst 141 mm).** The supporting-plane push and the sibling slide fixed
+the class; these are the tail where 8 slides do not clear a crowded fork.
+Whether the answer is more slides, a real junction body, or accepting the
+dropped subtree is GEDANKEN-70's remaining question. NEEDS DESIGN.
+
+**F-FRAME — the frame collapse is NOT closed.** With nothing born in
+overlap, Eden's steady frame is 900 ms where the commit before the squash
+measured 229 ms. G-67's chain has another link and it is not creation
+overlap. The next probe is the trace's own frame record (bodies / asleep /
+awake-quiet / dissatisfied) on the post-door world. OWNER RULING owed on
+whether that comes before or after the grass.
+
+### THE SWEEP'S OWN LIST (2026-09-02, after the door)
+
+Fifteen new reds on the first armed sweep; ten were defects and are fixed
+at the source, five are the two open fronts wearing different names.
+
+FIXED: three cascades that named the wrong defect one system downstream
+(the chunk activator bonding to a refused body, the rock generator's
+NaN force law from `particles[-1]`, its add-anyway placement path); the
+O(n^2) the door had at the queue; twenty-four humanoid scenes spawned
+0.5 against a 0.55 strata surface or 0.0 against a 0.10 slab;
+`test_gi_bounce` and `test_ssgi_visual`'s own scenery (a 2 m obelisk
+0.1 m inside its floor, a Cornell box whose four walls were born through
+each other at the corners and through the ceiling); the KG humanoid
+rig's ears, hair and arms; three instruments restaged as INV-30 writes
+(`test_baumgarte_ratchet`, `test_interaction_filtering`,
+`test_predator_hunt`); `at_cinematic`'s stand-in bike, which sat exactly
+where the cinematic pops the Program in.
+
+BOOKED, with numbers, in TEST_AUDIT: `test_ancient_oak`,
+`test_tree_bonds_born_at_rest`, `test_tree_shadow_wiggly`,
+`test_tree_repair_visual`, `test_foliage_stays_attached` (F-CROWN);
+`test_plants_are_rooted` (F-GRASS); `at_logotron_full_game_loop` (the
+motorcycle rig nests rider-in-canopy and wheels-in-body, the same class
+as the humanoid rig's arm-in-shoulder and the same kind of fix).
+
+**F-BIKE — the logotron motorcycle rig nests its own parts.** Rider
+inside canopy, wheels inside body. Offsets, not exemptions, exactly as
+the humanoid rig took. Three real defects around it are already fixed:
+the wheels rode 0.10 m inside the arena slab, the live light-trail was
+drawn to the cycle's own centre so its head was born inside the bike
+every frame, and the decorative floor grid could not exist as bodies at
+all (2551 refusals in one run; removed, and a grid belongs in the floor
+tiles' colour). NEEDS DESIGN.
+
+**OWNER RULING OWED — a body cannot be BORN inside a declared medium.**
+`test_interaction_volume_forces` puts a ball in a water column, and the
+door refuses it: the ball measured 10.15 m of penetration and was never
+created. The solver ALREADY refuses to build a contact row for a
+declared-passable pair (`interaction_->should_contact`), so none of the
+harm INV-37 names - a separating impulse, a repair that never completes,
+a sleep veto that never lifts - can occur for such a pair. Whether the
+door should read that same declaration is an amendment to the decree,
+not a class list, and it is the owner's call. The fixture places its
+ball by hand meanwhile, and says so in the file.
+## IN FLIGHT (2026-09-02): the creation door + the audit's fixes, one agent
+
+Owner rulings 1 and 2 (LEDGER 2026-09-02). feat/creation-door, stacked
+on #166: test_creation_door born red; the refusal inside add_particle
+with an incremental BVH; the headless bench before/after; Eden's first-
+run refusal census as the red list; every audit-found birth fixed at
+its source; sweep alone; PR for the owner's merge. Windows after the
+report, launched by the dispatcher.

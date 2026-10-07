@@ -23,6 +23,12 @@
 #include "humanoid_validator.h"
 #include <string>
 
+// The floor these scenes build is 0.1 m thick with its bottom on the
+// turtle, so its walking surface is 0.10 m. world_z for a humanoid is
+// the FEET'S BOTTOM: spawning at 0.0 buried them 80 mm in the slab,
+// which the creation door refuses (INV-37).
+static constexpr float FLOOR_TOP = 0.10f;
+
 int main(int, char**) {
     // Headless by default. This is an interactive FK demo: the main loop is
     // driven by GLFW input (SPACE cycles clips, ESC exits) against a live
@@ -100,7 +106,8 @@ int main(int, char**) {
     humanoid_gen.initialize(&engine, &kg);
 
     HumanoidSpec spec = HumanoidSpec::hunter();
-    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, 0.0f, -1, spec, false);
+    // world_z is the feet's BOTTOM; the floor's top is 0.10 (INV-37).
+    auto h = humanoid_gen.generate_humanoid_physics(0.0f, 0.0f, FLOOR_TOP, -1, spec, false);
 
     engine.get_humanoid_locomotion().register_humanoid_direct(
         h.hips_id,

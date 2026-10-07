@@ -45,6 +45,13 @@ void set_sink(const char* path) {
     // when the next run starts, and these are usually captured in pairs.
     g_sink = std::fopen(path, "a");
     if (g_sink) {
+        // A short trace (a level-1 run of a few frames) sat in stdio's
+        // buffer and was lost at exit; the sink flushes itself on exit.
+        static const bool flush_registered = []{
+            std::atexit([]{ std::lock_guard<std::mutex> l(g_sink_mutex);
+                            if (g_sink) std::fflush(g_sink); });
+            return true; }();
+        (void)flush_registered;
         std::fprintf(g_sink, "# physics trace level=%d\n", level());
         std::fflush(g_sink);
     }

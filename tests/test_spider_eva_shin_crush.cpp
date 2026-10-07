@@ -78,7 +78,9 @@ bool test_spider_eva_shin_crush() {
     // BVH state align with the reproducing conditions.
     auto& hgen = engine.get_worldgen_system().get_humanoid_generator();
     auto eva = hgen.generate_humanoid_physics(
-        25.0f, -25.0f, 0.5f, -1, HumanoidSpec::eva(), false);
+        // 0.55, not 0.5: world_z is the FEET'S BOTTOM and this scene's strata
+        // surface is 0.30 + 0.15 + 0.10 = 0.55 (INV-37).
+        25.0f, -25.0f, 0.55f, -1, HumanoidSpec::eva(), false);
     auto& kg = engine.get_kg();
     eva.create_kg_entities(kg, "Human", 180.0f, 800.0f);
     engine.get_humanoid_locomotion().register_humanoid_direct(

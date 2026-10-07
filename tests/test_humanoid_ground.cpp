@@ -99,7 +99,7 @@ bool test_humanoid_ground(TestContext& /* ctx */) {
     gen.initialize(&engine, nullptr);
 
     PhysicsHumanoidResult humanoid = gen.generate_humanoid_physics(
-        0.0f, 0.0f, 0.0f,      // Start at origin
+        0.0f, 0.0f, floor_top,  // Standing ON the floor (INV-37: world_z is the feet's bottom)
         floor_id,               // Use our floor as platform (no extra platform created)
         HumanoidSpec::eva(),    // Use Eva spec
         false                   // No KG support needed

@@ -7,8 +7,11 @@
 #include <mutex>
 #include <shared_mutex>
 #include <functional>
+#include <map>
+#include <string>
 #include "particle.h"
 #include "logosphere/physics/bvh.h"
+#include "logosphere/physics/creation_door.h"
 
 // Forward declarations
 namespace kg {
@@ -115,8 +118,34 @@ public:
     
     // Deferred particle addition for thread safety
     // TODO[ARCH-003]: Consider double-buffering if deferred addition causes gameplay issues
-    int queue_particle_addition(const Particle& particle);  // Queues particle, returns future ID
+    // Queues a particle and returns the index it will take once flushed, or
+    // -1 when THE CREATION DOOR refuses it (INV-37). The door stands here as
+    // well as at add_particle so a refused body is never counted in a
+    // prediction: the index this returns is computed from the live count plus
+    // the queue length, so a body dropped later would silently shift every
+    // prediction handed out after it (GEDANKEN-69).
+    int queue_particle_addition(const Particle& particle);
     void flush_pending_particles();  // Apply all queued additions (call between frames)
+
+    // =========================================================================
+    // THE CREATION DOOR (INV-37) — nothing is born inside anything
+    // =========================================================================
+    // Owner decree 2026-09-01. The refusal itself lives in add_particle, at
+    // the push_back every birth crosses; the contract and the reasoning are in
+    // include/logosphere/physics/creation_door.h.
+    //
+    // A refused creation returns the invalid id -1 and leaves the world
+    // untouched. The reason is readable here, by the caller that asked.
+    const logosphere::CreationRefusal& last_creation_refusal() const {
+        return last_refusal_;
+    }
+    const logosphere::CreationDoorStats& creation_door_stats() const {
+        return door_stats_;
+    }
+    // The census: every refusal grouped by the recipe that produced it, with
+    // the door's own accumulated cost. Printed once at destruction when the
+    // door refused anything, and callable on demand.
+    void report_creation_door() const;
 
     // Deferred particle deletion for GPU triple buffering safety
     // Queue deletions with frame number, flush when GPU has finished with those frames
@@ -187,7 +216,17 @@ public:
     // Check if placing a particle at given position would overlap existing particles.
     // Used by generators to ensure no overlapping particles are created.
     // gap: minimum separation between particle surfaces (default 2cm for physics stability)
-    bool can_place_at(float x, float y, float z, float w, float h, float t, float gap = 0.02f) const;
+    // THE ONE OVERLAP PREDICATE (INV-12, INV-37). How deep this body would
+    // be inside the deepest thing it touches, through the engine's own narrow
+    // phase - the same verdict the creation door will reach, so a generator
+    // that asks this and acts on the answer is never refused for a placement
+    // it was told was legal. Returns 0 when clear or merely touching.
+    // `ignore_index` is the body this one is about to be BONDED to (-1 for
+    // none); `out_blocker` receives the live index it hit.
+    float deepest_overlap(const Particle& probe, int ignore_index = -1,
+                          int* out_blocker = nullptr);
+
+    bool can_place_at(float x, float y, float z, float w, float h, float t, float gap = 0.02f);
 
     // Same question, but ignoring one body: the thing this one is about to be
     // BONDED to. A child branch is meant to touch its parent end to end, so
@@ -202,7 +241,7 @@ public:
     // particle is not measured as if it were axis-aligned. Existing bodies are
     // widened by their own facing_angle automatically.
     bool can_place_at_ignoring(float x, float y, float z, float w, float h, float t,
-                               float gap, int ignore_id, float facing_angle = 0.0f) const;
+                               float gap, int ignore_id, float facing_angle = 0.0f);
 
     // Try to place a particle with retry. Jitters position if overlap detected.
     // Returns true if placement succeeded, false if all attempts failed.
@@ -285,7 +324,13 @@ public:
     const BVH* get_shadow_bvh() const { return &shadow_bvh_; }
     
     // Mark BVH as needing rebuild (call when particles move)
-    void mark_bvh_dirty() { bvh_dirty_ = true; }
+    //
+    // This is also the creation door's signal that the world has MOVED: the
+    // door's index stores each body's bounds where it was when it was
+    // inserted, and a stale bound makes the door miss an overlap. The refit
+    // is deferred to the next birth, so a frame that creates nothing pays
+    // nothing.
+    void mark_bvh_dirty() { bvh_dirty_ = true; creation_index_stale_ = true; }
     
     // Surface query methods
     
@@ -353,8 +398,33 @@ private:
     // Using shared_mutex: Multiple readers (render threads) OR single writer (chunk system)
     mutable std::shared_mutex particles_mutex_;
 
-    // Deferred particle queue for thread-safe addition during rendering
-    std::queue<Particle> pending_particles;
+    // Deferred particle queue for thread-safe addition during rendering.
+    // Deque, not queue, so the creation door can test a newcomer against the
+    // batch already queued (INV-37: two bodies queued into the same place are
+    // still two bodies in the same place).
+    std::deque<Particle> pending_particles;
+
+    // ---- THE CREATION DOOR (INV-37) ----------------------------------------
+    // creation_index_ mirrors the LIVE array; pending_index_ mirrors the
+    // pending deque and is cleared at every flush. Both are incremental: a
+    // birth inserts one leaf, the world moving costs one refit, and only a
+    // swap-and-pop (which changes what an index MEANS) costs a rebuild.
+    logosphere::CreationIndex     creation_index_;
+    logosphere::CreationIndex     pending_index_;
+    size_t                        creation_indexed_count_ = 0;
+    bool                          creation_index_stale_ = false;    // world moved
+    bool                          creation_index_invalid_ = true;   // indices moved
+    logosphere::CreationRefusal   last_refusal_;
+    logosphere::CreationDoorStats door_stats_;
+    std::map<std::string, size_t> door_census_;
+    size_t                        door_lines_printed_ = 0;
+
+    // Judge one birth against what already exists. Returns true when the body
+    // must be REFUSED; fills last_refusal_ and prints the [PHYSICS REFUSED]
+    // line. The caller must already hold whatever lock protects `particles`.
+    bool creation_door_refuses(const Particle& p, int would_be_index,
+                               const char* door_name, bool against_pending);
+    void sync_creation_index();   // refit / rebuild as the flags demand
 
     // Deferred deletion queue for GPU triple buffering safety
     // Mirrors pending_particles pattern - deletions queued with future frame number
