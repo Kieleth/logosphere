@@ -2558,3 +2558,35 @@ G). Owner rulings owed: the order of the three fixes (recommended: the
 birth-asleep check, then the merge's containment case, then the tree
 bonds), the merge order of #166 / #168 / #169, the door agent's three
 decided-alone items.
+
+## 2026-10-06 — OWNER RULING: a merge is asked on a green window of the branch's own claim
+
+Owner, handed the jammed-sleep window (born red by design, #166's TDD
+stage) as the QA vehicle for #168 and told its verdict from the
+driver's closing line: "we have reds here, why you present me to see
+this if there are clearly REDS?" and "I thought we had an agreement
+that unless stated, all should be GREEN before asking for merging?"
+Two defects, both mine: the wrong vehicle (a born-red experiment is not
+a branch's merge window) and the wrong report (the closing line prints
+the headless count, never filled in a window; the panel read 18/32,
+12/85, 18/37). The rule, standing: a merge ruling is asked only on a
+window showing the branch's OWN claim all green; a red is allowed only
+when it is declared red-by-design before the owner opens the window
+and never the majority; a panel verdict is read from the panel's
+ASSERTS lines or the screenshots, never from a closing line.
+
+Owner: "build". The door's own window: `test_creation_door` restaged
+as a shared scene (`tests/scenes/scene_creation_door.h`) with a
+windowed twin, seven cases on Eden's tile, every refused birth beside
+its admitted twin, born beat by beat, the same evaluator on the live
+panel, SPACE replays through the teleport law, the panel's count line
+written to the tee'd log whenever it changes. Headless 92 of 92 in the
+default world (the 31 checks became 92: the same claims, each admitted
+body now also standing and asleep), 92 of 92 under TURTLE_LENIENT, the
+windowed binary headless in the engine's world 0 red of 90 plus the
+two readings, and `CREATION_DOOR=0` 67 of 92 with every refusal line
+red by design and the pre-door world's own consequences on stage (a
+tile that cannot sleep under a buried stone, a sphere ejected to
+z 1.893, the bar lifted to 0.551). Not staged: a humanoid birth (the
+generator needs the entity machinery; the bonded part stands in for
+structures). The #168 ruling is asked on this window.

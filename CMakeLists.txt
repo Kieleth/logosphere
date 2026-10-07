@@ -1477,6 +1477,7 @@ target_link_libraries(test_creation_door PRIVATE
     logosphere_dynamics)
 target_include_directories(test_creation_door PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(test_creation_door PRIVATE cxx_std_17)
@@ -1613,6 +1614,22 @@ if(LOGOSPHERE_FULL)   # full profile only; see the gate note above
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_features(test_jammed_sleep_visual PRIVATE cxx_std_17)
+
+    # The creation door's window (INV-37): seven cases on one stage, born
+    # beat by beat, SPACE replays. Shared scene in tests/scenes/scene_creation_door.h.
+    add_executable(test_creation_door_visual tests/test_creation_door_visual.cpp)
+    target_link_libraries(test_creation_door_visual PRIVATE
+        logosphere glfw
+        "-framework Cocoa" "-framework IOKit" "-framework CoreVideo"
+        "-framework CoreGraphics" "-framework AppKit"
+        "-framework Foundation" "-framework QuartzCore"
+        "-framework Metal" "-framework MetalKit"
+        "-framework MetalPerformanceShaders")
+    target_include_directories(test_creation_door_visual PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_features(test_creation_door_visual PRIVATE cxx_std_17)
 endif()
 
 if(LOGOSPHERE_FULL)   # full profile only; see the gate note above

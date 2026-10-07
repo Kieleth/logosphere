@@ -24,6 +24,11 @@ follow [Semantic Versioning](https://semver.org) on a 0.x line
   bodies, against the 20.4 ms a single batch rebuild cost 12,440 on the
   earlier design. Eden's headless steady frame goes from 2740.9 ms to
   822.4 ms with the births that could never sleep refused.
+- **`test_creation_door_visual`: the door's window.** The door's contract
+  restaged as seven cases on one stage (`tests/scenes/scene_creation_door.h`,
+  shared with the headless `test_creation_door`): every refused birth beside
+  its admitted twin, born beat by beat, the same evaluator on the live panel,
+  SPACE replays, `CREATION_DOOR=0` shows the pre-door world red by design.
 - **`ParticleSystem::deepest_overlap()`.** One overlap predicate for the
   whole engine: how deep a proposed body would be inside the deepest thing
   it touches, through the engine's own narrow phase. `can_place_at`,
